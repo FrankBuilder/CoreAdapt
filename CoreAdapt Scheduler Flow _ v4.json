@@ -1,0 +1,715 @@
+{
+  "name": "CoreAdapt Scheduler Flow | v4",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cal-booking",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "50957a6b-372c-4f49-b952-17e4b27a64ed",
+      "name": "Webhook: Cal.com Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1328,
+        256
+      ],
+      "webhookId": "cal-booking-webhook-v4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cal.com sends data in body.payload structure\nconst webhookData = $input.first().json.body || $input.first().json;\nconst payload = webhookData.payload || webhookData;\n\n// Parse dates\nconst startTime = new Date(payload.startTime);\nconst endTime = new Date(payload.endTime);\nconst duration = Math.round((endTime - startTime) / 60000); // minutes\n\n// Get attendee info\nconst attendee = payload.attendees?.[0] || {};\n\n// Get phone from responses (Cal.com structure)\nconst phoneResponse = payload.responses?.attendeePhoneNumber?.value || \n                     attendee.phoneNumber || \n                     null;\n\n// Clean phone format (remove +, spaces, dashes)\nconst cleanPhone = phoneResponse ? \n  phoneResponse.replace(/\\D/g, '') : \n  null;\n\n// Gerar múltiplos formatos para matching\nlet phoneWith9 = cleanPhone || '';\nlet phoneWithout9 = cleanPhone || '';  // Inicializa com mesmo valor\n\n// Se tem 13 dígitos e começa com 55 (ex: 5585999855443)\nif (cleanPhone && cleanPhone.length === 13 && cleanPhone.startsWith('55')) {\n  const ddd = cleanPhone.substring(2, 4);  // 85\n  const ninthDigit = cleanPhone.substring(4, 5);  // 9\n  const restDigits = cleanPhone.substring(5);  // 99855443\n  \n  // Se o 5º dígito é 9 (9º dígito), criar versão sem ele\n  if (ninthDigit === '9') {\n    phoneWithout9 = '55' + ddd + restDigits;  // 558599855443\n  }\n}\n\n// Format for WhatsApp - SEMPRE gera valor, nunca null\nconst whatsappFormat = phoneWith9 ? `${phoneWith9}@s.whatsapp.net` : '';\nconst whatsappFormatAlt = phoneWithout9 ? `${phoneWithout9}@s.whatsapp.net` : whatsappFormat;\n\n// Get meeting URL from metadata or location\nconst meetingUrl = payload.metadata?.videoCallUrl || \n                   payload.location || \n                   '';\n\nreturn [{\n  json: {\n    // Cal.com identifiers\n    booking_uid: payload.uid,\n    event_type_id: payload.eventTypeId,\n    event_title: payload.eventTitle || payload.title || 'Mesa de Clareza',\n    \n    // Meeting details\n    meeting_date: startTime.toISOString(),\n    meeting_end_date: endTime.toISOString(),\n    meeting_duration_minutes: duration,\n    meeting_timezone: attendee.timeZone || 'America/Sao_Paulo',\n    meeting_url: meetingUrl,\n    location_type: payload.location,\n    \n    // Attendee info\n    attendee_email: attendee.email || payload.responses?.email?.value || '',\n    attendee_name: attendee.name || payload.responses?.name?.value || '',\n    attendee_timezone: attendee.timeZone,\n    attendee_phone_raw: phoneResponse,\n    \n    // Phone em múltiplos formatos - NUNCA null\n    phone_with_9: phoneWith9,\n    phone_without_9: phoneWithout9,\n    whatsapp_format: whatsappFormat,\n    whatsapp_format_alt: whatsappFormatAlt,\n    \n    // Metadata\n    cal_metadata: payload.metadata || {},\n    trigger_event: webhookData.triggerEvent,\n    created_at: webhookData.createdAt,\n    \n    // Full payload for debugging\n    full_payload: webhookData\n  }\n}];"
+      },
+      "id": "f271013e-c1cf-47fe-9370-6b4e0b6893d7",
+      "name": "Parse: Webhook Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1136,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.id as contact_id,\n  c.company_id,\n  c.full_name,\n  c.whatsapp,\n  c.phone_number,\n  c.email,\n  c.opt_out,\n  ls.total_score as anum_score,\n  ls.authority_score,\n  ls.need_score,\n  ls.urgency_score,\n  ls.money_score,\n  ls.qualification_stage,\n  pc.category_label_pt as pain_category,\n  co.evolution_api_url,\n  co.evolution_instance,\n  co.evolution_api_key\nFROM corev4_contacts c\nLEFT JOIN corev4_lead_state ls ON ls.contact_id = c.id\nLEFT JOIN corev4_pain_categories pc ON pc.id = ls.main_pain_category_id\nINNER JOIN corev4_companies co ON co.id = c.company_id\nWHERE (\n  -- Busca por whatsapp com ou sem @s.whatsapp.net\n  REPLACE(c.whatsapp, '@s.whatsapp.net', '') = $1\n  OR\n  -- Busca por phone_number\n  c.phone_number = $1\n  OR\n  c.phone_number = $2\n  OR\n  -- Tenta remover o 9º dígito do parâmetro pra buscar\n  REPLACE(c.whatsapp, '@s.whatsapp.net', '') = REPLACE($1, '55859', '5585')\n  OR\n  c.phone_number = REPLACE($1, '55859', '5585')\n)\nAND c.is_active = true\nLIMIT 1",
+        "options": {
+          "queryReplacement": "={{ [$json.phone_with_9, $json.phone_without_9] }}"
+        }
+      },
+      "id": "9ead49d9-08f8-4c24-8f28-96168caffa86",
+      "name": "Match: Contact by Email/Phone",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -928,
+        256
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "contact-found-condition",
+              "leftValue": "={{ $json.contact_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cf6dd4e7-b970-40f3-971a-02562610ef9a",
+      "name": "Check: Contact Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -736,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  role,\n  message,\n  message_timestamp\nFROM corev4_chat_history\nWHERE contact_id = $1\n  AND company_id = $2\nORDER BY message_timestamp DESC\nLIMIT 10",
+        "options": {
+          "queryReplacement": "={{ [\n  $('Match: Contact by Email/Phone').item.json.contact_id,\n  $('Match: Contact by Email/Phone').item.json.company_id\n] }}"
+        }
+      },
+      "id": "8be7c835-355f-4528-b9be-b03fe8ed1b6c",
+      "name": "Fetch: Recent Chat History",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -528,
+        144
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const messages = $input.all();\nconst contactData = $('Match: Contact by Email/Phone').first().json;\n\n// Reverse to chronological order\nconst chronological = messages.reverse();\n\n// Format for AI\nconst formattedChat = chronological.map(m => {\n  const role = m.json.role === 'human' ? 'Lead' : 'Frank';\n  return `${role}: ${m.json.message}`;\n}).join('\\n\\n');\n\nreturn [{\n  json: {\n    contact_id: contactData.contact_id,\n    contact_name: contactData.full_name,\n    conversation_text: formattedChat,\n    message_count: messages.length,\n    anum_score: contactData.anum_score,\n    qualification_stage: contactData.qualification_stage,\n    pain_category: contactData.pain_category\n  }\n}];"
+      },
+      "id": "0b3dcafd-0478-40c5-be3d-c13273c6e89c",
+      "name": "Format: Chat for AI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an executive assistant preparing Francisco Pasteur for a Mesa de Clareza (Clarity Session).\\n\\nYour task: Analyze the conversation history and create a concise, actionable summary.\\n\\nFocus on:\\n1. Lead's main business challenge/pain point\\n2. Key qualification signals (authority, urgency, budget)\\n3. Specific topics discussed\\n4. Questions or concerns raised\\n5. Opportunity areas for strategic conversation\\n\\nFormat:\\n- 3-5 bullet points\\n- Each point: 1-2 sentences\\n- Professional, objective tone\\n- Highlight action items or red flags\\n\\nKeep it under 200 words total.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"# LEAD INFORMATION\\n\\nName: \" + $('Format: Chat for AI').item.json.contact_name + \"\\nANUM Score: \" + $('Format: Chat for AI').item.json.anum_score + \"/100\\nQualification Stage: \" + $('Format: Chat for AI').item.json.qualification_stage + \"\\nPain Category: \" + $('Format: Chat for AI').item.json.pain_category + \"\\n\\n# CONVERSATION HISTORY\\n\\n\" + $('Format: Chat for AI').item.json.conversation_text + \"\\n\\n---\\n\\nGenerate a meeting prep summary for Francisco Pasteur.\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 300\n} }}",
+        "options": {}
+      },
+      "id": "dd79dd92-2a0a-4098-9287-ea01fccbd2aa",
+      "name": "AI: Generate Meeting Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -128,
+        144
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "credentials": {
+        "openAiApi": {
+          "id": "txoE7pVX433qEz2A",
+          "name": "OpenAI | CORE ONE™ - FRANK | TEXTO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_scheduled_meetings",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.company_id }}"
+            },
+            {
+              "fieldId": "meeting_date",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.meeting_date }}"
+            },
+            {
+              "fieldId": "meeting_end_date",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.meeting_end_date }}"
+            },
+            {
+              "fieldId": "meeting_duration_minutes",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.meeting_duration_minutes }}"
+            },
+            {
+              "fieldId": "meeting_type",
+              "fieldValue": "mesa_clareza"
+            },
+            {
+              "fieldId": "meeting_timezone",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.meeting_timezone }}"
+            },
+            {
+              "fieldId": "cal_booking_uid",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.booking_uid }}"
+            },
+            {
+              "fieldId": "cal_event_type_id",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.event_type_id }}"
+            },
+            {
+              "fieldId": "cal_event_title",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.event_title }}"
+            },
+            {
+              "fieldId": "cal_attendee_email",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.attendee_email }}"
+            },
+            {
+              "fieldId": "cal_attendee_name",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.attendee_name }}"
+            },
+            {
+              "fieldId": "cal_attendee_timezone",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.attendee_timezone }}"
+            },
+            {
+              "fieldId": "cal_location",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.location_type }}"
+            },
+            {
+              "fieldId": "cal_meeting_url",
+              "fieldValue": "={{ $('Parse: Webhook Payload').first().json.meeting_url }}"
+            },
+            {
+              "fieldId": "cal_metadata",
+              "fieldValue": "={{ JSON.stringify($('Parse: Webhook Payload').first().json.cal_metadata) }}"
+            },
+            {
+              "fieldId": "anum_score_at_booking",
+              "fieldValue": "={{ Math.floor($('Match: Contact by Email/Phone').first().json.anum_score || 0) }}"
+            },
+            {
+              "fieldId": "authority_score",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.authority_score }}"
+            },
+            {
+              "fieldId": "need_score",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.need_score }}"
+            },
+            {
+              "fieldId": "urgency_score",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.urgency_score }}"
+            },
+            {
+              "fieldId": "money_score",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.money_score }}"
+            },
+            {
+              "fieldId": "qualification_stage",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.qualification_stage }}"
+            },
+            {
+              "fieldId": "pain_category",
+              "fieldValue": "={{ $('Match: Contact by Email/Phone').first().json.pain_category }}"
+            },
+            {
+              "fieldId": "conversation_summary",
+              "fieldValue": "={{ $('AI: Generate Meeting Summary').item.json.choices[0].message.content }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "scheduled"
+            },
+            {
+              "fieldId": "created_by",
+              "fieldValue": "cal_webhook"
+            }
+          ]
+        }
+      },
+      "id": "c02dcf93-f1a8-4ea1-883c-ffe63535c75c",
+      "name": "Save: Meeting Record",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        80,
+        144
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const booking = $('Parse: Webhook Payload').first().json;\nconst contact = $('Match: Contact by Email/Phone').first().json;\n\n// Format date/time for Brazil\nconst meetingDate = new Date(booking.meeting_date);\nconst formatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst dateStr = formatter.format(meetingDate);\nconst [date, time] = dateStr.split(', ');\n\nconst message = `✅ Mesa de Clareza Confirmada!\\n\\n📅 Data: ${date}\\n⏰ Horário: ${time}\\n🔗 Link: ${booking.meeting_url}\\n\\nVou te mandar lembretes:\\n• 24h antes\\n• 1h antes\\n\\nAté lá! 🚀\\n*Frank - CoreConnect.AI*`;\n\nreturn [{\n  json: {\n    whatsapp: contact.whatsapp,\n    message: message,\n    evolution_api_url: contact.evolution_api_url,\n    evolution_instance: contact.evolution_instance,\n    evolution_api_key: contact.evolution_api_key,\n    meeting_url: booking.meeting_url,\n    meeting_date_formatted: date,\n    meeting_time_formatted: time\n  }\n}];"
+      },
+      "id": "c5ca4ce9-2351-412c-987e-678fe8c3794c",
+      "name": "Prepare: Confirmation Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Parse: Webhook Payload').first().json.phone_without_9 }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c22b96fe-fc8a-4a24-acd6-7a4656db137b",
+      "name": "Send: Confirmation to Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        144
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "const booking = $('Parse: Webhook Payload').first().json;\nconst contact = $('Match: Contact by Email/Phone').first().json;\nconst summary = $('AI: Generate Meeting Summary').first().json;\nconst savedMeeting = $('Save: Meeting Record').first().json;\n\n// Format date/time\nconst meetingDate = new Date(booking.meeting_date);\nconst formatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  weekday: 'long',\n  day: '2-digit',\n  month: 'long',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst fullDateStr = formatter.format(meetingDate);\n\n// Build message\nconst message = `🔔 Nova Mesa de Clareza Agendada\\n\\n👤 Lead: ${contact.full_name}\\n📱 WhatsApp: ${contact.whatsapp}\\n📧 Email: ${booking.attendee_email}\\n\\n📅 Data: ${fullDateStr}\\n🔗 Link: ${booking.meeting_url}\\n\\n🎯 ANUM: ${contact.anum_score || 'N/A'}/100\\n📊 Stage: ${contact.qualification_stage || 'N/A'}\\n💬 Dor: ${contact.pain_category || 'Não categorizada'}\\n\\n💡 RESUMO DA CONVERSA:\\n${summary.choices[0].message.content}`;\n\nreturn [{\n  json: {\n    message: message,\n    phone: '5585999855443',\n    evolution_api_url: contact.evolution_api_url,\n    evolution_instance: contact.evolution_instance,\n    evolution_api_key: contact.evolution_api_key\n  }\n}];"
+      },
+      "id": "b36fb964-683c-429a-acaf-ad647fd8ce3f",
+      "name": "Prepare: Pasteur Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        736,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"number\": \"5585999855443\",\n  \"text\": $json.message\n} }}",
+        "options": {}
+      },
+      "id": "67de13fc-98aa-4261-b411-66a8ced26bc6",
+      "name": "Send: Alert to Pasteur",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        144
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"message\": \"Booking processed\",\n  \"booking_uid\": $('Parse: Webhook Payload').first().json.booking_uid,\n  \"contact_id\": $('Match: Contact by Email/Phone').first().json.contact_id,\n  \"meeting_id\": $('Save: Meeting Record').first().json.id\n} }}",
+        "options": {}
+      },
+      "id": "14a57e82-dbbf-4ed1-a57a-8e131ac6b459",
+      "name": "Respond: Webhook Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1184,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const booking = $('Parse: Webhook Payload').first().json;\n\nconst alertMessage = `⚠️ Mesa de Clareza - REVISAR MANUALMENTE\\n\\nNovo agendamento mas contato não encontrado no sistema:\\n\\n📧 Email: ${booking.attendee_email}\\n👤 Nome: ${booking.attendee_name}\\n📞 Telefone: ${booking.attendee_phone_raw || 'N/A'}\\n📅 Data: ${booking.meeting_date}\\n\\nBooking UID: ${booking.booking_uid}\\n\\nAção necessária:\\n1. Identificar/criar contato no sistema\\n2. Vincular agendamento manualmente`;\n\nreturn [{\n  json: {\n    message: alertMessage,\n    phone: '5585999855443'\n  }\n}];"
+      },
+      "id": "088b3aa8-229b-4afb-8411-8a3692f15122",
+      "name": "Prepare: Manual Review Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.example.com/evolution/sendText/instance",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "PLACEHOLDER_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"number\": \"5585999855443\",\n  \"text\": $json.message\n} }}",
+        "options": {}
+      },
+      "id": "5d7d5c6e-1351-4e8d-a4e4-9306f4241846",
+      "name": "Send: Manual Review to Pasteur",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -336,
+        352
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_scheduled_meetings",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "meeting_date",
+              "fieldValue": "={{ $('Parse: Webhook Payload').item.json.meeting_date }}"
+            },
+            {
+              "fieldId": "meeting_end_date",
+              "fieldValue": "={{ $('Parse: Webhook Payload').item.json.meeting_end_date }}"
+            },
+            {
+              "fieldId": "cal_booking_uid",
+              "fieldValue": "={{ $('Parse: Webhook Payload').item.json.booking_uid }}"
+            },
+            {
+              "fieldId": "cal_attendee_email",
+              "fieldValue": "={{ $('Parse: Webhook Payload').item.json.attendee_email }}"
+            },
+            {
+              "fieldId": "cal_attendee_name",
+              "fieldValue": "={{ $('Parse: Webhook Payload').item.json.attendee_name }}"
+            },
+            {
+              "fieldId": "cal_meeting_url",
+              "fieldValue": "={{ $('Parse: Webhook Payload').item.json.meeting_url }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "needs_manual_review"
+            },
+            {
+              "fieldId": "created_by",
+              "fieldValue": "cal_webhook_unmatched"
+            }
+          ]
+        }
+      },
+      "id": "594ba67f-513c-4ed1-bf22-707836f3fe50",
+      "name": "Save: Meeting (No Contact)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        352
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"success\": true,\n  \"message\": \"Booking saved - manual review needed\",\n  \"booking_uid\": $('Parse: Webhook Payload').item.json.booking_uid,\n  \"warning\": \"Contact not found in system\"\n} }}",
+        "options": {}
+      },
+      "id": "587ffd88-120b-41d3-80c7-616293ba0bac",
+      "name": "Respond: Manual Review",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        80,
+        352
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Cal.com Booking": {
+      "main": [
+        [
+          {
+            "node": "Parse: Webhook Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse: Webhook Payload": {
+      "main": [
+        [
+          {
+            "node": "Match: Contact by Email/Phone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match: Contact by Email/Phone": {
+      "main": [
+        [
+          {
+            "node": "Check: Contact Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Contact Found": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Recent Chat History",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare: Manual Review Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Recent Chat History": {
+      "main": [
+        [
+          {
+            "node": "Format: Chat for AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: Chat for AI": {
+      "main": [
+        [
+          {
+            "node": "AI: Generate Meeting Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI: Generate Meeting Summary": {
+      "main": [
+        [
+          {
+            "node": "Save: Meeting Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: Meeting Record": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Confirmation Message": {
+      "main": [
+        [
+          {
+            "node": "Send: Confirmation to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Confirmation to Lead": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Pasteur Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Pasteur Alert": {
+      "main": [
+        [
+          {
+            "node": "Send: Alert to Pasteur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Alert to Pasteur": {
+      "main": [
+        [
+          {
+            "node": "Respond: Webhook Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Manual Review Alert": {
+      "main": [
+        [
+          {
+            "node": "Send: Manual Review to Pasteur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Manual Review to Pasteur": {
+      "main": [
+        [
+          {
+            "node": "Save: Meeting (No Contact)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: Meeting (No Contact)": {
+      "main": [
+        [
+          {
+            "node": "Respond: Manual Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9085c3b9-4cfd-4c92-904b-5de605dd13da",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "6yfuYUM0kpjvqWE1",
+  "tags": [
+    {
+      "createdAt": "2025-10-16T11:45:27.519Z",
+      "updatedAt": "2025-10-16T11:45:27.519Z",
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}

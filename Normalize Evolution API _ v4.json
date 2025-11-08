@@ -1,0 +1,500 @@
+{
+  "name": "Normalize Evolution API | v4",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8d0d7287-ac57-4bc4-ae25-527564c098d4",
+              "name": "message_content",
+              "value": "={{ $json.body.data.message.conversation || $json.body.data.message.extendedTextMessage?.text || $json.body.data.message.imageMessage?.caption || $json.body.data.message.videoMessage?.caption || $json.body.data.message.documentMessage?.caption || '[Mídia sem texto]' }}",
+              "type": "string"
+            },
+            {
+              "id": "e8b4c80b-ac95-4272-a0b0-99bd4bde2d23",
+              "name": "message_type",
+              "value": "={{ \n  $json.body.data.message.imageMessage ? 'image' :\n  $json.body.data.message.videoMessage ? 'video' :\n  $json.body.data.message.audioMessage ? 'audio' :\n  $json.body.data.message.documentMessage ? 'document' :\n  'text'\n}}",
+              "type": "string"
+            },
+            {
+              "id": "552e7c8e-818d-46b3-9c8e-a12b34175f2b",
+              "name": "whatsapp_id",
+              "value": "={{ $json.body.data.key.remoteJid }}",
+              "type": "string"
+            },
+            {
+              "id": "466011fe-fe39-4732-800e-d8757256bbcb",
+              "name": "evolution_instance",
+              "value": "={{ $json.body.instance }}",
+              "type": "string"
+            },
+            {
+              "id": "feb917de-a310-4aed-b819-ee86d5ad751d",
+              "name": "is_from_me",
+              "value": "={{ $json.body.data.key.fromMe }}",
+              "type": "boolean"
+            },
+            {
+              "id": "ca574ecf-91c1-47e1-87c5-81d9d9d81919",
+              "name": "message_timestamp",
+              "value": "={{ $json.body.data.messageTimestamp }}",
+              "type": "number"
+            },
+            {
+              "id": "e06a114b-68bd-4f66-9e61-0376f3076c86",
+              "name": "contact_name",
+              "value": "={{ $json.body.data.pushName || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "413e6715-a5b4-406c-8bb6-a28aee762582",
+              "name": "has_media",
+              "value": "={{ !!($json.body.data.message.imageMessage || $json.body.data.message.videoMessage || $json.body.data.message.audioMessage || $json.body.data.message.documentMessage || $json.body.data.message.stickerMessage) }}",
+              "type": "boolean"
+            },
+            {
+              "id": "7d69d28b-ebfe-4e42-a25f-1217a238b8dd",
+              "name": "media_type",
+              "value": "={{ $json.body.data.message.imageMessage ? 'image' : $json.body.data.message.videoMessage ? 'video' : $json.body.data.message.audioMessage ? 'audio' : $json.body.data.message.documentMessage ? 'document' : $json.body.data.message.stickerMessage ? 'sticker' : 'none' }}",
+              "type": "string"
+            },
+            {
+              "id": "media-url-field",
+              "name": "media_url",
+              "value": "={{ \n  $json.body.data.message.imageMessage?.url ||\n  $json.body.data.message.videoMessage?.url ||\n  $json.body.data.message.audioMessage?.url ||\n  $json.body.data.message.documentMessage?.url ||\n  null\n}}",
+              "type": "string"
+            },
+            {
+              "id": "media-mimetype-field",
+              "name": "media_mime_type",
+              "value": "={{ \n  $json.body.data.message.imageMessage?.mimetype ||\n  $json.body.data.message.videoMessage?.mimetype ||\n  $json.body.data.message.audioMessage?.mimetype ||\n  $json.body.data.message.documentMessage?.mimetype ||\n  null\n}}",
+              "type": "string"
+            },
+            {
+              "id": "broadcast-check",
+              "name": "is_broadcast",
+              "value": "={{ $json.body.data.key.participant !== undefined }}",
+              "type": "boolean"
+            },
+            {
+              "id": "quoted-message",
+              "name": "quoted_message",
+              "value": "={{ $json.body.data.contextInfo.quotedMessage }}",
+              "type": "string"
+            },
+            {
+              "id": "server-url-field",
+              "name": "evolution_api_url",
+              "value": "={{ $json.body.server_url }}",
+              "type": "string"
+            },
+            {
+              "id": "apikey-field",
+              "name": "api_key",
+              "value": "={{ $json.body.apikey }}",
+              "type": "string"
+            },
+            {
+              "id": "ab9fb6e2-dd00-4809-bff2-b81066a02788",
+              "name": "message_id",
+              "value": "={{ $json.body.data.key.id }}",
+              "type": "string"
+            },
+            {
+              "id": "1f9664da-5a6e-4023-b6dd-5213f17570e4",
+              "name": "sender_type",
+              "value": "={{ $json.body.data.key.fromMe ? 'assistant' : 'user' }}",
+              "type": "string"
+            },
+            {
+              "id": "cb88e294-b02c-4de8-8537-5e15cdf0fc98",
+              "name": "caption",
+              "value": "={{    $json.body.data.message.imageMessage?.caption ||   $json.body.data.message.videoMessage?.caption ||   null }}",
+              "type": "string"
+            },
+            {
+              "id": "2f85e259-25e6-4f50-b4a6-46c9074e59d7",
+              "name": "is_group",
+              "value": "={{ $json.body.data.key.participant !== undefined }}",
+              "type": "string"
+            },
+            {
+              "id": "e179559f-5d28-4671-9f3f-bd6080dc63a7",
+              "name": "participant",
+              "value": "={{ $json.body.data.key.participant || null }}",
+              "type": "string"
+            },
+            {
+              "id": "305dad59-f31f-43c6-8698-e0401ba11159",
+              "name": "body.data.message.imageMessage.jpegThumbnail",
+              "value": "={{ $json.body.data.message.imageMessage.jpegThumbnail }}",
+              "type": "string"
+            },
+            {
+              "id": "0d6bfe85-9feb-4a0d-bb74-77c5e3e06c80",
+              "name": "body.data.message.base64",
+              "value": "={{ $json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1d45115e-382d-4fe1-bc8f-2f3fb281c3e1",
+      "name": "Normalize: Evolution API Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is_broadcast_check",
+              "leftValue": "={{ $json.is_broadcast }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "f8be5298-f0d3-453f-8020-d4e8a49db1df",
+      "name": "Filter: Broadcast Messages",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "phone-number",
+              "name": "phone_number",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.whatsapp_id.replace(/\\D/g, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "04fb3d4a-86c6-4ec4-ba35-e49f2edb801a",
+              "name": "phone_number_full",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.whatsapp_id.split('@')[0].slice(-21) }}",
+              "type": "string"
+            },
+            {
+              "id": "timestamp-enrich",
+              "name": "message_timestamp_iso",
+              "value": "={{ new Date($('Normalize: Evolution API Fields').item.json.message_timestamp * 1000).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "f2de11c7-e9aa-4905-960e-abb5a8db0dcf",
+              "name": "message_timestamp",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.message_timestamp }}",
+              "type": "string"
+            },
+            {
+              "id": "77c37a18-448c-4d2e-9b05-d2c21936d440",
+              "name": "timestamp_clean",
+              "value": "={{ new Date($('Normalize: Evolution API Fields').item.json.message_timestamp * 1000).toISOString() }}",
+              "type": "string"
+            },
+            {
+              "id": "is-text",
+              "name": "is_text_message",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.message_type === 'conversation' || $('Normalize: Evolution API Fields').item.json.message_type === 'extendedTextMessage' }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c2b4340c-4a29-43d2-8c17-86391faf9c64",
+              "name": "has_media",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.has_media }}",
+              "type": "boolean"
+            },
+            {
+              "id": "whatsapp-id-enrich",
+              "name": "whatsapp_id",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.whatsapp_id }}",
+              "type": "string"
+            },
+            {
+              "id": "instance-name-enrich",
+              "name": "evolution_instance",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.evolution_instance }}",
+              "type": "string"
+            },
+            {
+              "id": "message-type-enrich",
+              "name": "message_type",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.message_type }}",
+              "type": "string"
+            },
+            {
+              "id": "from-me-enrich",
+              "name": "is_from_me",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.is_from_me }}",
+              "type": "boolean"
+            },
+            {
+              "id": "push-name-enrich",
+              "name": "contact_name",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "message-content-enrich",
+              "name": "message_content",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.message_content }}",
+              "type": "string"
+            },
+            {
+              "id": "media-type-enrich",
+              "name": "media_type",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.media_type }}",
+              "type": "string"
+            },
+            {
+              "id": "media-url-enrich",
+              "name": "media_url",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.media_url }}",
+              "type": "string"
+            },
+            {
+              "id": "media-mimetype-enrich",
+              "name": "media_mime_type",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.media_mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "broadcast-enrich",
+              "name": "is_group",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.is_group }}",
+              "type": "boolean"
+            },
+            {
+              "id": "8a5cd6ec-2c0c-4bde-8dfd-4c017fb26d5e",
+              "name": "participant",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.participant }}",
+              "type": "string"
+            },
+            {
+              "id": "quoted-enrich",
+              "name": "quoted_message",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.quoted_message }}",
+              "type": "string"
+            },
+            {
+              "id": "server-url-enrich",
+              "name": "evolution_api_url",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.evolution_api_url }}",
+              "type": "string"
+            },
+            {
+              "id": "apikey-enrich",
+              "name": "api_key",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.api_key }}",
+              "type": "string"
+            },
+            {
+              "id": "message-id-enrich",
+              "name": "message_id",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8b8416ac-8c03-4d32-909c-4cf8601f3f20",
+              "name": "sender_type",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.sender_type }}",
+              "type": "string"
+            },
+            {
+              "id": "23c8dc5f-9bad-4a57-9707-d0e47a3feeb5",
+              "name": "caption",
+              "value": "={{ $('Normalize: Evolution API Fields').item.json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "3073df75-06b9-4090-bbf4-fd3b2bad6629",
+              "name": "body.data.message.base64",
+              "value": "={{ $json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7f184c32-c393-409b-94d3-66f0e5c1b425",
+      "name": "Enrich: Additional Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        160
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "3a4e36ef-b80a-4392-bcb0-6076e98dbf92",
+      "name": "Stop: Broadcast Messages",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        656,
+        448
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "5987f038-48c7-46ca-8e12-2054a96d7603",
+      "name": "Stop: Own Messages",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        880,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        352
+      ],
+      "id": "2ff18360-9423-48ba-9478-ac649ee20e34",
+      "name": "Receive: Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is_from_me_check",
+              "leftValue": "={{ $json.is_from_me }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "12eceea2-4c28-4748-aa87-9d2cb801579b",
+      "name": "Filter: Own Messages",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        256
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Normalize: Evolution API Fields": {
+      "main": [
+        [
+          {
+            "node": "Filter: Broadcast Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Broadcast Messages": {
+      "main": [
+        [
+          {
+            "node": "Stop: Broadcast Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filter: Own Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive: Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalize: Evolution API Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Own Messages": {
+      "main": [
+        [
+          {
+            "node": "Stop: Own Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enrich: Additional Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3b56f0f9-c219-4891-8557-bfdfc0b6fbb4",
+  "meta": {
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "lO3F2ESDmnRVMaBz",
+  "tags": [
+    {
+      "createdAt": "2025-10-16T11:45:27.519Z",
+      "updatedAt": "2025-10-16T11:45:27.519Z",
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}

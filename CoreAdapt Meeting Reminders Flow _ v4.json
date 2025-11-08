@@ -1,0 +1,409 @@
+{
+  "name": "CoreAdapt Meeting Reminders Flow | v4",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "f91b54de-76dd-4ea4-96db-495f5ece1162",
+      "name": "Trigger: Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -480,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH meeting_windows AS (\n  SELECT \n    m.id,\n    m.contact_id,\n    m.company_id,\n    m.meeting_date,\n    m.cal_meeting_url,\n    c.full_name AS contact_name,\n    c.whatsapp,\n    co.evolution_api_url,\n    co.evolution_instance,\n    co.evolution_api_key,\n    \n    -- Calculate hours until meeting\n    EXTRACT(EPOCH FROM (m.meeting_date - NOW())) / 3600 AS hours_until_meeting,\n    \n    -- Determine reminder type\n    CASE \n      WHEN m.reminder_24h_sent = FALSE \n        AND EXTRACT(EPOCH FROM (m.meeting_date - NOW())) / 3600 BETWEEN 23 AND 25\n      THEN '24h'\n      \n      WHEN m.reminder_1h_sent = FALSE \n        AND EXTRACT(EPOCH FROM (m.meeting_date - NOW())) / 3600 BETWEEN 0.75 AND 1.25\n      THEN '1h'\n      \n      ELSE NULL\n    END AS reminder_type\n    \n  FROM corev4_scheduled_meetings m\n  INNER JOIN corev4_contacts c ON m.contact_id = c.id\n  INNER JOIN corev4_companies co ON m.company_id = co.id\n  \n  WHERE \n    m.status = 'scheduled'\n    AND m.meeting_date > NOW()\n    AND m.meeting_date < NOW() + INTERVAL '25 hours'\n)\nSELECT *\nFROM meeting_windows\nWHERE reminder_type IS NOT NULL\nORDER BY meeting_date ASC\nLIMIT 50",
+        "options": {}
+      },
+      "id": "0cef3c94-efa5-4dc9-85ba-d9172922bac8",
+      "name": "Fetch: Meetings Needing Reminders",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        -256,
+        80
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const meeting = $input.first().json;\n\nconst meetingDate = new Date(meeting.meeting_date);\nconst formatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  weekday: 'long',\n  day: '2-digit',\n  month: 'long',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst fullDate = formatter.format(meetingDate);\n\nconst message = `🗓️ Lembrete: Mesa de Clareza Amanhã!\\n\\nOlá ${meeting.contact_name}! 👋\\n\\nAmanhã às ${fullDate.split(', ')[1]} temos nossa Mesa de Clareza agendada.\\n\\n📍 Link da reunião: ${meeting.cal_meeting_url}\\n\\nVou te mandar outro lembrete 1h antes 😊\\n\\nAbraço!\\n*Frank - CoreConnect.AI*`;\n\nreturn [{\n  json: {\n    meeting_id: meeting.meeting_id,\n    contact_id: meeting.contact_id,\n    whatsapp: meeting.whatsapp,\n    message: message,\n    reminder_type: '24h',\n    evolution_api_url: meeting.evolution_api_url,\n    evolution_instance: meeting.evolution_instance,\n    evolution_api_key: meeting.evolution_api_key,\n    meeting_url: meeting.cal_meeting_url\n  }\n}];"
+      },
+      "id": "048d2bd4-fb78-4f1c-bafd-2ef8bc59a322",
+      "name": "Format: 24h Reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $json.evolution_instance }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"number\": $json.whatsapp,\n  \"text\": $json.message\n} }}",
+        "options": {}
+      },
+      "id": "c0c4a6f0-e64e-4165-86b6-59bc8b1345be",
+      "name": "Send: 24h Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        624,
+        -32
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7L7tazYMk9p6pFpc",
+          "name": "chatwoot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE corev4_scheduled_meetings\nSET \n  reminder_24h_sent = TRUE,\n  reminder_24h_sent_at = NOW(),\n  reminder_24h_delivery_status = 'sent',\n  updated_at = NOW()\nWHERE id = {{ $('Switch: Reminder Type').item.json.id }}\nRETURNING id, reminder_24h_sent",
+        "options": {
+          "queryBatching": "independently"
+        }
+      },
+      "id": "9f354834-9802-48ea-845f-905ea81bcbef",
+      "name": "Update: 24h Sent Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        848,
+        -32
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const meeting = $input.first().json;\n\nconst meetingDate = new Date(meeting.meeting_date);\nconst timeFormatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst time = timeFormatter.format(meetingDate);\n\nconst message = `⏰ Sua Mesa de Clareza é AGORA ÀS ${time}!\\n\\nLink da reunião: ${meeting.cal_meeting_url}\\n\\nNos vemos lá! 🚀\\n\\n*Frank - CoreConnect.AI*`;\n\nreturn [{\n  json: {\n    meeting_id: meeting.meeting_id,\n    contact_id: meeting.contact_id,\n    whatsapp: meeting.whatsapp,\n    message: message,\n    reminder_type: '1h',\n    evolution_api_url: meeting.evolution_api_url,\n    evolution_instance: meeting.evolution_instance,\n    evolution_api_key: meeting.evolution_api_key,\n    meeting_url: meeting.cal_meeting_url\n  }\n}];"
+      },
+      "id": "dbdc0b39-f8ca-418f-ab2a-8c1c23825f04",
+      "name": "Format: 1h Reminder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"number\": $json.whatsapp,\n  \"text\": $json.message\n} }}",
+        "options": {}
+      },
+      "id": "6eb1de24-88aa-4520-989e-1d6ef6e01acf",
+      "name": "Send: 1h Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        624,
+        176
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE corev4_scheduled_meetings\nSET \n  reminder_1h_sent = TRUE,\n  reminder_1h_sent_at = NOW(),\n  reminder_1h_delivery_status = 'sent',\n  updated_at = NOW()\nWHERE id = {{ $('Switch: Reminder Type').item.json.id }}\nRETURNING id, reminder_1h_sent",
+        "options": {
+          "queryBatching": "independently"
+        }
+      },
+      "id": "49ef7d65-f71a-46c0-a088-2e4b5d332fb3",
+      "name": "Update: 1h Sent Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [
+        848,
+        176
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "f51be80e-6b4d-4730-b53e-c87fcd2fb466",
+              "leftValue": "={{ $json.reminder_type }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        80
+      ],
+      "id": "2fabeaca-a300-4132-8701-b478d810d26e",
+      "name": "Check: If Any Reminders"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.reminder_type }}",
+                    "rightValue": "24h",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "fadc1a6a-84c2-49a9-a72d-bf972e51aebb"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "24h_reminder"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b3461e5a-993d-402f-9456-a6bea6199331",
+                    "leftValue": "={{ $json.reminder_type }}",
+                    "rightValue": "1h",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "1h_reminder"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        192,
+        64
+      ],
+      "id": "427d557b-2950-4f57-8d00-cfac788138da",
+      "name": "Switch: Reminder Type"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger: Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Meetings Needing Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Meetings Needing Reminders": {
+      "main": [
+        [
+          {
+            "node": "Check: If Any Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: 24h Reminder": {
+      "main": [
+        [
+          {
+            "node": "Send: 24h Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: 24h Reminder": {
+      "main": [
+        [
+          {
+            "node": "Update: 24h Sent Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format: 1h Reminder": {
+      "main": [
+        [
+          {
+            "node": "Send: 1h Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: 1h Reminder": {
+      "main": [
+        [
+          {
+            "node": "Update: 1h Sent Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: If Any Reminders": {
+      "main": [
+        [
+          {
+            "node": "Switch: Reminder Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Reminder Type": {
+      "main": [
+        [
+          {
+            "node": "Format: 24h Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Format: 1h Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4f7e0123-8a94-4689-8dc7-f485be294a99",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "8Tc6hc3zr61weBFl",
+  "tags": [
+    {
+      "createdAt": "2025-10-16T11:45:27.519Z",
+      "updatedAt": "2025-10-16T11:45:27.519Z",
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}

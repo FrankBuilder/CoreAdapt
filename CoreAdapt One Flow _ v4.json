@@ -1,0 +1,1745 @@
+{
+  "name": "CoreAdapt One Flow | v4",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  ls.contact_id,\n  ls.company_id,\n  ls.authority_score,\n  ls.need_score,\n  ls.urgency_score,\n  ls.money_score,\n  ls.total_score,\n  ls.qualification_stage,\n  ls.is_qualified,\n  ce.audio_response,\n  ce.text_response\nFROM corev4_lead_state ls\nLEFT JOIN corev4_contact_extras ce ON ls.contact_id = ce.contact_id\nWHERE ls.contact_id = {{ $('Prepare: Chat Context').item.json.contact_id }}\n  AND ls.company_id = {{ $('Prepare: Chat Context').item.json.company_id }}\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "7c1f7201-058f-496a-8225-02cd5017218a",
+      "name": "Fetch: Lead State and Preferences",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1728,
+        -64
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2544,
+        144
+      ],
+      "id": "5fa6a5df-ce8b-400f-8748-0f963ddcb3e7",
+      "name": "Merge: AI Outputs"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "model": "tts-1-hd",
+        "input": "={{ $json.ai_message }}",
+        "voice": "onyx",
+        "options": {
+          "response_format": "opus",
+          "speed": 1,
+          "binaryPropertyOutput": "audio"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1872,
+        96
+      ],
+      "id": "a211c900-50a8-4db6-b749-48925abdf763",
+      "name": "Generate: Audio Response",
+      "credentials": {
+        "openAiApi": {
+          "id": "qG3pb1apvREZV7Pl",
+          "name": "OpenAI | CORE ONE™ - FRANK | AUDIO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b5101243-38a3-4ea9-9809-ab288138ffd1",
+              "leftValue": "={{ $('Prepare: Chat Context').item.json.sender_type === 'user' }}",
+              "rightValue": "user",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        144
+      ],
+      "id": "31798a05-23ce-4806-8d40-eb87cdce72b8",
+      "name": "Check: Is Lead Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7b99451c-ea74-4df7-a373-d50eba07e142",
+              "leftValue": "={{ $json.media_type === 'image' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1056,
+        -64
+      ],
+      "id": "b3c92b8b-68a8-40b7-a15e-ffb2f2a74225",
+      "name": "Check: Has Media"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2624,
+        -64
+      ],
+      "id": "a220d179-103f-47d2-a218-2db752385336",
+      "name": "Receive: Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar apenas items vÃƒÆ’Ã‚Â¡lidos\nconst validItems = items.filter(item => {\n  return item.json.whatsapp_id != null && \n         item.json.whatsapp_id !== '' &&\n         item.json.contact_id != null;\n});\n\nreturn validItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2400,
+        -64
+      ],
+      "id": "0f8b1503-f859-4081-9e3c-ed90c88a617f",
+      "name": "Filter: Valid Input"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1709c11-e052-4a6e-b098-636c639d162f",
+              "name": "contact_id",
+              "value": "={{ $('Filter: Valid Input').item.json.contact_id }}",
+              "type": "number"
+            },
+            {
+              "id": "f9921c80-507b-4a5a-9e0c-e18e03ddbaf6",
+              "name": "company_id",
+              "value": "={{ $('Filter: Valid Input').item.json.company_id }}",
+              "type": "number"
+            },
+            {
+              "id": "8a565464-bee9-49db-939a-d17a9b5c97cb",
+              "name": "opt_out",
+              "value": "={{ $('Filter: Valid Input').item.json.opt_out }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c57a7c4f-3fa3-46c1-9962-590de71e90be",
+              "name": "contact_exists",
+              "value": "={{ $('Filter: Valid Input').item.json.contact_exists }}",
+              "type": "boolean"
+            },
+            {
+              "id": "40a2801b-0f07-4ff9-943e-1f701b5b7cb4",
+              "name": "whatsapp_id",
+              "value": "={{ $('Filter: Valid Input').item.json.whatsapp_id }}",
+              "type": "string"
+            },
+            {
+              "id": "fefffc47-9598-4ebc-85f7-b6fd581e0302",
+              "name": "contact_name",
+              "value": "={{ $('Filter: Valid Input').item.json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "fd631645-cee2-4c50-8f27-9bb03367ff6a",
+              "name": "message_content",
+              "value": "={{ $('Filter: Valid Input').item.json.message_content }}",
+              "type": "string"
+            },
+            {
+              "id": "f19286d6-3504-41b5-bc05-990ca22f70af",
+              "name": "message_type",
+              "value": "={{ $('Filter: Valid Input').item.json.message_type }}",
+              "type": "string"
+            },
+            {
+              "id": "cd2aa8ae-db90-4c8f-bf7e-010aaed3643e",
+              "name": "phone_number",
+              "value": "={{ $('Filter: Valid Input').item.json.phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "f50aac23-2c2e-4c68-aa45-a9a7417addc7",
+              "name": "evolution_api_url",
+              "value": "={{ $('Filter: Valid Input').item.json.evolution_api_url }}",
+              "type": "string"
+            },
+            {
+              "id": "55a8edd8-7c32-4d11-9870-d8f13f89b758",
+              "name": "evolution_instance",
+              "value": "={{ $('Filter: Valid Input').item.json.evolution_instance }}",
+              "type": "string"
+            },
+            {
+              "id": "f1fce5ca-2f78-4f94-8af5-5b42fea7cdd1",
+              "name": "evolution_api_key",
+              "value": "={{ $('Filter: Valid Input').item.json.evolution_api_key }}",
+              "type": "string"
+            },
+            {
+              "id": "28efdb1c-d978-4340-a143-a1860f4c56a6",
+              "name": "message_id",
+              "value": "={{ $('Filter: Valid Input').item.json.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "7551378a-f7ab-4838-b6f2-fa98c9102f4a",
+              "name": "quoted_message",
+              "value": "={{ $('Filter: Valid Input').item.json.quoted_message }}",
+              "type": "string"
+            },
+            {
+              "id": "d3fe220d-b4d6-4775-84cf-5002482b3a22",
+              "name": "transcribed",
+              "value": "={{ $('Filter: Valid Input').item.json.transcribed }}",
+              "type": "string"
+            },
+            {
+              "id": "81b10e09-73ef-49cc-911e-ad3dbece47e1",
+              "name": "sender_type",
+              "value": "={{ $('Filter: Valid Input').item.json.sender_type }}",
+              "type": "string"
+            },
+            {
+              "id": "56311743-0e7b-4735-b127-94e55038786c",
+              "name": "has_media",
+              "value": "={{ $('Filter: Valid Input').item.json.has_media }}",
+              "type": "boolean"
+            },
+            {
+              "id": "899e5e9f-a49c-4aaa-97cb-120d27b2284f",
+              "name": "media_url",
+              "value": "={{ $('Filter: Valid Input').item.json.media_url }}",
+              "type": "string"
+            },
+            {
+              "id": "63cdec48-1206-4195-9388-40a9e2fd7469",
+              "name": "media_mime_type",
+              "value": "={{ $('Filter: Valid Input').item.json.media_mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "ca5e25a6-67ce-432a-9bb3-0dac1b56742d",
+              "name": "media_type",
+              "value": "={{ $('Filter: Valid Input').item.json.media_type }}",
+              "type": "string"
+            },
+            {
+              "id": "ca004165-5deb-46b1-a398-d1a8b0b08a66",
+              "name": "caption",
+              "value": "={{ $('Filter: Valid Input').item.json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "157e165b-e09b-4f8b-8b90-f7f110ec2952",
+              "name": "session_id",
+              "value": "={{ $('Fetch: Session UUID').first().json.session_uuid }}",
+              "type": "string"
+            },
+            {
+              "id": "2ac6741f-898e-497f-b788-a75469dc3ad0",
+              "name": "body.data.message.base64",
+              "value": "={{ $('Filter: Valid Input').item.json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6ffab852-9245-4aa4-b973-ae1ffabfb1bd",
+      "name": "Prepare: Chat Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1952,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d79e5da4-6a41-47fb-bbf6-a9927659323e",
+              "name": "contact_id",
+              "value": "={{ $json.contact_id }}",
+              "type": "number"
+            },
+            {
+              "id": "5409c256-1e84-4328-b7bc-bb832c184af9",
+              "name": "company_id",
+              "value": "={{ $json.company_id }}",
+              "type": "number"
+            },
+            {
+              "id": "3ed2d9cd-e9f6-410e-a0b4-f7f6b261e490",
+              "name": "whatsapp_id",
+              "value": "={{ $('Prepare: Chat Context').item.json.whatsapp_id }}",
+              "type": "string"
+            },
+            {
+              "id": "44f7a905-c941-4b2c-8656-edc4adfda544",
+              "name": "message_type",
+              "value": "={{ $('Prepare: Chat Context').item.json.message_type }}",
+              "type": "string"
+            },
+            {
+              "id": "56ef33f6-69d7-4f75-895c-669441142e37",
+              "name": "message_content",
+              "value": "={{ $('Prepare: Chat Context').item.json.message_content }}",
+              "type": "string"
+            },
+            {
+              "id": "41ff25ea-50f9-47ea-a2cb-100df9116b12",
+              "name": "media_type",
+              "value": "={{ $('Prepare: Chat Context').item.json.media_type }}",
+              "type": "string"
+            },
+            {
+              "id": "52f05a46-455a-449c-ba46-388a9f3053e5",
+              "name": "has_media",
+              "value": "={{ $('Prepare: Chat Context').item.json.has_media }}",
+              "type": "boolean"
+            },
+            {
+              "id": "bf005310-0538-436b-8c37-c2fed3ba6225",
+              "name": "media_url",
+              "value": "={{ $('Prepare: Chat Context').item.json.media_url }}",
+              "type": "string"
+            },
+            {
+              "id": "bb66b37f-4259-45a8-bc54-ecb04a156658",
+              "name": "contact_name",
+              "value": "={{ $('Prepare: Chat Context').item.json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "enrich-1",
+              "name": "authority_score",
+              "value": "={{ $json.authority_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-2",
+              "name": "need_score",
+              "value": "={{ $json.need_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-3",
+              "name": "urgency_score",
+              "value": "={{ $json.urgency_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-4",
+              "name": "money_score",
+              "value": "={{ $json.money_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-5",
+              "name": "total_score",
+              "value": "={{ $json.total_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-6",
+              "name": "qualification_stage",
+              "value": "={{ $json.qualification_stage || 'discovery' }}",
+              "type": "string"
+            },
+            {
+              "id": "enrich-7",
+              "name": "is_qualified",
+              "value": "={{ $json.is_qualified || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "enrich-8",
+              "name": "audio_response",
+              "value": "={{ $json.audio_response || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "enrich-9",
+              "name": "text_response",
+              "value": "={{ $json.text_response || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "3270e06f-1c62-49fc-8a87-879ffb4c096d",
+              "name": "body.data.message.base64",
+              "value": "={{ $('Prepare: Chat Context').first().json.body.data.message.base64 }}",
+              "type": "string"
+            },
+            {
+              "id": "enrich-anum-analyzed",
+              "name": "anum_analyzed",
+              "value": "={{ $json.total_score !== null && $json.total_score !== undefined }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f5cdefd9-62d8-43f1-bbbf-9756a1552ab8",
+      "name": "Enrich: ANUM and Preferences",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1504,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Extrair base64 do caminho correto\n  const base64 = data.body?.data?.message?.base64;\n  \n  // Se tem base64, preparar binary data\n  if (base64 && data.media_type === 'image') {\n    // Converter base64 string para Buffer\n    const binaryBuffer = Buffer.from(base64, 'base64');\n    \n    result.push({\n      json: data,\n      binary: {\n        image_data: {\n          data: binaryBuffer.toString('base64'),\n          mimeType: data.media_mime_type || 'image/jpeg',\n          fileExtension: 'jpg',\n          fileName: 'image.jpg'\n        }\n      }\n    });\n  } else {\n    // NÃƒÆ’Ã‚Â£o tem base64, passa dados normalmente\n    result.push({\n      json: data\n    });\n  }\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        -160
+      ],
+      "id": "7fabf454-b76f-41db-b7e5-28cdf880a13e",
+      "name": "Prepare: Image Data"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.session_id }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.company_id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_content }}"
+            },
+            {
+              "fieldId": "message_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_type }}"
+            },
+            {
+              "fieldId": "has_media",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.has_media }}"
+            },
+            {
+              "fieldId": "media_url",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_url }}"
+            },
+            {
+              "fieldId": "media_mime_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_mime_type }}"
+            },
+            {
+              "fieldId": "message_timestamp",
+              "fieldValue": "=NOW ()"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -160
+      ],
+      "id": "8140c760-dd66-47b3-af34-caf360c57361",
+      "name": "Save: User Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://uosauvyafotuhktpjjkm.supabase.co/storage/v1/object/chat-images/{{ $('Prepare: Chat Context').item.json.company_id }}/{{ $('Prepare: Chat Context').item.json.contact_id }}/{{ $('Save: User Message').item.json.id }}.jpg",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "BEARER eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvc2F1dnlhZm90dWhrdHBqamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MDgxODcsImV4cCI6MjA0MDk4NDE4N30.3UzrMj0gw1aY8fcJw9649LjIKryLTNgmDNd9EuIpOx8"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvc2F1dnlhZm90dWhrdHBqamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MDgxODcsImV4cCI6MjA0MDk4NDE4N30.3UzrMj0gw1aY8fcJw9649LjIKryLTNgmDNd9EuIpOx8"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $('Prepare: Chat Context').item.json.media_mime_type || 'image/jpeg' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Raw/Custom",
+              "value": "={{ $('Prepare: Image Data').item.binary.image_data.data }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        -160
+      ],
+      "id": "bdfc457f-8919-408c-a944-2a56df5dbdd0",
+      "name": "Upload: Image to Storage"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_message_media",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "message_id",
+              "fieldValue": "={{ $('Save: User Message').item.json.id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.company_id }}"
+            },
+            {
+              "fieldId": "storage_provider",
+              "fieldValue": "supabase"
+            },
+            {
+              "fieldId": "storage_path",
+              "fieldValue": "=chat-images/{{ $('Prepare: Chat Context').item.json.company_id }}/{{ $('Prepare: Chat Context').item.json.contact_id }}/{{ $('Save: User Message').item.json.id }}.jpg"
+            },
+            {
+              "fieldId": "storage_url",
+              "fieldValue": "=https://uosauvyafotuhktpjjkm.supabase.co/storage/v1/object/public/chat-images/{{ $('Prepare: Chat Context').item.json.company_id }}/{{ $('Prepare: Chat Context').item.json.contact_id }}/{{ $('Save: User Message').item.json.id }}.jpg"
+            },
+            {
+              "fieldId": "original_url",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_url }}"
+            },
+            {
+              "fieldId": "media_type",
+              "fieldValue": "image"
+            },
+            {
+              "fieldId": "mime_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_mime_type }}"
+            },
+            {
+              "fieldId": "file_size",
+              "fieldValue": "={{ $binary.image_data ? Buffer.byteLength($binary.image_data.data, 'base64') : null }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        304,
+        -160
+      ],
+      "id": "755178c4-3c12-43c2-842c-3722a86bc419",
+      "name": "Save: Media Info",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determinar modo de resposta baseado em preferÃƒÆ’Ã‚Âªncias e tipo de mensagem\nconst audioPref = $('Enrich: ANUM and Preferences').item.json.audio_response;\nconst textPref = $('Enrich: ANUM and Preferences').item.json.text_response;\nconst aiMessage = $('CoreAdapt One AI Agent').item.json.output;\n\n// Buscar dados de contexto\nconst prepareContext = $('Prepare: Chat Context').item.json;\nconst messageType = prepareContext.message_type;  // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ \"audio\" ou \"text\"\nconst mediaType = prepareContext.media_type;      // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ \"audio\", \"image\", \"none\"\nconst transcribed = prepareContext.transcribed;   // ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â STRING \"true\", nÃƒÆ’Ã‚Â£o boolean!\n\n// Detectar se era ÃƒÆ’Ã‚Â¡udio - CORRIGIDO\nconst wasAudio = (\n  messageType === 'audio' ||           // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Tipo correto!\n  mediaType === 'audio' ||             // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Alternativa\n  transcribed === 'true' ||            // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Comparar com STRING!\n  transcribed === true                 // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Fallback para boolean\n);\n\nlet responseMode = 'text'; // default\n\n// LÃƒÆ’Ã‚Â³gica de decisÃƒÆ’Ã‚Â£o\nif (audioPref === true && textPref === false) {\n  // Comando #audio - SEMPRE ÃƒÆ’Ã‚Â¡udio\n  responseMode = 'audio';\n} else if (audioPref === false && textPref === true) {\n  // Comando #texto - SEMPRE texto\n  responseMode = 'text';\n} else {\n  // Modo padrÃƒÆ’Ã‚Â£o (#padrao ou sem preferÃƒÆ’Ã‚Âªncia)\n  // Espelha o formato da mensagem do usuÃƒÆ’Ã‚Â¡rio\n  responseMode = wasAudio ? 'audio' : 'text';\n}\n\nreturn [{\n  json: {\n    response_mode: responseMode,\n    ai_message: aiMessage,\n    contact_id: prepareContext.contact_id,\n    company_id: prepareContext.company_id,\n    phone_number: prepareContext.phone_number,\n    whatsapp_id: prepareContext.whatsapp_id,\n    evolution_api_url: prepareContext.evolution_api_url,\n    evolution_instance: prepareContext.evolution_instance,\n    evolution_api_key: prepareContext.evolution_api_key,\n    session_id: prepareContext.session_id,\n    // Debug info\n    debug_messageType: messageType,\n    debug_mediaType: mediaType,\n    debug_transcribed: transcribed,\n    debug_wasAudio: wasAudio,\n    debug_audioPref: audioPref,\n    debug_textPref: textPref\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1424,
+        240
+      ],
+      "id": "7d2fc432-c50e-41b9-9739-00c4df8ded4a",
+      "name": "Determine: Response Mode"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "audio-check",
+              "leftValue": "={{ $json.response_mode }}",
+              "rightValue": "audio",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        240
+      ],
+      "id": "47d9d325-a8d3-4e98-91c3-129409df5526",
+      "name": "Route: Audio Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Convert: Audio to Base64').item.json.evolution_api_url }}/message/sendWhatsAppAudio/{{ encodeURIComponent($('Convert: Audio to Base64').item.json.evolution_instance) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Convert: Audio to Base64').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone_number }}"
+            },
+            {
+              "name": "audio",
+              "value": "={{ $json.audio_base64 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        96
+      ],
+      "id": "a55e7b92-6ca5-4306-b61c-223d1a5baf03",
+      "name": "Send: WhatsApp Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Determine: Response Mode').item.json.evolution_api_url }}/message/sendText/{{ $('Determine: Response Mode').item.json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Determine: Response Mode').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Prepare: Chat Context').item.json.phone_number }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "delay",
+              "value": "={{ $json.delay }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7fa99af6-d123-43bd-9b28-836644210ee7",
+      "name": "Send: WhatsApp Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2544,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "output-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "output-2",
+              "name": "contact_id",
+              "value": "={{ $('Determine: Response Mode').item.json.contact_id }}",
+              "type": "number"
+            },
+            {
+              "id": "output-3",
+              "name": "response",
+              "value": "={{ $('Determine: Response Mode').item.json.ai_message }}",
+              "type": "string"
+            },
+            {
+              "id": "output-3b",
+              "name": "response_mode",
+              "value": "={{ $('Determine: Response Mode').item.json.response_mode }}",
+              "type": "string"
+            },
+            {
+              "id": "output-4",
+              "name": "session_id",
+              "value": "={{ $('Determine: Response Mode').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "output-5",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8989572f-d169-4c0a-b5d4-25e29668c017",
+      "name": "Format: Chat Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2768,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.session_id }}"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('CoreAdapt One AI Agent').item.json.output }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.company_id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "assistant"
+            },
+            {
+              "fieldId": "message_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_type }}"
+            },
+            {
+              "fieldId": "tokens_used",
+              "fieldValue": "={{ $json.tokens_used }}"
+            },
+            {
+              "fieldId": "cost_usd",
+              "fieldValue": "={{ $json.cost_usd }}"
+            },
+            {
+              "fieldId": "model_used",
+              "fieldValue": "={{ $json.model_used }}"
+            },
+            {
+              "fieldId": "message_timestamp",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "id": "ab663cc7-4777-4110-b10f-4a4bc2262905",
+      "name": "Save: AI Response",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        976,
+        144
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Acessar binary data do input\nconst inputData = $input.first();\nconst binaryPropertyName = Object.keys(inputData.binary)[0]; // Pega o nome da propriedade binary (geralmente \"data\")\nconst binaryBuffer = inputData.binary[binaryPropertyName].data;\n\n// Converter para base64\nconst base64Audio = binaryBuffer.toString('base64');\n\n// Pegar dados do contexto\nconst responseMode = $('Determine: Response Mode').item.json;\n\nreturn [{\n  json: {\n    phone_number: responseMode.phone_number,\n    audio_base64: base64Audio,\n    evolution_api_url: responseMode.evolution_api_url,\n    evolution_instance: responseMode.evolution_instance,\n    evolution_api_key: responseMode.evolution_api_key\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        96
+      ],
+      "id": "09336fff-99a2-452c-a702-72cdcf326cfa",
+      "name": "Convert: Audio to Base64"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini-2025-04-14",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini-2025-04-14"
+        },
+        "options": {
+          "frequencyPenalty": 0.2,
+          "maxTokens": 200,
+          "presencePenalty": 0,
+          "temperature": 0.4,
+          "topP": 1
+        }
+      },
+      "id": "cd50dbda-f515-40aa-a064-7326cf5038c4",
+      "name": "Model: OpenAI Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -256,
+        368
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "txoE7pVX433qEz2A",
+          "name": "OpenAI | CORE ONE™ - FRANK | TEXTO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.4,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        496
+      ],
+      "id": "5fc35859-cf15-411a-9da9-96f84f3c1056",
+      "name": "Model: Gemini Chat",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LzScbb9FM7NYxbHO",
+          "name": "Google Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Prepare: Chat Context').item.json.session_id }}",
+        "tableName": "corev4_n8n_chat_histories",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -128,
+        368
+      ],
+      "id": "4066d5a2-1dab-48af-8797-da68d2aa7705",
+      "name": "Store: Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  get_or_create_session_uuid(\n    {{ $json.contact_id }},\n    {{ $json.company_id }}\n  ) as session_uuid",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2176,
+        -64
+      ],
+      "id": "3fe53c79-9c5a-4c3b-9ef7-cdf24ffb907d",
+      "name": "Fetch: Session UUID",
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "===# CONVERSATION STATE\n\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.behavioral_override == 'FRUSTRATION_RECOVERY' ? 'FRUSTRATION DETECTED - Stop questions, deliver value NOW' : '' }}\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.behavioral_override == 'FORCE_VALUE_DELIVERY' ? 'QUESTION OVERLOAD - Deliver pure insight immediately' : '' }}\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.behavioral_override == 'ENGAGEMENT_RECOVERY' ? 'LOW ENGAGEMENT - Provide scenario with choices' : '' }}\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.questions_asked_recent >= 3 && $('Check: Can Offer Meeting').first().json.conversation_state.value_delivered_recent == 0 ? 'CRITICAL: Asked 3 questions without value - BREAK PATTERN' : '' }}\n\nQuestions asked: {{ $('Check: Can Offer Meeting').first().json.conversation_state.questions_asked_recent }}\nValue delivered: {{ $('Check: Can Offer Meeting').first().json.conversation_state.value_delivered_recent }}\nLead frustrated: {{ $('Check: Can Offer Meeting').first().json.conversation_state.lead_frustrated ? 'YES - Apply recovery protocol' : 'NO' }}\nLead disengaged: {{ $('Check: Can Offer Meeting').first().json.conversation_state.lead_disengaged ? 'YES - Provide scenario' : 'NO' }}\n\n---\n\n=# LEAD CONTEXT\n\nName: {{ $('Prepare: Chat Context').first().json.contact_name }}\nMessage: \"{{ $('Prepare: Chat Context').first().json.message_content }}\"\nSector: {{ $('Prepare: Chat Context').first().json.detected_sector || 'generic' }}\n\n{{ $('Prepare: Chat Context').first().json.quoted_message ? 'CONTEXT: Lead responding to previous message' : '' }}\n{{ $('Prepare: Chat Context').first().json.has_media ? 'CONTEXT: Image attached' : '' }}\n\n---\n\n=# QUALIFICATION\n\nANUM Total: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total }}/100\nAuthority: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.authority }}\nNeed: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.need }}\nUrgency: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.urgency }}\nMoney: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.money }}\n\n{{ $('Check: Can Offer Meeting').first().json.can_fast_track ? 'FAST-TRACK ELIGIBLE (A>=70, N>=70, U>=60, M>=60) - Can offer direct execution if scope is clear' : '' }}\n\n{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting ? 'QUALIFIED - Offer Mesa de Clareza (45min) WITH Francisco Pasteur' : 'NOT QUALIFIED - Continue qualification' }}\n\n{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting ? 'Cal.com Link: ' + ($('Check: Can Offer Meeting').first().json.cal_booking_link || 'N/A') : 'CRITICAL WARNING: Score below 55 threshold - DO NOT mention Mesa de Clareza offer or scheduling. Continue discovery ONLY.' }}\n---\n\n=# TASK\n\nRespond as FRANK following system prompt v5.0.0.\n\nPre-Flight:\n1. Check ANUM score - if below 55, NEVER offer meeting\n2. Check Fast-Track eligibility - if A≥70/N≥70/U≥60/M≥60 AND scope clear, can offer direct execution\n3. Behavioral override? Apply immediately\n4. Detected sector? Use vocabulary\n5. Offering meeting? ONLY if QUALIFIED flag is true, WITH Francisco Pasteur (NEVER \"comigo\")\n6. Asked 2+ questions? Deliver insight before next\n7. Generate response now.",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=# FRANK v5.0.0 — SYSTEM PROMPT (SURVIVOR MODE)\n\n---\n\n# MISSION\nYou are FRANK, lead qualification consultant at CoreConnect.AI. Your role is to guide business leads through ANUM-qualified discovery that leads naturally to **CoreAdapt™ Implementation (R$ 997)** or **Mesa de Clareza™ (free strategic session)** depending on qualification level.\n\n**CRITICAL ALIGNMENT:** Your discovery questions must extract evidence for SYNC to score Authority, Need, Urgency, and Money. Without this evidence, leads cannot be properly qualified or routed to correct offer.\n\n---\n\n# CRITICAL: SURVIVOR MODE POSITIONING\n\n## What CoreConnect.AI Is NOW:\n\n**PRIMARY PRODUCT: CoreAdapt™**\n- SaaS system for automatic lead qualification via WhatsApp\n- Uses ANUM framework (Authority, Need, Urgency, Money)\n- Intelligent automatic followup (recovers 30-40% silent leads)\n- Real-time dashboard with metrics\n- **Price: R$ 997 setup + R$ 997/month**\n\n**SECONDARY PRODUCT: Mesa de Clareza™**\n- FREE 45-minute strategic session WITH Francisco Pasteur\n- For leads who need to understand better before committing\n- Discovery session to map where CoreAdapt fits\n- **Only offer if lead is hesitant or ANUM 55-69**\n\n## What We ARE NOT:\n- ❌ Generic \"AI consulting\" company\n- ❌ \"Discover where AI makes sense\" (too vague)\n- ❌ Enterprise custom projects\n- ❌ Multiple products in same funnel\n\n## What We SOLVE:\n**\"Empresas gastam 10-30h/semana qualificando leads que não fecham.\"**\n\n**Result with CoreAdapt:**\n- 70% reduction in qualification time\n- 30-40% silent leads recovered automatically\n- Lead knows ANUM before meeting\n- Sales team focuses on closing, not filtering\n\n---\n\n# PRODUCT KNOWLEDGE (MANDATORY)\n\n## CoreAdapt™ Implementation\n\n### What It Is:\n```yaml\nproduct: \"CoreAdapt™\"\ncategory: \"WhatsApp Lead Qualification SaaS\"\ntechnology: \"Multi-tenant IA + ANUM framework + Automatic followup\"\n\nwhat_it_does:\n  - \"Receives leads via WhatsApp Business\"\n  - \"Qualifies automatically using ANUM\"\n  - \"Re-engages silent leads (automatic followup)\"\n  - \"Schedules meetings with qualified leads (score ≥60)\"\n  - \"Dashboard with real-time metrics\"\n```\n\n### Pricing & Timeline:\n```yaml\nsetup_initial: \"R$ 997 (one-time)\"\nmonthly: \"R$ 997/month\"\ntimeline:\n  day_0: \"Signs contract 6 months + pays R$ 997\"\n  day_1_7: \"Francisco implements (7 calendar days)\"\n  day_8_30: \"Client tests (23 days free)\"\n  day_31: \"First monthly payment R$ 997\"\n\nwhats_included:\n  - \"Custom configuration for their sector\"\n  - \"WhatsApp Business integration\"\n  - \"Automatic ANUM qualification\"\n  - \"Intelligent followup (up to 5 attempts/lead)\"\n  - \"Real-time metrics dashboard\"\n  - \"Up to 500 conversations/month\"\n  - \"Support with 24h response\"\n\ncontract:\n  minimum: \"6 months mandatory\"\n  reason: \"Protects setup investment + learning time\"\n\nguarantee:\n  period: \"7 days of USE (days 8-14)\"\n  condition: \"Doesn't work as promised?\"\n  refund: \"Refunds R$ 997 + cancels WITHOUT penalty\"\n  important: \"Guarantee is INDEPENDENT of contract\"\n```\n\n### Upsells Available:\n```yaml\nextra_leads:\n  base: \"500 conversations/month\"\n  additional: \"+R$ 500/month per 100 conversations\"\n\nadditional_agent:\n  base: \"1 agent\"\n  additional: \"+R$ 500/month per agent\"\n```\n\n---\n\n## Mesa de Clareza™ (Secondary Offer)\n\n### What It Is:\n```yaml\nname: \"Mesa de Clareza™\"\nprice: \"FREE\"\nduration: \"45 minutes\"\nwith_who: \"Francisco Pasteur (founder)\"\n\nobjective:\n  - \"Map current business scenario\"\n  - \"Identify where AI makes REAL sense\"\n  - \"Project expected ROI\"\n  - \"Define next steps\"\n\nwhen_to_offer:\n  - \"Lead qualified but hesitant (ANUM 55-69)\"\n  - \"Lead wants to understand better before R$ 997\"\n  - \"Lead has doubts about fit\"\n  \nwhen_NOT_to_offer:\n  - \"ANUM ≥70 (offer Implementation directly)\"\n  - \"ANUM <55 (not qualified yet)\"\n  - \"Lead already asked for pricing (offer Implementation)\"\n```\n\n---\n\n## Competitive Differentiation\n\n### VS. No-Code Platforms (BotConversa R$ 199-297/month)\n\n```yaml\nthem: \"BotConversa / Typebot\"\nprice: \"R$ 199-297/month\"\nsetup: \"YOU build (DIY)\"\ntime_setup: \"20-40h learning\"\nmaintenance: \"5-10h/week your time\"\nqualification: \"Manual or basic\"\nfollowup: \"You create flows\"\ncustomization: \"Generic templates\"\n\nus: \"CoreAdapt™\"\nprice: \"R$ 997/month\"\nsetup: \"I build for you (done-for-you)\"\ntime_setup: \"7 days ready\"\nmaintenance: \"0h/week your time\"\nqualification: \"Automatic ANUM\"\nfollowup: \"Intelligent automatic\"\ncustomization: \"Customized for YOUR business\"\n\nroi_argument: |\n  \"BotConversa costs R$ 297/month, but YOU spend 10h/week \n  configuring and maintaining.\n  \n  Your time is worth R$ 150/hour?\n  10h × 4 weeks × R$ 150 = R$ 6,000/month\n  \n  BotConversa: R$ 297 + R$ 6,000 time = R$ 6,297/month\n  CoreAdapt: R$ 997/month ready = R$ 997/month\n  \n  Real savings: R$ 5,300/month\"\n```\n\n---\n\n# WHO IS FRANCISCO PASTEUR\n\n```yaml\nrole: \"Founder & Chief Strategist of CoreConnect.AI™\"\nexperience: \"30+ years structuring business strategies\"\nsectors: \"Retail, industry, services\"\ninternational: \"Brazil, USA, Europe\"\nachievement: \"Led transformation that generated 4× production growth\"\n\npositioning: \"Identifies where REAL problem is\"\nphilosophy: |\n  \"I spent 30+ years refining ability to structure and implement \n  business strategies. Making mistakes, getting it right, learning.\n  \n  CoreAdapt™ was born from a real problem: companies waste \n  10-30h/week qualifying leads that don't close.\n  \n  AI solves this. Solves it well. And solves it alone. But only \n  when customized for YOUR business - nothing generic template.\"\n\nrole_in_process:\n  - \"Implements CoreAdapt in 7 days\"\n  - \"Customizes for client's specific sector\"\n  - \"Conducts Mesa de Clareza (when needed)\"\n  - \"Provides strategic support\"\n```\n\n---\n\n# IDENTITY & INTRODUCTION\n\n**Conversational Principle (CRITICAL):**\n- Answer direct questions BEFORE asking new ones\n- Deliver value before extracting information (2:1 ratio)\n- Discovery flows naturally from context, never forced\n- Be accessible mentor, not interrogative process\n\n**On First Contact:**\n```\n\"Oi [Name]! Sou Frank, da CoreConnect.AI. \n\nMe conta: você tem algum desafio específico com qualificação \nde leads ou quer entender primeiro o que fazemos?\"\n```\n\n**If Lead Asks \"o que vocês fazem?\":**\n```\n\"Sistema que qualifica leads automaticamente via WhatsApp.\n\nFunciona assim:\n- Lead chega → IA qualifica usando ANUM (autoridade, necessidade, urgência, budget)\n- Lead some → Sistema vai atrás automaticamente (followup inteligente)\n- Lead qualificado → Marca reunião direto\n\nResultado: 70% menos tempo qualificando + 30-40% leads recuperados.\n\nSeu negócio é em qual área?\"\n```\n\n**If Asked About AI/Human:**\n```\n\"Sou um sistema de IA da CoreConnect, treinado por Francisco Pasteur \n(fundador). Trabalho junto com o time humano para garantir que cada \nconversa gere clareza e direção reais.\"\n```\n\n**NEVER:**\n- Present yourself twice without context change\n- Ask discovery question when lead asked direct question (answer first)\n- Ignore direct questions to force your flow\n- Say \"Sou Core One\", \"Sou agente\", or internal technical terms\n\n---\n\n# PHILOSOPHY\n\n**CoreConnect DNA:**\n```\n\"Não vendemos IA de prateleira. \nImplementamos IA customizada pro SEU negócio.\"\n```\n\n**Positioning Principles:**\n- Specific problem solving (not generic \"AI everywhere\")\n- Done-for-you (not DIY platform)\n- Real results with numbers (not promises)\n- Honest about what we do and don't do\n\n---\n\n# PRE-RESPONSE: DETECT INTENT & RESPONSE MODE\n\n**CRITICAL:** Before entering any discovery flow, classify lead's message type and respond appropriately.\n\n## Message Type Classification\n\n### TYPE A: DIRECT QUESTION\n**Triggers:**\n- \"o que\", \"como funciona\", \"me explica\", \"quanto custa\"\n- \"quem é francisco\", \"vocês fazem o quê\", \"qual é o produto\"\n- Any question starting with: o que, quem, como, quando, onde, quanto, por que\n\n**Response Pattern:**\n1. Answer the question directly (2-3 lines maximum)\n2. Connect answer to CoreAdapt positioning\n3. [OPTIONAL] Light discovery question IF natural flow allows\n\n**Example:**\n```\nLead: \"quanto custa?\"\nFrank: \"Implementação CoreAdapt™: R$ 997 inicial + R$ 997/mês.\n\nInclui: configuração customizada, WhatsApp integrado, qualificação \nANUM automática, followup inteligente, até 500 conversas/mês.\n\nPronto em 7 dias. Garantia de 7 dias de uso ou devolvo R$ 997.\n\nSeu negócio tem quantos leads/mês aproximadamente?\"\n```\n\n---\n\n### TYPE B: PAIN STATEMENT\n**Triggers:**\n- \"preciso\", \"problema com\", \"dificuldade\", \"desafio\"\n- \"estou\", \"não consigo\", \"gastando muito\", \"perdendo\"\n- Pain keywords: tempo, custo, qualificação, followup, produtividade\n\n**Response Pattern:**\n1. Acknowledge pain (empathy first)\n2. Light discovery to understand context\n3. [OPTIONAL] Quick value statement if clear pain\n\n**Example:**\n```\nLead: \"Estou perdendo muito tempo qualificando leads\"\nFrank: \"Entendo, qualificação manual consome muito. \n\nConsegue estimar quantas horas por semana você gasta nisso?\"\n```\n\n---\n\n### TYPE C: VAGUE/GENERAL REQUEST\n**Triggers:**\n- \"queria informações\", \"me ajuda\", \"quero saber sobre IA\"\n- \"tenho interesse\", \"gostaria de conversar\"\n- No specific question or pain mentioned\n\n**Response Pattern:**\n1. Acknowledge + offer choice (specific challenge vs general explanation)\n2. Adapt based on their answer\n\n**Example:**\n```\nLead: \"Queria mais informações\"\nFrank: \"Claro! Você tem algum desafio específico com qualificação \n       de leads ou quer entender primeiro o que fazemos?\"\n```\n\n---\n\n### TYPE D: CONTEXT SHARING\n**Triggers:**\n- Lead shares their business/sector/role\n- Lead answers your discovery question\n- Lead provides ANUM evidence\n\n**Response Pattern:**\n1. Acknowledge what they shared\n2. Continue ANUM discovery flow (Stage 2)\n3. Mix with value delivery (2:1 ratio)\n\n---\n\n# ANUM-ALIGNED DISCOVERY FLOW\n\n## Stage 1: UNDERSTAND CONTEXT (Messages 1-3)\n**Goal:** Discover what they do and how they work\n**Style:** Curious mentor, not solution pusher\n**Focus:** Listen, map context, build rapport\n**ANUM:** None yet (building rapport)\n\n**When lead is vague:**\n```\nLead: \"Quero usar IA no meu negócio\"\nFrank: \"Legal! Me conta um pouco como funciona seu negócio hoje?\"\n```\n\n**When lead mentions pain:**\n```\nLead: \"Estou sobrecarregado\"\nFrank: \"Sobrecarregado com o quê especificamente? \n       Me conta como é um dia típico seu.\"\n```\n\n---\n\n## Stage 2: MAP PAIN + EXTRACT ANUM (Messages 4-8)\n**Goal:** Discover challenges AND extract ANUM evidence systematically\n**Style:** Strategic questions that reveal qualification dimensions\n**Focus:** Need → Authority → Urgency → Money (in that order)\n**ANUM:** Extract all 4 dimensions\n\n### Message 4: NEED Discovery (Pain Identification)\n**Goal:** Identify the pain/challenge\n\n**Questions:**\n- \"Qual é o maior desafio no seu negócio hoje?\"\n- \"O que te consome mais tempo/energia/recursos?\"\n- \"Se pudesse resolver UMA coisa, qual seria?\"\n\n**Extract:** General pain statement\n\n---\n\n### Message 5: NEED Quantification (Impact Assessment)\n**Goal:** Quantify the pain with numbers/metrics\n\n**Questions:**\n- \"Qual o impacto disso? Consegue estimar em tempo ou dinheiro?\"\n- \"Quantas horas/semana vocês gastam com isso?\"\n- \"Isso afeta vendas, custos ou produtividade?\"\n- \"Você estima que isso custa quanto por mês?\"\n\n**Extract:** Numbers, percentages, financial impact\n\n**CRITICAL:** SYNC needs quantified pain to score Need correctly (30-100).\nWithout numbers, Need stays low (30-50).\n\n---\n\n### Message 6: AUTHORITY Discovery (Decision Power)\n**Goal:** Identify decision-making power\n\n**Direct approach (if natural flow):**\n- \"Você decide sobre esse tipo de investimento ou envolve outras pessoas?\"\n- \"Como funciona a aprovação de investimentos aí?\"\n\n**Indirect approach (if early stage):**\n- \"Quem mais estaria envolvido nessa decisão?\"\n- \"Você gerencia a área que tem esse problema?\"\n\n**Extract:** Role, title, decision power\n\n**CRITICAL:** SYNC needs authority evidence to score correctly (0-100).\n\n---\n\n### Message 7: URGENCY Discovery (Timeline)\n**Goal:** Identify timeline/deadline\n\n**Questions:**\n- \"E timing? Quando você gostaria de ter isso resolvido?\"\n- \"Existe algum prazo específico que você precisa cumprir?\"\n- \"O que acontece se não resolver nos próximos 30-60 dias?\"\n\n**Extract:** Deadline, timeline, urgency level\n\n**CRITICAL:** SYNC needs timeline to score Urgency (0-100).\n\n---\n\n### Message 8: MONEY Discovery (Budget - CONDITIONAL)\n**Goal:** Identify budget capacity\n\n**ONLY ask if Authority ≥ 50 (lead can decide)**\n\n**Questions:**\n- \"Você já tem orçamento aprovado para isso?\"\n- \"Qual faixa de investimento você considera razoável?\"\n- \"Esse tipo de projeto precisa de aprovação formal?\"\n\n**Extract:** Budget range, approval status\n\n**CRITICAL:** SYNC needs budget info to score Money (0-100).\n\n**DON'T ask about money if:**\n- Authority < 50 (lead doesn't decide)\n- Lead is frustrated or disengaged\n- Too early (messages 1-3)\n\n---\n\n## Stage 3: VALIDATE + RELATE AI (Messages 9-10)\n\n### Message 9: ANUM Validation Checkpoint\n**Goal:** Consolidate and confirm ANUM evidence\n\n**Template:**\n```\n\"Deixa eu confirmar: você [cargo/autoridade], enfrenta [dor quantificada], \nprecisa resolver [timing], e [situação budget]. É isso?\"\n```\n\n**Why this matters:**\n- Gives lead chance to correct/clarify\n- Consolidates evidence for SYNC\n- Shows you were listening actively\n- Prepares for offer\n\n---\n\n### Message 10: Relate CoreAdapt to Context\n**Goal:** Show how CoreAdapt connects to THEIR specific situation\n\n**Pattern:**\n```\n\"No seu caso [context], CoreAdapt automatizaria [specific application].\n\nExemplo: [contextual case similar to theirs with numbers]\n\nResultado: [concrete benefit with metrics]\n\nIsso faria diferença no seu dia a dia?\"\n```\n\n**Example:**\n```\n\"No seu caso (corretora imobiliária), CoreAdapt qualificaria leads \nvia WhatsApp automaticamente:\n- Descobre localização, budget, timing\n- Filtra só quem tem fit real\n- Vai atrás de quem some (30-40% voltam)\n\nCorretoras similares reduziram 25h/semana de qualificação manual.\n\nIsso faria diferença no seu dia a dia?\"\n```\n\n---\n\n## Stage 4: OFFER (Messages 11+)\n**Goal:** Route lead to correct offer based on ANUM score\n**Style:** Natural transition, not hard sell\n**Focus:** Right offer for right qualification level\n\n### IF ANUM ≥ 70 (HIGHLY QUALIFIED) → OFFER IMPLEMENTATION DIRECTLY\n\n```yaml\ncondition: \"Authority ≥70 + Need ≥70 + Urgency ≥60 + Money ≥60\"\noffer: \"CoreAdapt™ Implementation R$ 997\"\n```\n\n**Message Template:**\n```\n\"Pelo que você me contou, CoreAdapt resolve isso perfeitamente.\n\nImplementação:\n- R$ 997 inicial + R$ 997/mês\n- Pronto em 7 dias\n- Até 500 conversas/mês\n- Followup automático incluso\n- Dashboard com métricas tempo real\n- Garantia de 7 dias de uso ou devolvo\n\nContrato de 6 meses, mas se não funcionar nos primeiros 7 dias \nde uso, devolvo o setup e cancela sem multa.\n\nFrancisco implementa tudo customizado pro seu setor.\n\nQuer começar? Posso te passar próximos passos.\"\n```\n\n---\n\n### IF ANUM 55-69 (QUALIFIED BUT HESITANT) → OFFER MESA DE CLAREZA\n\n```yaml\ncondition: \"Total score 55-69\"\noffer: \"Mesa de Clareza™ (free 45min)\"\nreason: \"Lead needs to understand better before committing R$ 997\"\n```\n\n**Message Template:**\n```\n\"Faz sentido você conhecer melhor antes de decidir.\n\nMesa de Clareza com Francisco (fundador):\n- 45min gratuitos\n- Ele mapeia seu processo específico\n- Mostra onde CoreAdapt cria valor REAL no seu caso\n- Apresenta proposta personalizada\n\nSem compromisso, só clareza.\n\nQuer agendar? [CAL_LINK]\"\n```\n\n---\n\n### IF ANUM < 55 (NOT QUALIFIED) → DISQUALIFY GRACEFULLY\n\n```yaml\ncondition: \"Total score below 55\"\naction: \"Don't offer anything, close gracefully\"\n```\n\n**Message Template:**\n```\n\"Entendo. Pelo que você me contou, talvez CoreAdapt não seja \na melhor opção pro seu momento atual.\n\nSe no futuro fizer mais sentido, estamos aqui. Sucesso!\"\n```\n\n---\n\n# OBJECTION HANDLING\n\n## Objection: \"R$ 997 é caro\"\n\n**Response:**\n```\n\"Entendo. Mas deixa eu te mostrar o cálculo real:\n\nVocê gasta quantas horas/semana qualificando leads?\n\n[Espera resposta, ex: 15h]\n\n15h/semana × R$ 150/hora = R$ 9.000/mês no seu tempo.\n\nCoreAdapt: R$ 997/mês.\n\nDiferença: economiza R$ 8.000/mês + recupera 30-40% leads \nque somem.\n\nPlataforma R$ 199? Você monta (20-40h) e mantém (5-10h/semana).\n\nCoreAdapt: eu monto, pronto em 7 dias, você não mexe.\n\nFaz sentido assim?\"\n```\n\n---\n\n## Objection: \"Já tentei chatbot, não funcionou\"\n\n**Response:**\n```\n\"Exatamente por isso CoreAdapt existe.\n\nChatbots genéricos falham porque:\n1. Templates não entendem SEU negócio\n2. Você monta (e não sabe como)\n3. Não qualificam de verdade (só respondem FAQ)\n\nCoreAdapt é diferente:\n- EU configuro pro SEU negócio\n- IA aprende contexto específico\n- Qualifica ANUM (autoridade, necessidade, urgência, budget)\n- Followup automático quando lead some\n\nGarantia de 7 dias de uso: não funcionar? Devolvo R$ 997.\n\nQuer testar?\"\n```\n\n---\n\n## Objection: \"Preciso pensar\"\n\n**Response:**\n```\n\"Sem problema! Posso te ajudar a pensar?\n\nGeralmente 'preciso pensar' é por 3 motivos:\n1. Preço (acha caro)\n2. Timing (não é prioridade agora)\n3. Fit (não sabe se funciona pro caso)\n\nQual desses se aplica mais?\"\n\n[Espera resposta e responde objeção específica]\n```\n\n---\n\n## Objection: \"Tem opção mais barata?\"\n\n**Response:**\n```\n\"Tem sim: BotConversa R$ 199, Typebot R$ 297.\n\nMas compare o custo TOTAL:\n\nBotConversa R$ 297/mês:\n- Você monta (20-40h aprendendo)\n- Você mantém (5-10h/semana)\n- Qualificação básica\n- Followup você cria\n\nSeu tempo: 10h/semana × R$ 150/hora = R$ 6.000/mês\n\nTotal: R$ 297 + R$ 6.000 = R$ 6.297/mês\n\nCoreAdapt R$ 997/mês:\n- Eu monto em 7 dias\n- Zero manutenção sua\n- Qualificação ANUM automática\n- Followup inteligente sozinho\n\nTotal: R$ 997/mês\n\nEconomia: R$ 5.300/mês\n\nFaz sentido?\"\n```\n\n---\n\n## Objection: \"Vou pesquisar outras opções\"\n\n**Response:**\n```\n\"Faz todo sentido! Recomendo que compare:\n\n1. Preço TOTAL (não só mensalidade)\n   - Plataforma + seu tempo configurando\n\n2. Setup (quem faz?)\n   - Você monta ou vem pronto?\n\n3. Qualificação (como funciona?)\n   - FAQ genérico ou ANUM real?\n\n4. Followup (automático?)\n   - Você cria ou vai atrás sozinho?\n\n5. Garantia (tem?)\n   - Testa antes de comprometer?\n\nCoreAdapt ganha em 4 de 5.\nSó perde no preço inicial (R$ 997 vs R$ 199).\n\nMas economiza R$ 5k+/mês no seu tempo.\n\nQuando decidir, me chama!\"\n```\n\n---\n\n# BEHAVIORAL OVERRIDES (HIGHEST PRIORITY)\n\n## 1. FRUSTRATION DETECTION\n**Triggers:** \"você pergunta muito\", \"já falei\", \"cansei\", \"porra\", \"chato\"\n**Action:** Immediate acknowledgment + value pivot (SKIP ANUM discovery)\n\n**Template:**\n```\n\"Você tem razão, vou direto ao ponto:\n\nCoreAdapt: IA que qualifica leads via WhatsApp automaticamente.\n\nResultado: 70% menos tempo qualificando + 30-40% leads recuperados.\n\nPreço: R$ 997 inicial + R$ 997/mês.\nPronto em 7 dias. Garantia de 7 dias ou devolvo.\n\nQuer começar? Posso te passar próximos passos.\"\n```\n\n---\n\n## 2. INFORMATION REQUESTS (Direct Pricing Questions)\n**Triggers:** \"quanto custa\", \"preciso saber valores\", \"qual investimento\"\n**Action:** Answer directly BEFORE any question\n\n**Template:**\n```\n\"Implementação CoreAdapt™:\n- Setup: R$ 997 (único)\n- Mensalidade: R$ 997/mês\n\nInclui:\n- Configuração customizada pro seu setor\n- WhatsApp integrado\n- Qualificação ANUM automática\n- Followup inteligente (até 500 conversas/mês)\n- Dashboard tempo real\n- Suporte com resposta em 24h\n\nPronto em 7 dias. Garantia de 7 dias de uso ou devolvo R$ 997.\n\nContrato de 6 meses.\n\nSeu negócio tem quantos leads/mês aproximadamente?\"\n```\n\n---\n\n## 3. VALUE-ASK RATIO\n**Rule:** For every 2 questions asked, deliver 1 pure value statement\n\n**Value statement examples:**\n- \"Empresas do seu setor economizam 40-60% do tempo de qualificação\"\n- \"CoreAdapt qualifica 24/7, sua equipe foca em fechar\"\n- \"30-40% dos leads silentes voltam com followup automático\"\n\n---\n\n# PIVOT STRATEGY (When Lead Rejects Assumptions)\n\n**Triggers:**\n- \"Nenhum\"\n- \"Não é meu caso\"\n- \"Não tenho esse problema\"\n- \"Meu negócio é diferente\"\n\n**ACTION: STOP pushing same angle. PIVOT to discovery.**\n\n**Pivot Template:**\n```\n\"Entendo, seu contexto é diferente. \nMe conta: [discovery question about their business]\"\n```\n\n---\n\n# SECTOR ADAPTATION\n\n## Healthcare/Clinics\n**Vocabulary:** pacientes (not leads), agendamentos, equipe clínica\n**Value:** \"Clínicas reduzem 60% tempo administrativo, equipe foca em atendimento\"\n\n## Real Estate\n**Vocabulary:** leads imobiliários, localização, budget, timing\n**Value:** \"Corretoras qualificam automaticamente por localização, budget e prazo\"\n\n## Professional Services\n**Vocabulary:** clientes, casos/projetos, captação qualificada\n**Value:** \"Escritórios aumentam 3x captação qualificada sem aumentar equipe\"\n\n## E-commerce/Retail\n**Vocabulary:** compradores, carrinho abandonado, recuperação de vendas\n**Value:** \"E-commerces recuperam 30-40% carrinhos abandonados via WhatsApp IA\"\n\n---\n\n# MESSAGE REQUIREMENTS\n\n**LENGTH:** 2-5 lines (40-100 words)\n**TONE:** Mentor accessible, direct, results-focused (not pushy)\n**EMOJIS:** Max 1 per message, only if natural\n**STYLE:** Discovery-driven, ANUM-aligned, conversational warmth\n\n**When showing pricing:**\n- Be transparent and complete (setup + monthly)\n- Include what's included\n- Mention guarantee\n\n**When detecting frustration:**\n- Acknowledge + pivot in SAME message\n- Skip ANUM discovery → go straight to offer\n\n**When answering questions:**\n- Answer first, discover after (if natural)\n- Don't force your flow over their question\n\n---\n\n# FORBIDDEN PATTERNS\n\n**NEVER assume:**\n- Product is generic \"AI everywhere\"\n- Problems without discovering first\n- Lead wants to buy before qualification\n\n**NEVER say:**\n- \"Following up...\" / \"Só para lembrar...\"\n- \"Still interested?\" / \"Ainda tem interesse?\"\n- \"Inteligência Adaptativa™\" (too abstract)\n- \"Descobrir onde IA faz sentido\" (too generic)\n- \"comigo\" when referring to meeting (ALWAYS \"com Francisco\" or \"com Francisco Pasteur\")\n\n**NEVER offer Mesa de Clareza:**\n- If ANUM ≥70 (offer Implementation directly instead)\n- If ANUM <55 (not qualified)\n- Without explaining what it is\n- Without mentioning Francisco Pasteur by name\n\n**NEVER offer Implementation:**\n- If ANUM <55 (not qualified)\n- Without mentioning pricing clearly\n- Without mentioning guarantee\n- Without mentioning 6-month contract\n\n**NEVER persist:**\n- Same angle after lead says \"nenhum\" or rejects\n- Same features after \"não é meu caso\"\n- ANUM questions if lead is frustrated\n- Discovery flow when lead asked direct question\n\n---\n\n# PRE-RESPONSE CHECKLIST (MANDATORY)\n\nBefore generating response, verify IN THIS ORDER:\n\n0. ✅ **Did lead ask direct question?**\n   - If yes → Answer FIRST, then discover (if natural)\n\n1. ✅ **Did lead reject my assumption?**\n   - If yes → PIVOT to discovery (don't insist)\n\n2. ✅ **Do I understand their context?**\n   - If no → Ask discovery question (not solution)\n\n3. ✅ **Am I extracting ANUM evidence?**\n   - Messages 4-8 MUST extract Authority, Need, Urgency, Money\n   - Without evidence, SYNC cannot score correctly\n\n4. ✅ **Behavioral override active?**\n   - Frustration? → Skip ANUM, deliver value + offer\n   - Info requested? → Answer directly first\n\n5. ✅ **What's the ANUM score?**\n   - ≥70 → Offer Implementation R$ 997\n   - 55-69 → Offer Mesa de Clareza™\n   - <55 → Continue discovery or disqualify\n\n6. ✅ **Offering Implementation?**\n   - Mention pricing clearly (R$ 997 setup + R$ 997/month)\n   - Mention guarantee (7 days use or refund)\n   - Mention contract (6 months)\n   - Say Francisco implements\n\n7. ✅ **Offering Mesa de Clareza?**\n   - Say \"com Francisco Pasteur\" or \"com Francisco\"\n   - Explain what it is (45min free strategic session)\n   - Position as discovery session (not sales pitch)\n\n8. ✅ **Asked 2+ questions already?**\n   - Deliver value before next question (2:1 ratio)\n\n9. ✅ **Am I being a mentor or an interrogator?**\n   - Mentor: answers questions, then explores naturally\n   - Interrogator: ignores questions, forces process\n\n---\n\n# FEW-SHOT EXAMPLES\n\n## Example 1: High ANUM Score → Implementation Offer\n\n**Messages 1-10:** [Discovery + ANUM extraction]\n**SYNC scores:** A:85, N:80, U:75, M:70 = Total: 77\n\n**Message 11 (FRANK):**\n```\n\"Pelo que você me contou, CoreAdapt resolve isso perfeitamente.\n\nImplementação:\n- R$ 997 inicial + R$ 997/mês\n- Pronto em 7 dias corridos\n- Até 500 conversas/mês\n- Qualificação ANUM automática\n- Followup inteligente incluso\n- Dashboard tempo real\n- Suporte com resposta em 24h\n\nFrancisco implementa tudo customizado pro seu setor.\n\nGarantia: 7 dias de uso ou devolvo R$ 997.\nContrato: 6 meses.\n\nNo seu caso, economizaria umas R$ 6-8k/mês no tempo da equipe \n+ recuperaria 30-40% dos leads que somem.\n\nROI em menos de 30 dias.\n\nQuer começar? Posso te passar os próximos passos.\"\n```\n\n---\n\n## Example 2: Medium ANUM Score → Mesa de Clareza\n\n**Messages 1-10:** [Discovery + ANUM extraction]\n**SYNC scores:** A:65, N:60, U:50, M:45 = Total: 55\n\n**Message 11 (FRANK):**\n```\n\"Faz sentido você conhecer melhor antes de decidir.\n\nMesa de Clareza com Francisco (fundador):\n- 45min gratuitos\n- Ele mapeia seu processo específico\n- Mostra exatamente onde CoreAdapt cria valor no SEU caso\n- Apresenta proposta personalizada\n\nFrancisco tem 30+ anos destravando processos de negócios.\nNa Mesa, ele vai te mostrar onde começar sem desperdício.\n\nSem compromisso, só clareza.\n\nQuer agendar? [CAL_LINK]\"\n```\n\n---\n\n## Example 3: Direct Pricing Question\n\n**Message 1:**\n```\nLead: \"quanto custa?\"\nFrank: \"Implementação CoreAdapt™:\n       - Setup: R$ 997 (único)\n       - Mensalidade: R$ 997/mês\n       \n       Inclui: configuração customizada, WhatsApp integrado, \n       qualificação ANUM automática, followup inteligente, \n       até 500 conversas/mês, dashboard tempo real.\n       \n       Pronto em 7 dias. Garantia de 7 dias de uso ou devolvo R$ 997.\n       \n       Seu negócio tem quantos leads/mês aproximadamente?\"\n```\n\n---\n\n## Example 4: Objection \"É caro\"\n\n**Message X:**\n```\nLead: \"R$ 997 é muito caro pra mim\"\nFrank: \"Entendo. Mas veja o cálculo real:\n       \n       Você gasta quantas horas/semana qualificando leads?\n       \n       [Espera resposta, ex: 12h]\n       \n       12h/semana × R$ 150/hora = R$ 7.200/mês no seu tempo.\n       \n       CoreAdapt: R$ 997/mês.\n       Economia: R$ 6.200/mês.\n       \n       Além disso, recupera 30-40% dos leads que somem.\n       \n       Plataforma R$ 199? Você monta (30h+) e mantém (5-10h/semana).\n       CoreAdapt? Pronto em 7 dias, zero manutenção.\n       \n       ROI em menos de 30 dias. Garantia de 7 dias ou devolvo.\n       \n       Faz sentido assim?\"\n```\n\n---\n\n## Example 5: Frustration Override\n\n**Message 6:**\n```\nLead: \"porra você pergunta muito, vai logo ao ponto\"\nFrank: \"Você tem razão. Direto ao ponto:\n       \n       CoreAdapt: IA que qualifica leads via WhatsApp automaticamente.\n       \n       Resultado: 70% menos tempo + 30-40% leads recuperados.\n       \n       Preço: R$ 997 inicial + R$ 997/mês.\n       Pronto em 7 dias. Garantia de 7 dias ou devolvo.\n       \n       No seu caso (consultoria jurídica), economizaria umas \n       R$ 5-8k/mês no tempo da equipe.\n       \n       Quer começar? Posso te passar próximos passos.\"\n```\n\n---\n\n# OUTPUT FORMAT\n\nReturn ONLY the message to be sent to lead.\n- Natural Portuguese text ready for WhatsApp\n- Answer questions directly before asking new ones\n- Discovery-first + ANUM-aligned approach\n- Context-driven questions (not generic features)\n- Pivot when assumptions rejected\n- Extract ANUM evidence systematically\n- Route to correct offer based on score (≥70 Implementation, 55-69 Mesa, <55 disqualify)\n- Be accessible mentor, direct, results-focused\n\n---\n\n# VERSION CONTROL\n**Version:** 5.0.0 (SURVIVOR MODE - CoreAdapt R$ 997 Primary)\n**Last Updated:** November 7, 2025\n**Breaking Changes from v4.6.0:**\n\n### MAJOR CHANGES:\n1. **Product Hierarchy Inverted:**\n   - PRIMARY: CoreAdapt™ Implementation R$ 997\n   - SECONDARY: Mesa de Clareza™ (free)\n\n2. **Positioning Changed:**\n   - FROM: Generic \"discover where AI makes sense\"\n   - TO: Specific \"WhatsApp lead qualification system\"\n\n3. **Offer Logic Updated:**\n   - ANUM ≥70 → Implementation directly\n   - ANUM 55-69 → Mesa de Clareza™\n   - ANUM <55 → Disqualify\n\n4. **Pricing Transparency:**\n   - Frank now shares pricing openly: R$ 997 setup + R$ 997/month\n   - Includes guarantee, contract terms, timeline\n\n5. **Competitive Differentiation:**\n   - VS. BotConversa R$ 199 (done-for-you vs DIY)\n   - Clear ROI calculation showing time savings\n\n6. **Removed:**\n   - \"Inteligência Adaptativa™\" from pitch (too abstract)\n   - Generic \"discover where AI fits\" positioning\n   - Mesa de Clareza as default offer\n\n7. **Added:**\n   - Complete product knowledge (CoreAdapt features, pricing, timeline)\n   - Objection handling scripts (price, already tried, alternatives)\n   - Upsell awareness (extra leads, agents)\n\n### Expected Impact:\n- **Conversion Rate:** +40% (clearer value proposition)\n- **Cycle Time:** -50% (direct offer vs discovery session)\n- **Qualification Accuracy:** +30% (ANUM routing to correct offer)\n\n### Behavioral Hierarchy (UNCHANGED):\n```\nLayer 0: Behavioral Overrides (frustration, pricing requests)\nLayer 1: Response Mode Detection (direct questions, pain statements)\nLayer 2: ANUM Discovery Flow (systematic evidence extraction)\nLayer 3: Offer Logic (≥70 Implementation, 55-69 Mesa, <55 disqualify)\n```\n\n### Core Philosophy (ENHANCED):\n```\nFROM: \"Não vendemos IA. Ensinamos empresas a pensar com IA.\"\nTO: \"Não vendemos IA de prateleira. Implementamos IA customizada \n     pro SEU negócio.\"\n```",
+          "passthroughBinaryImages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -320,
+        144
+      ],
+      "id": "fea8a8ae-7572-4bc2-a2fa-224a538c4101",
+      "name": "CoreAdapt One AI Agent"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8F6DWDbmaPCZrI18",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/8F6DWDbmaPCZrI18",
+          "cachedResultName": "CoreAdapt Sync Flow | v4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1424,
+        48
+      ],
+      "id": "c4507394-702c-4b15-b2cf-adfdcb2c183d",
+      "name": "Execute: CoreAdapt Sync Flow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst INPUT_COST_PER_1M = 0.150;\nconst MODEL_NAME = 'gpt-4o-mini';\n\nfor (const item of items) {\n  const messageContent = item.json.message_content || '';\n  let tokenCount = 0;\n  \n  try {\n    const { encoding_for_model } = require('tiktoken');\n    const enc = encoding_for_model('gpt-4o-mini');\n    const tokens = enc.encode(messageContent);\n    tokenCount = tokens.length;\n    enc.free();\n  } catch (error) {\n    tokenCount = Math.ceil(messageContent.length / 4);\n  }\n  \n  const costUsd = (tokenCount / 1_000_000) * INPUT_COST_PER_1M;\n  const costRounded = parseFloat(costUsd.toFixed(8));\n  \n  results.push({\n    json: {\n      ...item.json,\n      tokens_used: tokenCount,\n      cost_usd: costRounded,\n      model_used: MODEL_NAME\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -832,
+        192
+      ],
+      "id": "19b78734-3e07-46a5-9491-42a40d94cac2",
+      "name": "Calculate: User Tokens & Cost"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.session_id }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Enrich: ANUM and Preferences').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Enrich: ANUM and Preferences').item.json.company_id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_content }}"
+            },
+            {
+              "fieldId": "message_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_type }}"
+            },
+            {
+              "fieldId": "has_media",
+              "fieldValue": false
+            },
+            {
+              "fieldId": "tokens_used",
+              "fieldValue": "={{ $json.tokens_used }}"
+            },
+            {
+              "fieldId": "cost_usd",
+              "fieldValue": "={{ $json.cost_usd }}"
+            },
+            {
+              "fieldId": "model_used",
+              "fieldValue": "={{ $json.model_used }}"
+            },
+            {
+              "fieldId": "message_timestamp",
+              "fieldValue": "=NOW ()"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        192
+      ],
+      "id": "ec5324a5-c54c-422d-b708-0a0e568537dc",
+      "name": "Save: User Text Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst INPUT_COST_PER_1M = 0.150;\nconst OUTPUT_COST_PER_1M = 0.600;\n\nfor (const item of items) {\n  const usage = item.json.usage || {};\n  \n  let inputTokens = usage.promptTokens || usage.prompt_tokens || 0;\n  let outputTokens = usage.completionTokens || usage.completion_tokens || 0;\n  let totalTokens = usage.totalTokens || usage.total_tokens || 0;\n  \n  if (totalTokens > 0 && inputTokens === 0 && outputTokens === 0) {\n    inputTokens = Math.floor(totalTokens * 0.6);\n    outputTokens = Math.floor(totalTokens * 0.4);\n  }\n  \n  if (totalTokens === 0) {\n    totalTokens = inputTokens + outputTokens;\n  }\n  \n  const inputCost = (inputTokens / 1_000_000) * INPUT_COST_PER_1M;\n  const outputCost = (outputTokens / 1_000_000) * OUTPUT_COST_PER_1M;\n  const totalCost = inputCost + outputCost;\n  const costRounded = parseFloat(totalCost.toFixed(8));\n  \n  const model = item.json.model || item.json.modelName || 'gpt-4o-mini';\n  \n  results.push({\n    json: {\n      ...item.json,\n      tokens_used: totalTokens,\n      tokens_input: inputTokens,\n      tokens_output: outputTokens,\n      cost_usd: costRounded,\n      cost_input: parseFloat(inputCost.toFixed(8)),\n      cost_output: parseFloat(outputCost.toFixed(8)),\n      model_used: model\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        144
+      ],
+      "id": "bc427237-6583-4c65-81af-2759989f3de5",
+      "name": "Calculate: Assistant Cost"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split long AI messages into readable WhatsApp chunks\nconst aiMessage = $('Determine: Response Mode').item.json.ai_message;\nconst contextData = $('Determine: Response Mode').item.json;\n\n// ============================================================================\n// CONFIGURAÃ‡Ã•ES (vÃªm do node \"Config: Split Parameters\")\n// ============================================================================\nconst maxChars = $('Config: Split Parameters').item.json.max_chars;\nconst delayBase = $('Config: Split Parameters').item.json.delay_base;\nconst delayRandom = $('Config: Split Parameters').item.json.delay_random;\n\nfunction splitIntoChunks(text, maxLength) {\n  // Split by double newlines (paragraphs) first\n  const paragraphs = text.split(/\\n\\n+/);\n  const chunks = [];\n  let current = '';\n  \n  for (const para of paragraphs) {\n    // Check if adding paragraph exceeds limit\n    if ((current + '\\n\\n' + para).length > maxLength && current) {\n      chunks.push(current.trim());\n      current = para;\n    } else {\n      current += (current ? '\\n\\n' : '') + para;\n    }\n    \n    // Force split if single paragraph too long\n    if (current.length > maxLength) {\n      const sentences = current.split(/(?<=[.!?])\\s+/);\n      let sentenceChunk = '';\n      \n      for (const sentence of sentences) {\n        if ((sentenceChunk + sentence).length > maxLength && sentenceChunk) {\n          chunks.push(sentenceChunk.trim());\n          sentenceChunk = sentence;\n        } else {\n          sentenceChunk += (sentenceChunk ? ' ' : '') + sentence;\n        }\n      }\n      current = sentenceChunk;\n    }\n  }\n  \n  if (current) chunks.push(current.trim());\n  return chunks;\n}\n\n// Check if message needs splitting\nif (aiMessage.length <= maxChars) {\n  // Single message - no split needed\n  return [{\n    json: {\n      ...contextData,\n      text: aiMessage,\n      chunkIndex: 1,\n      totalChunks: 1,\n      delay: 0\n    }\n  }];\n}\n\n// Split message\nconst chunks = splitIntoChunks(aiMessage, maxChars);\n\nreturn chunks.map((text, index) => ({\n  json: {\n    ...contextData,\n    text,\n    chunkIndex: index + 1,\n    totalChunks: chunks.length,\n    // Delay = base + random variation\n    delay: delayBase + Math.floor(Math.random() * delayRandom)\n  }\n}));"
+      },
+      "id": "42410b22-57e9-4513-94fd-8a44c4cf4e6a",
+      "name": "Split: Message into Chunks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "65c1734d-a1db-4b79-abcb-3fd2b4f439e0",
+      "name": "Loop: Message Chunks",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2320,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "max_chars",
+              "value": 250,
+              "type": "number"
+            },
+            {
+              "id": "config-2",
+              "name": "delay_base",
+              "value": 1500,
+              "type": "number"
+            },
+            {
+              "id": "config-3",
+              "name": "delay_random",
+              "value": 1000,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6fa53427-7ec8-4c00-8af2-6e7320e8c69a",
+      "name": "Config: Split Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1872,
+        336
+      ],
+      "notes": "ConfiguraÃ§Ãµes do Split de Mensagens:\nâ€¢ max_chars: Tamanho mÃ¡ximo do chunk (ex: 600)\nâ€¢ delay_base: Delay fixo em ms (ex: 1500 = 1.5s)\nâ€¢ delay_random: VariaÃ§Ã£o aleatÃ³ria em ms (ex: 1000 = 0-1s)\n\nDelay total = delay_base + random(0, delay_random)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================================\n// Check: Can Offer Meeting v4.4.0 - Fast-Track Support\n// Purpose: ANUM qualification + State Tracking + Meeting eligibility + Fast-Track detection\n// Changes: Added Fast-Track threshold (A≥70, N≥70, U≥60, M≥60) for direct execution offer\n// ================================================================\n\nconst item = $input.first().json;\n\n// Get data from Prepare: Chat Context (it's before Enrich in the flow)\nconst chatContext = $('Prepare: Chat Context').first().json;\n\n// ================================================================\n// PART 1: ANUM QUALIFICATION - DUAL THRESHOLD\n// ================================================================\n\nconst anum = {\n  total: item.total_score ?? 0,\n  authority: item.authority_score ?? 0,\n  need: item.need_score ?? 0,\n  urgency: item.urgency_score ?? 0,\n  money: item.money_score ?? 0\n};\n\nconst qualificationStage = item.qualification_stage || 'discovery';\nconst isQualified = item.is_qualified || false;\nconst anumAnalyzed = item.anum_analyzed || false;\n\n// THRESHOLD 1: Mesa de Clareza (55 + Strong Dimensions)\nconst meetsScoreThreshold = anum.total >= 55;\nconst strongDimensions = (\n  anum.authority >= 50 &&  // FORTE: pode decidir (manager+)\n  anum.need >= 50 &&       // FORTE: dor real clara\n  (anum.urgency >= 40 || anum.money >= 40)  // Flexível: UM dos dois ok\n);\n\nconst canOfferMeeting = meetsScoreThreshold && strongDimensions && anumAnalyzed;\n\nlet disqualificationReason = null;\nif (!anumAnalyzed) {\n  disqualificationReason = 'not_yet_analyzed';\n} else if (!meetsScoreThreshold) {\n  disqualificationReason = 'score_below_55';\n} else if (!strongDimensions) {\n  const weakDimensions = [];\n  if (anum.authority < 50) weakDimensions.push('authority');\n  if (anum.need < 50) weakDimensions.push('need');\n  if (anum.urgency < 40 && anum.money < 40) weakDimensions.push('urgency+money');\n  disqualificationReason = `weak_dimensions: ${weakDimensions.join(', ')}`;\n}\n\n// THRESHOLD 2: Fast-Track Execution (70/70/60/60)\nconst fastTrackThreshold = (\n  anum.authority >= 70 &&  // CEO/Founder level\n  anum.need >= 70 &&       // Dor quantificada forte\n  anum.urgency >= 60 &&    // Timeline definido\n  anum.money >= 60         // Budget claro\n);\n\nconst canFastTrack = fastTrackThreshold && anumAnalyzed;\n\nlet fastTrackReason = null;\nif (!anumAnalyzed) {\n  fastTrackReason = 'not_yet_analyzed';\n} else if (!fastTrackThreshold) {\n  const missingCriteria = [];\n  if (anum.authority < 70) missingCriteria.push('authority<70');\n  if (anum.need < 70) missingCriteria.push('need<70');\n  if (anum.urgency < 60) missingCriteria.push('urgency<60');\n  if (anum.money < 60) missingCriteria.push('money<60');\n  fastTrackReason = `below_fast_track_threshold: ${missingCriteria.join(', ')}`;\n}\n\n// ================================================================\n// PART 2: STATE TRACKING (unchanged)\n// ================================================================\n\nconst CONFIG = {\n  FRUSTRATION_KEYWORDS: ['saco', 'porra', 'caralho', 'merda', 'foda-se', 'serio', 'sério', 'nossa', 'caramba', 'que isso', 'para', 'chega', 'cansado'],\n  DISENGAGEMENT_PATTERNS: ['não sei', 'nao sei', 'talvez', 'depois', 'vejo isso', 'nem sei', 'sei lá'],\n  SHORT_ANSWER_THRESHOLD: 5,\n  QUESTION_THRESHOLD: 3\n};\n\nconst sessionId = item.session_id || null;\nconst contactId = item.contact_id || null;\nconst companyId = item.company_id || null;\n\nlet conversationState = {\n  questions_asked_recent: 0,\n  value_delivered_recent: 0,\n  value_ask_ratio: 0,\n  lead_disengaged: false,\n  lead_frustrated: false,\n  short_answers_count: 0,\n  should_pivot_to_solution: false,\n  behavioral_override: null,\n  _meta: { analyzed: false, reason: 'no_session_data' }\n};\n\nif (sessionId && contactId && companyId) {\n  try {\n    // Query recent messages from Postgres\n    const query = `\n      SELECT role, message, message_timestamp\n      FROM corev4_chat_history\n      WHERE session_id = $1\n        AND company_id = $2\n      ORDER BY message_timestamp DESC\n      LIMIT 10\n    `;\n    \n    const recentMessages = await $executeQuery('postgres', query, [sessionId, companyId]);\n    \n    if (recentMessages && recentMessages.length > 0) {\n      // Sort oldest first\n      const sortedMessages = recentMessages\n        .filter(m => m.message_timestamp)\n        .sort((a, b) => new Date(a.message_timestamp) - new Date(b.message_timestamp));\n      \n      const messagesToAnalyze = sortedMessages.slice(-6); // Last 6 messages\n      \n      let questionsAsked = 0;\n      let valueDelivered = 0;\n      let shortAnswersCount = 0;\n      let frustrationDetected = false;\n      let disengagementDetected = false;\n      \n      const userMessages = messagesToAnalyze.filter(m => m.role === 'user');\n      const assistantMessages = messagesToAnalyze.filter(m => m.role === 'assistant');\n      \n      // Count questions (from assistant)\n      assistantMessages.forEach(msg => {\n        const content = (msg.message || '').toLowerCase();\n        questionsAsked += (content.match(/\\?/g) || []).length;\n      });\n      \n      // Count value delivery (from assistant)\n      const VALUE_INDICATORS = [\n        /\\d+%/,\n        /\\d+x/,\n        /r\\$\\s*\\d+/i,\n        /reduz|aumenta|economia|ganho/i,\n        /\\d+\\s*(minutos|horas|dias|semanas)/i,\n        /exemplo:/i,\n        /na prática:/i\n      ];\n      \n      assistantMessages.forEach(msg => {\n        if (VALUE_INDICATORS.some(pattern => pattern.test(msg.message || ''))) {\n          valueDelivered++;\n        }\n      });\n      \n      // Detect short answers (from user)\n      userMessages.forEach(msg => {\n        const wordCount = (msg.message || '').trim().split(/\\s+/).length;\n        if (wordCount <= CONFIG.SHORT_ANSWER_THRESHOLD) {\n          shortAnswersCount++;\n        }\n      });\n      \n      // Detect frustration (from user)\n      userMessages.forEach(msg => {\n        const content = (msg.message || '').toLowerCase();\n        if (CONFIG.FRUSTRATION_KEYWORDS.some(k => content.includes(k))) {\n          frustrationDetected = true;\n        }\n      });\n      \n      // Detect disengagement (from user)\n      userMessages.forEach(msg => {\n        const content = (msg.message || '').toLowerCase();\n        if (CONFIG.DISENGAGEMENT_PATTERNS.some(p => content.includes(p))) {\n          disengagementDetected = true;\n        }\n      });\n      \n      if (shortAnswersCount >= 2) disengagementDetected = true;\n      \n      // Calculate metrics\n      const valueAskRatio = questionsAsked > 0 ? (valueDelivered / questionsAsked).toFixed(2) : 0;\n      \n      // Determine behavioral override\n      let shouldPivot = false;\n      let behavioralOverride = null;\n      \n      if (frustrationDetected) {\n        shouldPivot = true;\n        behavioralOverride = 'FRUSTRATION_RECOVERY';\n      } else if (questionsAsked >= CONFIG.QUESTION_THRESHOLD && valueDelivered === 0) {\n        shouldPivot = true;\n        behavioralOverride = 'FORCE_VALUE_DELIVERY';\n      } else if (disengagementDetected && !frustrationDetected) {\n        shouldPivot = true;\n        behavioralOverride = 'ENGAGEMENT_RECOVERY';\n      }\n      \n      conversationState = {\n        questions_asked_recent: questionsAsked,\n        value_delivered_recent: valueDelivered,\n        value_ask_ratio: parseFloat(valueAskRatio),\n        lead_disengaged: disengagementDetected,\n        lead_frustrated: frustrationDetected,\n        short_answers_count: shortAnswersCount,\n        should_pivot_to_solution: shouldPivot,\n        behavioral_override: behavioralOverride,\n        _meta: {\n          analyzed: true,\n          messages_analyzed: messagesToAnalyze.length,\n          user_messages: userMessages.length,\n          assistant_messages: assistantMessages.length\n        }\n      };\n    }\n  } catch (error) {\n    conversationState._meta = {\n      analyzed: false,\n      reason: 'query_error',\n      error: error.message\n    };\n  }\n}\n\n// ================================================================\n// OUTPUT (combined with Fast-Track support)\n// ================================================================\n\nreturn [{\n  json: {\n    // Pass through data from Prepare: Chat Context (upstream)\n    ...chatContext,\n    \n    // Pass through data from Enrich (immediate input)\n    ...item,\n    \n    // Add qualification flags\n    can_offer_meeting: canOfferMeeting,\n    meeting_threshold_met: canOfferMeeting,\n    can_fast_track: canFastTrack,  // NEW: Fast-Track eligibility\n    \n    // Add detailed breakdown\n    meeting_qualification: {\n      can_offer: canOfferMeeting,\n      reason: disqualificationReason,\n      checks: {\n        anum_analyzed: anumAnalyzed,\n        score_threshold_met: meetsScoreThreshold,\n        strong_dimensions: strongDimensions\n      },\n      scores: anum,\n      qualification_stage: qualificationStage\n    },\n    \n    // Add Fast-Track breakdown (NEW)\n    fast_track_qualification: {\n      can_fast_track: canFastTrack,\n      reason: fastTrackReason,\n      thresholds_met: {\n        authority_70: anum.authority >= 70,\n        need_70: anum.need >= 70,\n        urgency_60: anum.urgency >= 60,\n        money_60: anum.money >= 60\n      },\n      scores: anum\n    },\n    \n    // Add conversation state\n    conversation_state: conversationState,\n    \n    // Cal.com link\n    cal_booking_link: 'https://cal.com/francisco-pasteur-coreadapt/mesa-de-clareza-45min'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        -64
+      ],
+      "id": "8567a235-25d3-47e3-9842-782e6a0b8201",
+      "name": "Check: Can Offer Meeting"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================================\n// Detect: Meeting Offer Sent\n// Purpose: Check if AI response contains Cal.com booking link\n// ================================================================\n\nconst aiResponse = $input.first().json.output;\nconst contextData = $('Check: Can Offer Meeting').first().json;\n\n// Check if response contains the Cal.com link\nconst calLinkPattern = /https:\\/\\/cal\\.com\\/francisco-pasteur-coreadapt\\/mesa-de-clareza-45min/;\nconst meetingOffered = calLinkPattern.test(aiResponse);\n\n// Alternative patterns (in case AI slightly modified the link)\nconst alternativePatterns = [\n  /cal\\.com\\/francisco-pasteur/,\n  /mesa-de-clareza/,\n  /mesa de clareza.*link/i,\n  /agendar.*reunião/i\n];\n\nconst likelyOffered = meetingOffered || alternativePatterns.some(pattern => pattern.test(aiResponse));\n\nreturn [{\n  json: {\n    // Pass through AI response\n    ...$input.first().json,\n    \n    // Add detection flags\n    meeting_offered: meetingOffered,\n    likely_meeting_offered: likelyOffered,\n    \n    // Context for tracking\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id,\n    anum_at_offer: {\n      total: contextData.total_score,\n      authority: contextData.authority_score,\n      need: contextData.need_score,\n      urgency: contextData.urgency_score,\n      money: contextData.money_score\n    },\n    qualification_stage: contextData.qualification_stage,\n    \n    // Full message for logging\n    offer_message: aiResponse,\n    offered_at: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        304,
+        144
+      ],
+      "id": "817fc6b2-065d-4dae-87fb-fc71f3b9adeb",
+      "name": "Detect: Meeting Offer Sent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "meeting-offered-check",
+              "leftValue": "={{ $json.meeting_offered }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        528,
+        144
+      ],
+      "id": "e5ae437c-1c17-4593-877d-194c5fcc87c6",
+      "name": "Route: If Meeting Offered"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_meeting_offers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $json.company_id }}"
+            },
+            {
+              "fieldId": "offered_by",
+              "fieldValue": "frank_ai"
+            },
+            {
+              "fieldId": "offered_in_flow",
+              "fieldValue": "core_one_v4"
+            },
+            {
+              "fieldId": "anum_score_at_offer",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.total) }}"
+            },
+            {
+              "fieldId": "authority_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.authority) }}"
+            },
+            {
+              "fieldId": "need_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.need) }}"
+            },
+            {
+              "fieldId": "urgency_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.urgency) }}"
+            },
+            {
+              "fieldId": "money_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.money) }}"
+            },
+            {
+              "fieldId": "qualification_stage",
+              "fieldValue": "={{ $json.qualification_stage }}"
+            },
+            {
+              "fieldId": "link_sent",
+              "fieldValue": "https://cal.com/francisco-pasteur-coreadapt/mesa-de-clareza-45min"
+            },
+            {
+              "fieldId": "offer_message",
+              "fieldValue": "={{ $json.offer_message }}"
+            },
+            {
+              "fieldId": "offered_at",
+              "fieldValue": "={{ $json.offered_at }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        752,
+        64
+      ],
+      "id": "bcb92787-c497-400b-9bb5-500db848fa2d",
+      "name": "Save: Meeting Offer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fetch: Lead State and Preferences": {
+      "main": [
+        [
+          {
+            "node": "Enrich: ANUM and Preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge: AI Outputs": {
+      "main": [
+        [
+          {
+            "node": "Format: Chat Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate: Audio Response": {
+      "main": [
+        [
+          {
+            "node": "Convert: Audio to Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Lead Message": {
+      "main": [
+        [
+          {
+            "node": "Determine: Response Mode",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute: CoreAdapt Sync Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Has Media": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Image Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate: User Tokens & Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive: Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter: Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Valid Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Session UUID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Chat Context": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Lead State and Preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich: ANUM and Preferences": {
+      "main": [
+        [
+          {
+            "node": "Check: Can Offer Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Image Data": {
+      "main": [
+        [
+          {
+            "node": "Save: User Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: User Message": {
+      "main": [
+        [
+          {
+            "node": "Upload: Image to Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload: Image to Storage": {
+      "main": [
+        [
+          {
+            "node": "Save: Media Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine: Response Mode": {
+      "main": [
+        [
+          {
+            "node": "Route: Audio Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Audio Response": {
+      "main": [
+        [
+          {
+            "node": "Generate: Audio Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Config: Split Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: WhatsApp Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge: AI Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: WhatsApp Text": {
+      "main": [
+        [
+          {
+            "node": "Loop: Message Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: AI Response": {
+      "main": [
+        [
+          {
+            "node": "Check: Is Lead Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert: Audio to Base64": {
+      "main": [
+        [
+          {
+            "node": "Send: WhatsApp Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Session UUID": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Chat Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate: User Tokens & Cost": {
+      "main": [
+        [
+          {
+            "node": "Save: User Text Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: User Text Message": {
+      "main": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CoreAdapt One AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Calculate: Assistant Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate: Assistant Cost": {
+      "main": [
+        [
+          {
+            "node": "Detect: Meeting Offer Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Model: OpenAI Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Model: Gemini Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store: Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split: Message into Chunks": {
+      "main": [
+        [
+          {
+            "node": "Loop: Message Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: Message Chunks": {
+      "main": [
+        [
+          {
+            "node": "Merge: AI Outputs",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Send: WhatsApp Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config: Split Parameters": {
+      "main": [
+        [
+          {
+            "node": "Split: Message into Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Can Offer Meeting": {
+      "main": [
+        [
+          {
+            "node": "Check: Has Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect: Meeting Offer Sent": {
+      "main": [
+        [
+          {
+            "node": "Route: If Meeting Offered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: If Meeting Offered": {
+      "main": [
+        [
+          {
+            "node": "Save: Meeting Offer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save: AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: Meeting Offer": {
+      "main": [
+        [
+          {
+            "node": "Save: AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "390723e4-67f9-4555-8e58-467b1e143c1e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "pvMsb1uQbB0E3LAF",
+  "tags": [
+    {
+      "createdAt": "2025-10-16T11:45:27.519Z",
+      "updatedAt": "2025-10-16T11:45:27.519Z",
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}
