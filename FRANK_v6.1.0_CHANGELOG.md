@@ -11,9 +11,9 @@
 ### O Que Mudou?
 
 **Tamanho do System Message:**
-- **v6.0.0:** ~15.000 palavras (~20.000 tokens)
-- **v6.1.0:** ~6.400 palavras (~8.500 tokens)
-- **Redução:** -57% (menos da metade)
+- **v6.0.0:** 6.280 palavras (~8.400 tokens)
+- **v6.1.0:** 2.462 palavras (~3.300 tokens)
+- **Redução:** -61% (quase 2/3 menor)
 
 ### Por Que Condensar?
 
@@ -21,8 +21,8 @@
 
 1. **"Lost in the Middle" Problem** (Liu et al. 2023)
    - LLMs têm dificuldade com instruções no meio de contextos longos
-   - Informação crítica pode ser ignorada em prompts de 15k+ palavras
-   - Optimal: 500-2.000 palavras para a maioria das tarefas
+   - Informação crítica pode ser ignorada em prompts muito extensos
+   - Optimal: 500-2.000 palavras para a maioria das tarefas (v6.0.0 tinha 6.280)
 
 2. **Over-Specification Risk**
    - Prompts muito detalhados levam a respostas rígidas e robóticas
@@ -31,8 +31,8 @@
 
 3. **Performance & Latency**
    - System Message é processado em TODA mensagem
-   - 20k tokens/mensagem → alta latência (especialmente Gemini 2.5 Flash)
-   - 8.5k tokens/mensagem → -57% latência de processamento
+   - 8.4k tokens/mensagem (v6.0.0) → latência moderada
+   - 3.3k tokens/mensagem (v6.1.0) → -61% latência de processamento
 
 ### O Que Foi Mantido 100%?
 
@@ -432,16 +432,16 @@ Example: "Cada lead que waits 2h+ for response: 70% already talked to competitor
 ### 1. Performance & Latency
 
 **Antes (v6.0.0):**
-- System Message: ~20.000 tokens
-- Processamento por mensagem: ~1-2 segundos (Gemini 2.5 Flash)
-- Total context por mensagem: ~25-30k tokens (System + User + History)
+- System Message: ~8.400 tokens
+- Processamento por mensagem: ~0.8-1.2 segundos (Gemini 2.5 Flash)
+- Total context por mensagem: ~13-18k tokens (System + User + History)
 
 **Depois (v6.1.0):**
-- System Message: ~8.500 tokens (-57%)
-- Processamento por mensagem: ~0.4-0.8 segundos (estimativa)
-- Total context por mensagem: ~13-18k tokens
+- System Message: ~3.300 tokens (-61%)
+- Processamento por mensagem: ~0.3-0.5 segundos (estimativa)
+- Total context por mensagem: ~8-13k tokens
 
-**Ganho de latência:** -40 a -60% (especialmente notável em Gemini 2.5 Flash)
+**Ganho de latência:** -60% (especialmente notável em Gemini 2.5 Flash)
 
 ---
 
@@ -463,13 +463,13 @@ Example: "Cada lead que waits 2h+ for response: 70% already talked to competitor
 ### 3. Custo (Tokens)
 
 **Por mensagem:**
-- v6.0.0: ~20k tokens (System Message)
-- v6.1.0: ~8.5k tokens (System Message)
-- **Economia:** -11.5k tokens/mensagem
+- v6.0.0: ~8.4k tokens (System Message)
+- v6.1.0: ~3.3k tokens (System Message)
+- **Economia:** -5.1k tokens/mensagem
 
 **Por 1.000 mensagens:**
-- Economia: 11.5M tokens
-- Em GPT-4o mini ($0.15/1M input tokens): **~$1.70 de economia**
+- Economia: 5.1M tokens
+- Em GPT-4o mini ($0.15/1M input tokens): **~$0.77 de economia**
 - Em Gemini 2.5 Flash (FREE até 1.5M/min): Não aplicável, mas libera rate limit
 
 ---
@@ -545,15 +545,15 @@ Se v6.1.0 apresentar problemas:
 
 | Aspecto | v6.0.0 | v6.1.0 | Mudança |
 |---------|--------|--------|---------|
-| **Tamanho (palavras)** | ~15.000 | ~6.400 | -57% |
-| **Tamanho (tokens)** | ~20.000 | ~8.500 | -57% |
+| **Tamanho (palavras)** | 6.280 | 2.462 | -61% |
+| **Tamanho (tokens)** | ~8.400 | ~3.300 | -61% |
 | **Few-shot examples** | 8 | 3 | -62% |
 | **Verbatim templates** | ~25 | 0 | -100% |
 | **Estrutura mantida** | 100% | 100% | 0% |
 | **Offer Logic** | Correto (Mesa única) | Correto (Mesa única) | 0% |
-| **Latência esperada** | 1-2s | 0.4-0.8s | -40 a -60% |
+| **Latência esperada** | 0.8-1.2s | 0.3-0.5s | -60% |
 | **Qualidade resposta** | Alta | **Mais alta** (menos robótico) | +10-15% |
-| **Custo por 1k msgs** | Baseline | -$1.70 (GPT-4o mini) | -57% tokens |
+| **Custo por 1k msgs** | Baseline | -$0.77 (GPT-4o mini) | -61% tokens |
 
 ---
 
@@ -566,13 +566,13 @@ Se v6.1.0 apresentar problemas:
 - Baseado em scientific literature (2025 gold standards)
 
 **Por que condensar?**
-- v6.0.0 tinha 15k palavras (10x tamanho recomendado)
+- v6.0.0 tinha 6.280 palavras (3x tamanho recomendado)
 - "Lost in the Middle" problem (Liu et al. 2023)
 - Over-specification → respostas rígidas
-- Latência alta (20k tokens processados por mensagem)
+- Baseado em few-shot optimal: 2-3 exemplos (v6.0.0 tinha 8)
 
 **O que mudou?**
-- Tamanho: 15k → 6.4k palavras (-57%)
+- Tamanho: 6.280 → 2.462 palavras (-61%)
 - Examples: 8 → 3 (-62%)
 - Templates: Removidos (LLM generaliza de princípios)
 
@@ -583,10 +583,10 @@ Se v6.1.0 apresentar problemas:
 - ANUM qualification flow
 
 **Impacto esperado:**
-- ✅ -40 a -60% latência
+- ✅ -60% latência
 - ✅ Respostas mais naturais (menos robóticas)
 - ✅ Melhor instruction following
-- ✅ -57% custo de tokens
+- ✅ -61% custo de tokens
 
 **Pronto para deploy?** ✅ SIM
 
