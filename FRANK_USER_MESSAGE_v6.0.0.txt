@@ -41,15 +41,13 @@ Breakdown:
 - Urgency: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.urgency }}/100
 - Money: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.money }}/100
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 70 ? 'HIGHLY QUALIFIED (ANUM ≥70) - Offer CoreAdapt™ Implementation R$ 997 DIRECTLY' : '' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 70 ? 'HIGHLY QUALIFIED (ANUM ≥70) - Offer Mesa de Clareza™ | POSITIONING: "Próximo passo para começar" | Present Implementation as obvious solution, then offer Mesa to demo and close with Francisco' : '' }}
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 70 ? 'QUALIFIED MEDIUM (ANUM 55-69) - Offer Mesa de Clareza™ (45min free session with Francisco Pasteur)' : '' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 70 ? 'QUALIFIED MEDIUM (ANUM 55-69) - Offer Mesa de Clareza™ | POSITIONING: "Descoberta sem compromisso" | Position Mesa as discovery session (not sales call) where Francisco educates and builds conviction' : '' }}
 
 {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 55 ? 'NOT QUALIFIED (ANUM <55) - Continue discovery OR graceful disqualification (see Offer Logic in system message)' : '' }}
 
-{{ $('Check: Can Offer Meeting').first().json.can_fast_track ? 'FAST-TRACK ELIGIBLE: Authority ≥70, Need ≥70, Urgency ≥60, Money ≥60 - Can offer Implementation directly if scope is clearly defined' : '' }}
-
-{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 70 ? 'Cal.com Link (Mesa de Clareza): ' + ($('Check: Can Offer Meeting').first().json.cal_booking_link || 'N/A - Ask for availability instead') : '' }}
+{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 ? 'Cal.com Link (Mesa de Clareza): ' + ($('Check: Can Offer Meeting').first().json.cal_booking_link || 'N/A - Ask for availability instead') : '' }}
 
 {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 55 ? 'CRITICAL WARNING: Score below 55 threshold - DO NOT offer Mesa de Clareza or Implementation. Continue discovery ONLY or graceful exit.' : '' }}
 
@@ -93,8 +91,8 @@ Respond as FRANK following **System Prompt v6.0.0** (Gold Standard 2025).
    - If sufficient evidence → Move to offer stage
 
 **4. OFFER READINESS CHECK**
-   - ANUM ≥70? → Offer CoreAdapt™ Implementation R$ 997 (see Layer 5: Offer Logic)
-   - ANUM 55-69? → Offer Mesa de Clareza™ (45min free with Francisco Pasteur)
+   - ANUM ≥70? → Offer Mesa de Clareza™ | Positioning: "Próximo passo para começar" (present Implementation first, then Mesa to demo and close)
+   - ANUM 55-69? → Offer Mesa de Clareza™ | Positioning: "Descoberta sem compromisso" (discovery session, not sales call)
    - ANUM <55? → Continue discovery OR graceful exit (see Layer 5: Offer Logic)
 
 **5. MESSAGE QUALITY CHECK**

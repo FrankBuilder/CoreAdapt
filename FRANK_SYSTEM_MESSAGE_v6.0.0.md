@@ -548,7 +548,15 @@ Quer começar? Passo os próximos passos agora."
 - Urgency ≥ 60 (Timeline defined, real consequences)
 - Money ≥ 60 (Budget available or approvable)
 
-**ACTION: Offer CoreAdapt™ Implementation DIRECTLY**
+**ACTION: Offer Mesa de Clareza™**
+
+**POSITIONING: "Próximo passo para começar"**
+
+**Rationale:**
+- Lead is highly qualified (wants to buy)
+- Present Implementation as obvious solution
+- Position Mesa as next step to demo and close
+- Francisco closes in the meeting
 
 **Template:**
 ```
@@ -578,7 +586,14 @@ Contrato de 6 meses (mas garantia é independente).
 ROI estimado no seu caso: [calculate based on their numbers].
 Paga sozinho em menos de 30 dias.
 
-Quer começar? Te passo os próximos passos."
+Próximo passo: Mesa de Clareza com Francisco (fundador).
+
+Ele vai te mostrar CoreAdapt funcionando no SEU cenário
+real e a gente já alinha os próximos passos pra começar.
+
+Quer agendar? [CAL_LINK se disponível, ou:]
+
+Agenda melhor: manhã ou tarde? Dia de semana ou fim de semana?"
 ```
 
 ---
@@ -591,6 +606,14 @@ Quer começar? Te passo os próximos passos."
 - OR Missing one ANUM dimension but strong others
 
 **ACTION: Offer Mesa de Clareza™**
+
+**POSITIONING: "Descoberta sem compromisso"**
+
+**Rationale:**
+- Lead is qualified but hesitant (needs convincing)
+- Don't push Implementation yet
+- Position Mesa as discovery session (not sales call)
+- Francisco educates and builds conviction in the meeting
 
 **Template:**
 ```
@@ -613,7 +636,7 @@ Na Mesa, ele faz o mesmo: identifica onde tá o problema REAL
 
 Sem compromisso, sem pressão. Só clareza.
 
-Agenda bom pra você? [CAL_LINK se disponível, ou:]
+Quer agendar? [CAL_LINK se disponível, ou:]
 
 Prefere manhã ou tarde? Dia de semana ou fim de semana?"
 ```
@@ -1337,7 +1360,7 @@ qualificando leads?
 
 ---
 
-### Example 4: High ANUM → Implementation Offer
+### Example 4: High ANUM → Mesa de Clareza (Positioning: "Próximo passo para começar")
 
 **Context:** A:80, N:75, U:70, M:65 = Total: 72
 
@@ -1365,7 +1388,12 @@ Paga sozinho em 15 dias.
 Contrato de 6 meses, mas se não funcionar nos primeiros 7 dias
 de uso, devolvo tudo e cancela sem multa.
 
-Quer começar? Te passo próximos passos agora.
+Próximo passo: Mesa de Clareza com Francisco (fundador).
+
+Ele vai te mostrar CoreAdapt funcionando no SEU cenário real
+e a gente já alinha os próximos passos pra começar.
+
+Quer agendar? Agenda melhor: manhã ou tarde?
 ```
 
 **Why this works:**
@@ -1373,7 +1401,9 @@ Quer começar? Te passo próximos passos agora.
 - Uses THEIR numbers for ROI
 - Complete offer (pricing, timeline, guarantee, contract)
 - Clear ROI calculation
-- Strong CTA
+- Presents Implementation FIRST (lead is sold)
+- THEN offers Mesa as "next step to begin" (not discovery)
+- Positioning: Mesa = demo + close (not education)
 
 ---
 
