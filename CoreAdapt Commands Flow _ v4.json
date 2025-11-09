@@ -4,7 +4,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "DELETE FROM corev4_chat_history WHERE contact_id = {{ $json.contact_id }};\nDELETE FROM corev4_n8n_chat_histories \nWHERE session_id = (\n  SELECT get_or_create_session_uuid(\n    {{ $json.contact_id }}::integer,\n    {{ $json.company_id }}::integer\n  )::varchar  -- ⭐ TAMBÉM AQUI\n);",
+        "query": "-- ORDEM CORRETA: n8n PRIMEIRO, depois chat_history\n-- Motivo: Precisa buscar session_id de chat_history antes de deletar\nDELETE FROM corev4_n8n_chat_histories \nWHERE session_id IN (\n  SELECT DISTINCT session_id::varchar \n  FROM corev4_chat_history \n  WHERE contact_id = {{ $json.contact_id }}\n);\n\n-- Agora deleta chat_history\nDELETE FROM corev4_chat_history \nWHERE contact_id = {{ $json.contact_id }};",
         "options": {}
       },
       "id": "a5bfc7b7-a403-4e1a-9f5b-4ec31dd71095",
@@ -1309,6 +1309,12 @@
               "name": "timestamp",
               "value": "={{ $now.toISO() }}",
               "type": "string"
+            },
+            {
+              "id": "output-6",
+              "name": "is_command",
+              "value": "=true",
+              "type": "boolean"
             }
           ]
         },
