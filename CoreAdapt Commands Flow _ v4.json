@@ -1414,7 +1414,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Prepare: Command Data').item.json.evolution_api_url }}/message/sendText/{{ $('Prepare: Command Data').item.json.evolution_instance }}",
+        "url": "={{ $json.evolution_api_url }}/message/sendText/{{ $json.evolution_instance }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1424,7 +1424,7 @@
             },
             {
               "name": "apikey",
-              "value": "={{ $('Prepare: Command Data').item.json.evolution_api_key }}"
+              "value": "={{ $json.evolution_api_key }}"
             }
           ]
         },
@@ -1433,7 +1433,7 @@
           "parameters": [
             {
               "name": "number",
-              "value": "={{ $('Prepare: Command Data').item.json.phone_number }}"
+              "value": "={{ $json.phone_number }}"
             },
             {
               "name": "text",
