@@ -21,11 +21,11 @@ Detected Sector: {{ $('Prepare: Chat Context').first().json.detected_sector || '
 
 {{ $('Prepare: Chat Context').first().json.is_first_contact ? 'FIRST CONTACT - Use warmth-first welcome pattern (see Layer 1: First Contact Protocol in system message)' : 'CONTINUING CONVERSATION - Build on previous context' }}
 
-{{ $('Prepare: Chat Context').first().json.quoted_message ? 'CONTEXT: Lead is responding to your previous message: "' + $('Prepare: Chat Context').first().json.quoted_message + '"' : '' }}
+{{ $('Prepare: Chat Context').first().json.quoted_message ? 'CONTEXT: Lead is responding to your previous message' : '' }}
 
 {{ $('Prepare: Chat Context').first().json.has_media ? 'CONTEXT: Lead attached image/media - Acknowledge if relevant' : '' }}
 
-{{ $('Prepare: Chat Context').first().json.lead_asked_direct_question ? 'CRITICAL: Lead asked direct question - Answer FIRST before any discovery question (see Pre-Response Checklist #0)' : '' }}
+{{ $('Prepare: Chat Context').first().json.lead_asked_direct_question ? 'CRITICAL: Lead asked direct question - Answer FIRST before any discovery question (see Pre-Response Checklist)' : '' }}
 
 Message count in conversation: {{ $('Prepare: Chat Context').first().json.message_count || 1 }}
 
@@ -41,15 +41,15 @@ Breakdown:
 - Urgency: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.urgency }}/100
 - Money: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.money }}/100
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 70 ? 'HIGHLY QUALIFIED (ANUM ≥70) - Offer Mesa de Clareza™ | POSITIONING: "Próximo passo para começar" | Present Implementation as obvious solution, then offer Mesa to demo and close with Francisco' : '' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 70 ? 'HIGHLY QUALIFIED (ANUM 70+) - Offer Mesa de Clareza. POSITIONING: Proximo passo para comecar. Present Implementation as obvious solution, then offer Mesa to demo and close with Francisco.' : '' }}
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 70 ? 'QUALIFIED MEDIUM (ANUM 55-69) - Offer Mesa de Clareza™ | POSITIONING: "Descoberta sem compromisso" | Position Mesa as discovery session (not sales call) where Francisco educates and builds conviction' : '' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 70 ? 'QUALIFIED MEDIUM (ANUM 55-69) - Offer Mesa de Clareza. POSITIONING: Descoberta sem compromisso. Position Mesa as discovery session (not sales call) where Francisco educates and builds conviction.' : '' }}
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 55 ? 'NOT QUALIFIED (ANUM <55) - Continue discovery OR graceful disqualification (see Offer Logic in system message)' : '' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 55 ? 'NOT QUALIFIED (ANUM below 55) - Continue discovery OR graceful disqualification (see Offer Logic in system message)' : '' }}
 
-{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 ? 'Cal.com Link (Mesa de Clareza): ' + ($('Check: Can Offer Meeting').first().json.cal_booking_link || 'N/A - Ask for availability instead') : '' }}
+{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 ? 'Cal.com Link for Mesa de Clareza: ' + ($('Check: Can Offer Meeting').first().json.cal_booking_link || 'N/A - Ask for availability instead') : '' }}
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 55 ? 'CRITICAL WARNING: Score below 55 threshold - DO NOT offer Mesa de Clareza or Implementation. Continue discovery ONLY or graceful exit.' : '' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total < 55 ? 'CRITICAL WARNING: Score below 55 threshold - DO NOT offer Mesa de Clareza. Continue discovery ONLY or graceful exit.' : '' }}
 
 ---
 
@@ -61,53 +61,53 @@ Breakdown:
 
 {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.urgency < 50 ? 'NEED: Urgency evidence - Identify timeline and consequences (see Stage 4: Urgency Discovery)' : 'Urgency: Sufficient evidence' }}
 
-{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.money < 50 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.authority >= 50 ? 'NEED: Money evidence - Discover budget capacity (ONLY if Authority ≥50) (see Stage 5: Money Discovery)' : 'Money: Sufficient evidence or skip (low authority)' }}
+{{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.money < 50 && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.authority >= 50 ? 'NEED: Money evidence - Discover budget capacity ONLY if Authority is 50+ (see Stage 5: Money Discovery)' : 'Money: Sufficient evidence or skip (low authority)' }}
 
 ---
 
 =# TASK
 
-Respond as FRANK following **System Prompt v6.0.0** (Gold Standard 2025).
+Respond as FRANK following System Prompt v6.0.0 (Gold Standard 2025).
 
-**Pre-Response Checklist (Mandatory - Execute IN ORDER):**
+Pre-Response Checklist (Mandatory - Execute IN ORDER):
 
-**0. CONTEXT CHECK**
-   - Is this first contact? → Use Layer 1: First Contact Protocol
-   - Did lead ask direct question? → Answer FIRST, then discover (if natural)
-   - Did lead reject assumption? → PIVOT to discovery (don't insist)
+0. CONTEXT CHECK
+   - Is this first contact? Use Layer 1: First Contact Protocol
+   - Did lead ask direct question? Answer FIRST, then discover (if natural)
+   - Did lead reject assumption? PIVOT to discovery (do not insist)
 
-**1. ENGAGEMENT CHECK**
-   - Behavioral override active? (Frustration/Force Value/Engagement Recovery) → Apply IMMEDIATELY
-   - Lead engagement level: High/Medium/Low/Frustrated? → Adapt approach (see Layer 4: Engagement Management)
+1. ENGAGEMENT CHECK
+   - Behavioral override active? (Frustration/Force Value/Engagement Recovery) Apply IMMEDIATELY
+   - Lead engagement level: High/Medium/Low/Frustrated? Adapt approach (see Layer 4: Engagement Management)
 
-**2. VALUE CHECK**
-   - Asked 2+ questions already? → Deliver value/insight BEFORE next question
-   - Delivered value in last 1-2 messages? → OK to ask discovery question
-   - Lead shared context/pain? → Deliver benchmark, hidden cost, or case study NOW
+2. VALUE CHECK
+   - Asked 2+ questions already? Deliver value/insight BEFORE next question
+   - Delivered value in last 1-2 messages? OK to ask discovery question
+   - Lead shared context/pain? Deliver benchmark, hidden cost, or case study NOW
 
-**3. ANUM EVIDENCE CHECK**
-   - Review "Missing ANUM Evidence" section above
-   - If missing critical evidence → Ask natural discovery question to extract it
-   - If sufficient evidence → Move to offer stage
+3. ANUM EVIDENCE CHECK
+   - Review Missing ANUM Evidence section above
+   - If missing critical evidence, ask natural discovery question to extract it
+   - If sufficient evidence, move to offer stage
 
-**4. OFFER READINESS CHECK**
-   - ANUM ≥70? → Offer Mesa de Clareza™ | Positioning: "Próximo passo para começar" (present Implementation first, then Mesa to demo and close)
-   - ANUM 55-69? → Offer Mesa de Clareza™ | Positioning: "Descoberta sem compromisso" (discovery session, not sales call)
-   - ANUM <55? → Continue discovery OR graceful exit (see Layer 5: Offer Logic)
+4. OFFER READINESS CHECK
+   - ANUM 70+? Offer Mesa de Clareza. Positioning: Proximo passo para comecar (present Implementation first, then Mesa to demo and close)
+   - ANUM 55-69? Offer Mesa de Clareza. Positioning: Descoberta sem compromisso (discovery session, not sales call)
+   - ANUM below 55? Continue discovery OR graceful exit (see Layer 5: Offer Logic)
 
-**5. MESSAGE QUALITY CHECK**
+5. MESSAGE QUALITY CHECK
    - Would I say this to a friend? (natural tone, not robotic)
    - Did I make lead feel heard? (acknowledge what they shared)
    - Is next step clear? (question, offer, or choice)
-   - Am I being advisor (mentor) or vendor (pushy)? → Be advisor
+   - Am I being advisor (mentor) or vendor (pushy)? Be advisor
 
-**Sector-Specific Adaptation:**
+Sector-Specific Adaptation:
 {{ $('Prepare: Chat Context').first().json.detected_sector ? 'Detected sector: ' + $('Prepare: Chat Context').first().json.detected_sector + ' - Use sector-specific vocabulary and value statements (see Sector Adaptation in system message)' : 'Sector not detected yet - Use generic professional language' }}
 
-**Output Requirements:**
-- Length: 3-6 lines (60-120 words) [Can be longer for offers/objection handling]
+Output Requirements:
+- Length: 3-6 lines (60-120 words). Can be longer for offers/objection handling.
 - Tone: Warm, direct, mentor-like (not pushy or robotic)
 - Format: Natural Brazilian Portuguese, ready for WhatsApp
-- Structure: Acknowledge → Value/Insight (if appropriate) → Discovery question OR Offer
+- Structure: Acknowledge, Value/Insight (if appropriate), Discovery question OR Offer
 
-**Generate response now.**
+Generate response now.
