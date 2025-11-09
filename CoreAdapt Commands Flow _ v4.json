@@ -4,7 +4,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- ORDEM CORRETA: n8n PRIMEIRO, depois chat_history\n-- Motivo: Precisa buscar session_id de chat_history antes de deletar\nDELETE FROM corev4_n8n_chat_histories \nWHERE session_id IN (\n  SELECT DISTINCT session_id::varchar \n  FROM corev4_chat_history \n  WHERE contact_id = {{ $json.contact_id }}\n);\n\n-- Agora deleta chat_history\nDELETE FROM corev4_chat_history \nWHERE contact_id = {{ $json.contact_id }};",
+        "query": "-- ORDEM CORRETA: n8n PRIMEIRO, depois chat_history, depois lead_state\n-- Motivo: Precisa buscar session_id de chat_history antes de deletar\nDELETE FROM corev4_n8n_chat_histories \nWHERE session_id IN (\n  SELECT DISTINCT session_id::varchar \n  FROM corev4_chat_history \n  WHERE contact_id = {{ $json.contact_id }}\n);\n\n-- Agora deleta chat_history\nDELETE FROM corev4_chat_history \nWHERE contact_id = {{ $json.contact_id }};\n\n-- Reseta estado do lead para começar do zero\nDELETE FROM corev4_lead_state \nWHERE contact_id = {{ $json.contact_id }};",
         "options": {}
       },
       "id": "a5bfc7b7-a403-4e1a-9f5b-4ec31dd71095",
@@ -541,7 +541,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Limpeza TOTAL do contato\nDELETE FROM corev4_n8n_chat_histories\nWHERE session_id = (\n  SELECT get_or_create_session_uuid(\n    {{ $json.contact_id }}::integer,\n    {{ $json.company_id }}::integer\n  )::varchar  -- ⭐ ADICIONAR ::varchar AQUI\n);\n\nDELETE FROM corev4_contacts\nWHERE id = {{ $json.contact_id }}\nRETURNING id, full_name, whatsapp;",
+        "query": "-- Limpeza TOTAL do contato (tudo deve ser apagado)\n-- Ordem: primeiro n8n_chat_histories, depois tabelas sem CASCADE, por fim contato\n\n-- 1. Limpa histórico do n8n (sem FK)\nDELETE FROM corev4_n8n_chat_histories\nWHERE session_id = (\n  SELECT get_or_create_session_uuid(\n    {{ $json.contact_id }}::integer,\n    {{ $json.company_id }}::integer\n  )::varchar\n);\n\n-- 2. Limpa logs de execução (SET NULL, não CASCADE)\nDELETE FROM corev4_execution_logs\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 3. Limpa migração de session_id (sem FK)\nDELETE FROM corev4_session_id_migration\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 4. Deleta contato (11 tabelas CASCADE automaticamente)\nDELETE FROM corev4_contacts\nWHERE id = {{ $json.contact_id }}\nRETURNING id, full_name, whatsapp;",
         "options": {}
       },
       "id": "eddfa26e-81b2-48c8-b3ff-7f4a53c0f2c3",
