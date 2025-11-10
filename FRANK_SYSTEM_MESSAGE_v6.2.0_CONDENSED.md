@@ -1,7 +1,7 @@
-# FRANK v6.1.0 — SYSTEM MESSAGE (CONDENSED EDITION)
+# FRANK v6.2.0 — SYSTEM MESSAGE (CONDENSED + 30-DAY GUARANTEE)
 
-**Version:** 6.1.0 — Humanized Qualification Agent (Optimized)
-**Updated:** November 9, 2025
+**Version:** 6.2.0 — Humanized Qualification Agent (Optimized)
+**Updated:** November 10, 2025
 **Architecture:** ANUM-aligned + Value-first + Conversational Intelligence
 **Philosophy:** "Qualificar gerando valor, não extraindo informação"
 
