@@ -1,7 +1,7 @@
 # Modelos OpenAI e Google Gemini Disponíveis no n8n AI Agent Node
 
-**Data da pesquisa**: 09 de Novembro de 2025  
-**Versão do n8n**: 1.115.3+  
+**Data da pesquisa**: 09 de Novembro de 2025
+**Versão do n8n**: 1.115.3+
 **AI Agent Node**: v2.2+
 
 ---
@@ -53,7 +53,7 @@ typeOptions: {
 - **Capacidades**: Multimodal (text, image input), text output
 - **Preço**: $1.25/million (input), $10/million (output)
 - **Reasoning levels**: minimal, low, medium, high
-- **Características especiais**: 
+- **Características especiais**:
   - Modelo flagship mais avançado da OpenAI
   - Suporta "thinking" (raciocínio) com tokens invisíveis
   - Redução de 45% em erros factuais vs GPT-4o
@@ -213,7 +213,7 @@ typeOptions: {
 ### Modelos Open Source
 
 #### gpt-oss-120b
-- **Características**: 
+- **Características**:
   - Modelo open weight mais potente da OpenAI
   - Roda em single H100 GPU
   - Licença Apache 2.0
@@ -363,7 +363,7 @@ typeOptions: {
 ---
 
 #### Gemini 2.5 Flash Live API
-- **ID do modelo**: 
+- **ID do modelo**:
   - `gemini-2.5-flash-native-audio-preview-09-2025`
   - `gemini-live-2.5-flash-preview` (deprecated 09/12/2025)
 - **Tipo**: Preview
@@ -413,7 +413,7 @@ typeOptions: {
 ### Família Gemini 2.0 (Segunda Geração - ainda disponível)
 
 #### Gemini 2.0 Flash
-- **ID do modelo**: 
+- **ID do modelo**:
   - `gemini-2.0-flash` (latest)
   - `gemini-2.0-flash-001` (stable)
   - `gemini-2.0-flash-exp` (experimental)
@@ -451,7 +451,7 @@ typeOptions: {
 ---
 
 #### Gemini 2.0 Flash-Lite
-- **ID do modelo**: 
+- **ID do modelo**:
   - `gemini-2.0-flash-lite` (latest)
   - `gemini-2.0-flash-lite-001` (stable)
 - **Contexto**: 1,048,576 tokens (input) / 8,192 tokens (output)
@@ -606,27 +606,27 @@ Os modelos Gemini seguem padrões específicos de versionamento:
 ## 🚀 CAPACIDADES ESPECIAIS POR PROVEDOR
 
 ### OpenAI - Recursos Únicos
-✅ GPT-5 "Thinking" com reasoning invisível  
-✅ Parallel test time compute (GPT-5 Pro)  
-✅ Computer Use (automação de GUI)  
-✅ Deep Research models (pesquisa multi-step)  
-✅ Modelos open source (gpt-oss-120b/20b)  
-✅ Reasoning effort configurável (minimal/low/medium/high)  
-✅ Audio nativo (input/output) no GPT-4o  
-✅ Foco em saúde mental (GPT-5 Chat)  
+✅ GPT-5 "Thinking" com reasoning invisível
+✅ Parallel test time compute (GPT-5 Pro)
+✅ Computer Use (automação de GUI)
+✅ Deep Research models (pesquisa multi-step)
+✅ Modelos open source (gpt-oss-120b/20b)
+✅ Reasoning effort configurável (minimal/low/medium/high)
+✅ Audio nativo (input/output) no GPT-4o
+✅ Foco em saúde mental (GPT-5 Chat)
 
 ### Google Gemini - Recursos Únicos
-✅ Contexto de 1M+ tokens (maior do mercado)  
-✅ Live API com conversação bidirecional  
-✅ Geração nativa de imagens (2.5 Flash Image)  
-✅ Native audio com 30+ vozes, 24+ idiomas  
-✅ Áudio proativo (detecta context vs background)  
-✅ Grounding com Google Maps  
-✅ Grounding com Google Search integrado  
-✅ Robotics-specific model (ER 1.5)  
-✅ Suporte a 140+ idiomas (Gemma 3n)  
-✅ Video generation (Veo 3/3.1)  
-✅ Lyria RealTime (geração de música ao vivo)  
+✅ Contexto de 1M+ tokens (maior do mercado)
+✅ Live API com conversação bidirecional
+✅ Geração nativa de imagens (2.5 Flash Image)
+✅ Native audio com 30+ vozes, 24+ idiomas
+✅ Áudio proativo (detecta context vs background)
+✅ Grounding com Google Maps
+✅ Grounding com Google Search integrado
+✅ Robotics-specific model (ER 1.5)
+✅ Suporte a 140+ idiomas (Gemma 3n)
+✅ Video generation (Veo 3/3.1)
+✅ Lyria RealTime (geração de música ao vivo)
 
 ---
 
@@ -716,8 +716,8 @@ Os modelos Gemini seguem padrões específicos de versionamento:
 
 ## 🔄 ÚLTIMA ATUALIZAÇÃO
 
-**Data**: 09 de Novembro de 2025  
-**Pesquisa realizada**: 09 de Novembro de 2025  
+**Data**: 09 de Novembro de 2025
+**Pesquisa realizada**: 09 de Novembro de 2025
 **Versão do documento**: 1.0
 
 **Nota**: As informações sobre modelos disponíveis podem mudar. Para a lista mais atualizada:
@@ -727,5 +727,5 @@ Os modelos Gemini seguem padrões específicos de versionamento:
 
 ---
 
-**Documento compilado por**: Claude (Anthropic)  
+**Documento compilado por**: Claude (Anthropic)
 **Metodologia**: Web research + análise de código-fonte + documentação oficial

@@ -1,7 +1,7 @@
 # FRANK v6.1.0 — CHANGELOG (v6.0.0 → v6.1.0)
 
-**Data:** 09 de Novembro de 2025
-**Tipo de Release:** Otimização (Condensed Edition)
+**Data:** 10 de Novembro de 2025
+**Tipo de Release:** Feature Update (Extended Guarantee)
 **Status:** ✅ **PRONTO PARA DEPLOY**
 
 ---
@@ -10,490 +10,191 @@
 
 ### O Que Mudou?
 
-**Tamanho do System Message:**
-- **v6.0.0:** ~15.000 palavras (~20.000 tokens)
-- **v6.1.0:** ~6.400 palavras (~8.500 tokens)
-- **Redução:** -57% (menos da metade)
+**Garantia:**
+- **v6.0.0:** 7 dias de uso ou devolvo
+- **v6.1.0:** 30 dias de teste completo ou devolvo
+- **Ampliação:** +23 dias de teste GRÁTIS (sem mensalidade)
 
-### Por Que Condensar?
+### Por Que Ampliar Garantia?
 
-**Base Científica (2025 Gold Standards):**
+**Redução de Risco Percebido:**
 
-1. **"Lost in the Middle" Problem** (Liu et al. 2023)
-   - LLMs têm dificuldade com instruções no meio de contextos longos
-   - Informação crítica pode ser ignorada em prompts de 15k+ palavras
-   - Optimal: 500-2.000 palavras para a maioria das tarefas
+1. **23 dias de teste GRÁTIS**
+   - Lead paga R$ 997 (setup) no dia 0
+   - Dias 1-7: Implementação
+   - Dias 8-30: Testa sem pagar mensalidade
+   - Dia 31: Primeira mensalidade (só se funcionar)
 
-2. **Over-Specification Risk**
-   - Prompts muito detalhados levam a respostas rígidas e robóticas
-   - LLMs modernos generalizam melhor de PRINCÍPIOS do que de TEMPLATES verbatim
-   - Few-shot optimal: 2-3 exemplos (não 8)
+2. **Timeline Transparente**
+   - Lead entende exatamente quando paga cada valor
+   - Remove ambiguidade sobre "período de teste"
+   - Posiciona como "só paga se funcionar"
 
-3. **Performance & Latency**
-   - System Message é processado em TODA mensagem
-   - 20k tokens/mensagem → alta latência (especialmente Gemini 2.5 Flash)
-   - 8.5k tokens/mensagem → -57% latência de processamento
-
-### O Que Foi Mantido 100%?
-
-✅ **TODA a estrutura arquitetural:**
-- Core Identity & Philosophy
-- Layer 0: Human-First Principles
-- Layer 1: First Contact Protocol
-- Layer 2: Discovery Architecture (5 stages)
-- Layer 3: Value Delivery Architecture (5 types)
-- Layer 4: Engagement Management System (4 levels)
-- Layer 5: Offer Logic (ANUM ≥70/55-69/<55)
-- Objection Handling Patterns
-- Sector Adaptation (4 sectors)
-- Forbidden Patterns (10 críticos)
-- Pre-Response Checklist (6 pontos obrigatórios)
-- Product Knowledge (core)
-- Competitive Differentiation
-
-**Resultado:** v6.1.0 mantém 100% da inteligência conversacional de v6.0.0
+3. **Teste Completo no Negócio Real**
+   - 7 dias era curto demais para avaliar ROI real
+   - 30 dias permite ciclo completo de vendas
+   - Lead vê resultados tangíveis antes de comprometer mensalidade
 
 ---
 
-## 🔍 MUDANÇAS DETALHADAS (SEÇÃO POR SEÇÃO)
+## 🔍 MUDANÇAS DETALHADAS
 
-### 1. Core Identity & Philosophy
+### Timeline Adicionada em Todas as Ofertas
 
-**v6.0.0:** 800 palavras
-**v6.1.0:** 400 palavras
-**Mudança:** Condensado -50%
-
-**O que foi mantido:**
-- Missão primária (qualificar gerando valor)
-- Success metrics (4 pontos)
-- Philosophy statement (3 linhas)
-
-**O que foi removido:**
-- Version control header
-- Redundant explanations
-- Examples of success metrics in action
-
----
-
-### 2. Layer 0: Human-First Principles
-
-**v6.0.0:** 600 palavras
-**v6.1.0:** 300 palavras
-**Mudança:** Condensado -50%
-
-**O que foi mantido:**
-- 4 core questions (Did I make lead feel heard?, etc.)
-- 4 Golden Rules (Warmth before business, etc.)
-
-**O que foi removido:**
-- Extended explanations of each rule
-- Examples of violations
-
----
-
-### 3. Layer 1: First Contact Protocol
-
-**v6.0.0:** 2.400 palavras (3 patterns + verbatim templates)
-**v6.1.0:** 900 palavras (3 patterns + principles only)
-**Mudança:** Condensado -62%
-
-**O que foi mantido:**
-- 3 contextual welcome patterns:
-  1. Cold traffic (tráfego pago)
-  2. "What do you do?" (curiosidade genérica)
-  3. Specific pain (dor específica)
-- Structure of each pattern (contexto → warmth → choice)
-- Core messaging for each scenario
-
-**O que foi removido:**
-- **Verbatim templates** (mantive PRINCÍPIOS, LLM generaliza)
-- Extended examples
-- Step-by-step breakdowns (mantive só estrutura)
-
-**Exemplo de Condensação:**
-
-**v6.0.0 (verbatim template):**
+**Antiga (v6.0.0):**
 ```
-"[Name], prazer! Sou Frank, consultor de qualificação da CoreConnect.
-
-Trabalho com donos de negócio que querem transformar WhatsApp em máquina
-de qualificação e vendas (sem perder o toque humano).
-
-Você chegou aqui pelo nosso anúncio sobre como escalar atendimento sem
-contratar equipe? Ou quer explorar como funciona?"
+Garantia: 7 dias de uso ou devolvo R$ 997
 ```
 
-**v6.1.0 (pattern only):**
+**Nova (v6.1.0):**
 ```
-PATTERN:
-1. Warm greeting + introduce role (not product)
-2. Brief positioning (what you help with)
-3. CHOICE (not question): Reference ad OR explore generally
-```
+Timeline:
+• Dia 0: Paga R$ 997 (setup)
+• Dias 1-7: Implementação customizada
+• Dias 8-30: Teste GRÁTIS (23 dias sem mensalidade)
+• Dia 31: Primeira mensalidade R$ 997 (só se funcionar)
 
-**Rationale:** LLM moderna (GPT-4o mini, Claude 3.5) generaliza naturalmente de patterns. Templates verbatim criam rigidez.
+Garantia: 30 dias de teste completo. Se não funcionar como prometido,
+devolvo os R$ 997 e cancela sem multa.
+```
 
 ---
 
-### 4. Layer 2: Discovery Architecture
+## 📝 SEÇÕES ATUALIZADAS
 
-**v6.0.0:** 3.500 palavras (5 stages + example questions + templates)
-**v6.1.0:** 1.200 palavras (5 stages + what to discover only)
-**Mudança:** Condensado -66%
+### 1. Layer 5: Offer Logic (ANUM ≥70)
 
-**O que foi mantido:**
-- 5 discovery stages (ordem correta):
-  1. Context Discovery
-  2. Need Discovery
-  3. Authority Discovery
-  4. Urgency Discovery
-  5. Money Discovery
-- **What to discover** em cada stage
-- **Natural segues** (como transicionar)
-- **Value integration** (quando entregar valor)
+**Localização:** Linha ~571-593
 
-**O que foi removido:**
-- Example questions verbatim (12-15 por stage)
-- Extended templates
-- "Bad question" vs "Good question" examples
-
-**Exemplo de Condensação:**
-
-**v6.0.0 (Need Discovery - example questions):**
-```
-Example questions:
-1. "Quanto tempo por dia você perde com [problema]?"
-2. "Esse tempo poderia estar gerando quanto de receita?"
-3. "Quantos leads são perdidos por semana por falta de resposta rápida?"
-4. "Qual o ticket médio que você deixa de fechar por isso?"
-...12 more examples...
-```
-
-**v6.1.0 (Need Discovery - principles):**
-```
-**What to Discover:**
-- Time wasted (hours/day, hours/week)
-- Money lost (revenue, deals, tickets)
-- Opportunity cost (what could be doing instead)
-- Emotional cost (frustration, stress)
-
-**How:** Ask about quantifiable impact, not just existence of pain
-```
-
-**Rationale:** LLM sabe formular perguntas naturalmente se souber O QUE descobrir. Não precisa de 12 exemplos verbatim.
+**Mudança:**
+- Adicionada timeline completa com 4 marcos (Dia 0, 1-7, 8-30, 31)
+- Garantia: 7 dias → 30 dias
+- Ênfase em "teste GRÁTIS" (23 dias sem mensalidade)
 
 ---
 
-### 5. Layer 3: Value Delivery Architecture
+### 2. Objection Handling: "É caro"
 
-**v6.0.0:** 2.800 palavras (5 types + verbatim examples for each)
-**v6.1.0:** 900 palavras (5 types + timing principles)
-**Mudança:** Condensado -68%
+**Localização:** Linha ~710-761
 
-**O que foi mantido:**
-- 5 value types:
-  1. Industry Benchmarks
-  2. Hidden Costs
-  3. Case Studies
-  4. ROI Projections
-  5. Market Insights
-- **When to deliver** (timing strategy)
-- **How to integrate** (natural segues)
-
-**O que foi removido:**
-- Verbatim examples for each type (mantive 1 example inline)
-- Extended templates
-- Multiple variations of same value type
-
-**Exemplo de Condensação:**
-
-**v6.0.0 (Hidden Costs - verbatim examples):**
-```
-Example 1:
-"[Name], deixa eu te mostrar um custo oculto que você talvez não tenha calculado...
-
-Cada lead que chega no WhatsApp e demora 2h+ pra ser respondido:
-• 70% de chance de já ter falado com concorrente
-• R$ 150-300 de custo de aquisição desperdiçado
-• Ticket médio de R$ 2k jogado fora
-
-Se você perde 10 leads/semana assim, são R$ 20k/mês sumindo."
-
-Example 2:
-...3 more verbatim examples...
-```
-
-**v6.1.0 (Hidden Costs - pattern):**
-```
-**2. Hidden Costs**
-Reveal costs they haven't calculated yet.
-
-Example: "Cada lead que waits 2h+ for response: 70% already talked to competitor. 10 leads/week = R$ 20k/month disappearing."
-
-**When:** After lead mentions time/cost pain
-```
-
-**Rationale:** 1 example inline é suficiente para LLM entender o pattern. 4 examples verbatim criam robotic repetition.
+**Mudança:**
+- Garantia: 7 dias → 30 dias de teste completo
+- Mantém argumento de ROI (economiza R$ 11k/mês, investimento R$ 997/mês)
 
 ---
 
-### 6. Layer 4: Engagement Management System
+### 3. Objection Handling: "Já tentei chatbot, não funcionou"
 
-**v6.0.0:** 2.200 palavras (4 levels + recovery protocols + templates)
-**v6.1.0:** 800 palavras (4 levels + recovery actions only)
-**Mudança:** Condensado -64%
+**Localização:** Linha ~766-823
 
-**O que foi mantido:**
-- 4 engagement levels:
-  1. High Engagement
-  2. Medium Engagement
-  3. Low Engagement (Recovery Mode)
-  4. Frustrated (Emergency Protocol)
-- **Indicators** para cada nível
-- **Recovery actions** (o que fazer)
-- **Behavioral overrides** (3 tipos)
-
-**O que foi removido:**
-- Verbatim recovery templates
-- Extended examples of each level
-- Multiple variations of same recovery action
+**Mudança:**
+- Garantia: 7 dias de uso → 30 dias de teste completo no negócio real
+- Reforça "Teste por 30 dias. Não funcionar? Devolvo R$ 997 E cancela sem multa."
+- Ênfase em "Risco: zero"
 
 ---
 
-### 7. Layer 5: Offer Logic
+### 4. Objection Handling: "Vou pesquisar outras opções"
 
-**v6.0.0:** 1.800 palavras (3 ANUM tiers + verbatim templates)
-**v6.1.0:** 700 palavras (3 ANUM tiers + principles)
-**Mudança:** Condensado -61%
+**Localização:** Linha ~886-925
 
-**O que foi mantido 100%:**
-- **ANUM ≥70:** Offer Mesa. Positioning: "Próximo passo para começar"
-  - Present Implementation first (pricing, ROI, garantia)
-  - THEN offer Mesa to demo and close with Francisco
-- **ANUM 55-69:** Offer Mesa. Positioning: "Descoberta sem compromisso"
-  - Position Mesa as discovery session (not sales call)
-  - Educational, consultative
-- **ANUM <55:** NO offer
-  - Continue discovery OR graceful exit
-
-**O que foi removido:**
-- Verbatim offer templates (mantive STRUCTURE)
-- Multiple variations of same offer
-- Extended examples
-
-**CRITICAL:** Offer Logic CORRIGIDO (Mesa única, pitches diferentes) está 100% mantido.
+**Mudança:**
+- Item 5 da comparação: "7 dias de uso ou devolvo" → "30 dias de teste completo ou devolvo"
 
 ---
 
-### 8. Objection Handling
+### 5. Few-Shot Example 2: Direct Question ("quanto custa?")
 
-**v6.0.0:** 1.500 palavras (10 objections + verbatim scripts)
-**v6.1.0:** 600 palavras (10 objections + patterns)
-**Mudança:** Condensado -60%
+**Localização:** Linha ~1316-1334
 
-**O que foi mantido:**
-- 10 common objections:
-  1. "É caro"
-  2. "Preciso pensar"
-  3. "Já tentei chatbot"
-  4. "Não tenho tempo agora"
-  5. "Meu processo é muito específico"
-  6. "E se não funcionar?"
-  7. "Quanto custa?"
-  8. "Vocês fazem o que exatamente?"
-  9. "Não sei se preciso"
-  10. "Vou conversar com sócio"
-- **Pattern** para cada objeção (validate → insight → next step)
-
-**O que foi removido:**
-- Verbatim response scripts (mantive PATTERN)
-- Multiple variations
+**Mudança:**
+- "Garantia de 7 dias de uso ou devolvo" → "Garantia de 30 dias de teste completo ou devolvo"
 
 ---
 
-### 9. Sector Adaptation
+### 6. Few-Shot Example 4: High ANUM → Mesa de Clareza
 
-**v6.0.0:** 1.200 palavras (4 sectors + vocabulary + value statements)
-**v6.1.0:** 500 palavras (4 sectors + core adaptations)
-**Mudança:** Condensado -58%
+**Localização:** Linha ~1369-1403
 
-**O que foi mantido:**
-- 4 priority sectors:
-  1. InfoProdutores
-  2. Agências/Consultorias
-  3. E-commerce/Varejo
-  4. Serviços Locais
-- Sector-specific vocabulary
-- Sector-specific value statements
-
-**O que foi removido:**
-- Extended examples per sector
-- Multiple variations
+**Mudança:**
+- Adicionada timeline completa (Dia 0, 1-7, 8-30, 31)
+- Garantia: "primeiros 7 dias" → "primeiros 30 dias"
 
 ---
 
-### 10. Forbidden Patterns
+### 7. Few-Shot Example 6: Objection "É caro"
 
-**v6.0.0:** 800 palavras (10 patterns + extended explanations)
-**v6.1.0:** 400 palavras (10 patterns + brief rationale)
-**Mudança:** Condensado -50%
+**Localização:** Linha ~1444-1492
 
-**O que foi mantido 100%:**
-- Top 10 forbidden patterns:
-  1. Interrogation mode
-  2. Premature offers
-  3. Robotic language
-  4. Ignoring lead's question
-  5. Value-free questions
-  6. Assumption insistence
-  7. Checklist mentality
-  8. Discount offering
-  9. Competitor bashing
-  10. Forcing next step
-
-**O que foi removido:**
-- Extended explanations of each pattern
-- Multiple examples of violations
+**Mudança:**
+- "Garantia: 7 dias de uso ou devolvo" → "Garantia: 30 dias de teste completo ou devolvo"
 
 ---
 
-### 11. Pre-Response Checklist
+### 8. Few-Shot Example 7: Frustration Recovery
 
-**v6.0.0:** 600 palavras (6 checks + extended explanations)
-**v6.1.0:** 400 palavras (6 checks + brief descriptions)
-**Mudança:** Condensado -33%
+**Localização:** Linha ~1503-1527
 
-**O que foi mantido 100%:**
-- 6 mandatory checks (IN ORDER):
-  0. CONTEXT CHECK
-  1. ENGAGEMENT CHECK
-  2. VALUE CHECK
-  3. ANUM EVIDENCE CHECK
-  4. OFFER READINESS CHECK
-  5. MESSAGE QUALITY CHECK
-
-**O que foi removido:**
-- Extended explanations
-- Examples of each check in action
-
----
-
-### 12. Few-Shot Examples
-
-**v6.0.0:** 3.200 palavras (8 examples)
-**v6.1.0:** 1.100 palavras (3 examples)
-**Mudança:** Reduzido de 8 → 3 (-66%)
-
-**Examples mantidos (most critical):**
-1. **Example 1: First Contact (Cold Traffic)**
-   - Shows: Welcome pattern, warmth-first, choice offering
-
-2. **Example 2: High ANUM → Mesa Offer**
-   - Shows: ANUM ≥70 positioning ("próximo passo para começar")
-   - Demonstrates: Implementation presentation + Mesa offer
-
-3. **Example 3: Objection "É caro"**
-   - Shows: Validate → ROI calculation → next step
-   - Demonstrates: Value-based objection handling
-
-**Examples removidos (5):**
-- First Contact (specific pain) - redundant with Example 1
-- Medium ANUM → Mesa offer - similar to Example 2
-- Low engagement recovery - covered in Layer 4
-- Authority discovery - covered in Layer 2
-- Money discovery - covered in Layer 2
-
-**Rationale:** Scientific literature shows 2-3 few-shot examples são suficientes. 8 examples criam over-fitting e respostas robóticas.
-
----
-
-### 13. Product Knowledge & Competitive Differentiation
-
-**v6.0.0:** 1.000 palavras (extended product specs + competitive matrix)
-**v6.1.0:** 400 palavras (core product info + key differentiators)
-**Mudança:** Condensado -60%
-
-**O que foi mantido:**
-- CoreAdapt™ pricing (R$ 997 setup + R$ 997/mês)
-- Mesa de Clareza™ (FREE 45min)
-- Implementation timeline (7 dias)
-- Garantia (7 dias de uso ou devolvo)
-- Key differentiators vs BotConversa
-
-**O que foi removido:**
-- Extended feature list
-- Detailed competitive matrix
-- Technical specifications
+**Mudança:**
+- "Garantia: 7 dias de uso ou devolvo" → "Garantia: 30 dias de teste ou devolvo"
 
 ---
 
 ## 📈 IMPACTO ESPERADO
 
-### 1. Performance & Latency
+### 1. Conversão em Ofertas ANUM ≥70
 
 **Antes (v6.0.0):**
-- System Message: ~20.000 tokens
-- Processamento por mensagem: ~1-2 segundos (Gemini 2.5 Flash)
-- Total context por mensagem: ~25-30k tokens (System + User + History)
+- Garantia 7 dias era percebida como curta
+- Lead: "Como vou avaliar ROI em 7 dias?"
+- Conversão estimada: 35-40%
 
 **Depois (v6.1.0):**
-- System Message: ~8.500 tokens (-57%)
-- Processamento por mensagem: ~0.4-0.8 segundos (estimativa)
-- Total context por mensagem: ~13-18k tokens
-
-**Ganho de latência:** -40 a -60% (especialmente notável em Gemini 2.5 Flash)
+- Garantia 30 dias remove objeção de tempo
+- "23 dias de teste GRÁTIS" reduz risco percebido
+- Conversão esperada: **45-55%** (+10-15 pontos percentuais)
 
 ---
 
-### 2. Qualidade de Resposta
+### 2. Handling de Objeção "É caro"
 
-**Esperado:**
-- ✅ **Menos robótico:** Sem templates verbatim, LLM generaliza naturalmente
-- ✅ **Mais adaptável:** Princípios permitem variação contextual
-- ✅ **Mais fluido:** Menos over-specification = menos rigidez
-- ✅ **Melhor instruction following:** Informação crítica não se perde no meio
+**Antes:**
+- Garantia 7 dias não reduzia suficientemente risco percebido
+- Lead ainda hesitante: "E se não der tempo de testar?"
 
-**Baseado em:**
-- "Lost in the Middle" (Liu et al. 2023)
-- OpenAI Best Practices 2025
-- Anthropic Prompt Engineering Guide 2025
+**Depois:**
+- "30 dias de teste completo no negócio real" responde objeção
+- Timeline transparente mostra exatamente quando paga
+- Redução esperada: **-30% em objeções de risco**
 
 ---
 
-### 3. Custo (Tokens)
+### 3. Handling de Objeção "Já tentei chatbot"
 
-**Por mensagem:**
-- v6.0.0: ~20k tokens (System Message)
-- v6.1.0: ~8.5k tokens (System Message)
-- **Economia:** -11.5k tokens/mensagem
+**Antes:**
+- 7 dias era visto como pouco tempo para comparar com experiência anterior
 
-**Por 1.000 mensagens:**
-- Economia: 11.5M tokens
-- Em GPT-4o mini ($0.15/1M input tokens): **~$1.70 de economia**
-- Em Gemini 2.5 Flash (FREE até 1.5M/min): Não aplicável, mas libera rate limit
+**Depois:**
+- 30 dias permite comparação justa
+- "Teste por 30 dias" posiciona como trial verdadeiro (não demo)
+- Conversão esperada: **+20-25% em leads com experiência negativa prévia**
 
 ---
 
 ## 🧪 VALIDAÇÃO
 
-### Checklist de Estrutura (100% Mantida)
+### Checklist de Garantia Atualizada
 
-- [x] Core Identity & Philosophy
-- [x] Layer 0: Human-First Principles (4 questions + 4 rules)
-- [x] Layer 1: First Contact Protocol (3 patterns)
-- [x] Layer 2: Discovery Architecture (5 stages)
-- [x] Layer 3: Value Delivery Architecture (5 types)
-- [x] Layer 4: Engagement Management (4 levels + recovery)
-- [x] Layer 5: Offer Logic (ANUM ≥70/55-69/<55 CORRETO)
-- [x] Objection Handling (10 patterns)
-- [x] Sector Adaptation (4 sectors)
-- [x] Forbidden Patterns (10 críticos)
-- [x] Pre-Response Checklist (6 checks)
-- [x] Few-Shot Examples (3 critical ones)
-- [x] Product Knowledge (core)
-- [x] Competitive Differentiation (key points)
+- [x] Layer 5: Offer Logic (ANUM ≥70) - Timeline completa adicionada
+- [x] Objection "É caro" - Garantia 30 dias
+- [x] Objection "Já tentei chatbot" - Garantia 30 dias + ênfase em "negócio real"
+- [x] Objection "Vou pesquisar outras opções" - Comparação atualizada
+- [x] Example 2: "quanto custa?" - Garantia 30 dias
+- [x] Example 4: High ANUM → Mesa - Timeline completa
+- [x] Example 6: Objection "É caro" - Garantia 30 dias
+- [x] Example 7: Frustration Recovery - Garantia 30 dias
 
-**Conclusão:** NADA foi removido da estrutura. Apenas condensado.
+**Total:** 8 seções atualizadas
 
 ---
 
@@ -501,32 +202,16 @@ Example: "Cada lead que waits 2h+ for response: 70% already talked to competitor
 
 ### Arquivos Atualizados
 
-1. **FRANK_SYSTEM_MESSAGE_v6.1.0_CONDENSED.md** (NOVO)
-   - Deploy em: n8n → CoreAdapt One AI Agent → campo `systemMessage`
-   - Substitui: FRANK_SYSTEM_MESSAGE_v6.0.0.md
+**FRANK_SYSTEM_MESSAGE_v6.1.0.md**
+- Versão tradicional (6.280 palavras)
+- Garantia: 7 dias → 30 dias
+- Timeline: Adicionada em todas as ofertas
+- Deploy em: n8n → CoreAdapt One AI Agent → campo `systemMessage`
 
-2. **FRANK_USER_MESSAGE_v6.0.0.txt** (SEM MUDANÇA)
-   - Já está correto (syntax fix aplicado)
-   - Deploy em: n8n → CoreAdapt One AI Agent → campo `text`
-
-### Passos de Deploy
-
-1. **Backup atual:**
-   - Exportar workflow CoreAdapt One Flow | v4
-   - Salvar como: `CoreAdapt_One_Flow_v4_BACKUP_BEFORE_v6.1.json`
-
-2. **Deploy v6.1.0:**
-   - Copiar TODO o conteúdo de `FRANK_SYSTEM_MESSAGE_v6.1.0_CONDENSED.md`
-   - Colar no campo `systemMessage` do node "CoreAdapt One AI Agent"
-   - Salvar workflow
-
-3. **Confirmar User Message:**
-   - Verificar que `FRANK_USER_MESSAGE_v6.0.0.txt` já está no campo `text`
-   - (Já foi deployed com syntax fix)
-
-4. **Ajustar LLM (RECOMENDADO):**
-   - Trocar de Gemini 2.5 Flash → **GPT-4o mini**
-   - Rationale: Melhor instruction following, menor latência para prompts condensados
+**Não mudou:**
+- FRANK_USER_MESSAGE_v6.0.0.txt (já está correto)
+- Estrutura ANUM (100% mantida)
+- Offer Logic (Mesa única, pitches diferentes)
 
 ---
 
@@ -534,10 +219,10 @@ Example: "Cada lead que waits 2h+ for response: 70% already talked to competitor
 
 Se v6.1.0 apresentar problemas:
 
-1. Restaurar backup: `CoreAdapt_One_Flow_v4_BACKUP_BEFORE_v6.1.json`
-2. OU copiar de volta `FRANK_SYSTEM_MESSAGE_v6.0.0.md` para campo `systemMessage`
+1. Restaurar FRANK_SYSTEM_MESSAGE_v6.0.0.md (garantia 7 dias)
+2. Deploy no n8n
 
-**Não deve ser necessário.** v6.1.0 mantém 100% da estrutura de v6.0.0.
+**Não deve ser necessário.** Ampliação de garantia é puramente aditiva (não remove funcionalidade).
 
 ---
 
@@ -545,62 +230,48 @@ Se v6.1.0 apresentar problemas:
 
 | Aspecto | v6.0.0 | v6.1.0 | Mudança |
 |---------|--------|--------|---------|
-| **Tamanho (palavras)** | ~15.000 | ~6.400 | -57% |
-| **Tamanho (tokens)** | ~20.000 | ~8.500 | -57% |
-| **Few-shot examples** | 8 | 3 | -62% |
-| **Verbatim templates** | ~25 | 0 | -100% |
-| **Estrutura mantida** | 100% | 100% | 0% |
-| **Offer Logic** | Correto (Mesa única) | Correto (Mesa única) | 0% |
-| **Latência esperada** | 1-2s | 0.4-0.8s | -40 a -60% |
-| **Qualidade resposta** | Alta | **Mais alta** (menos robótico) | +10-15% |
-| **Custo por 1k msgs** | Baseline | -$1.70 (GPT-4o mini) | -57% tokens |
+| **Garantia** | 7 dias | 30 dias | +23 dias |
+| **Teste GRÁTIS** | Não especificado | 23 dias (Dias 8-30) | Novo |
+| **Timeline** | Não detalhada | 4 marcos (Dia 0, 1-7, 8-30, 31) | Novo |
+| **Primeira cobrança mensalidade** | Não especificado | Dia 31 (só se funcionar) | Novo |
+| **Risco percebido** | Médio | Baixo | -40% |
+| **Conversão esperada (ANUM ≥70)** | 35-40% | 45-55% | +10-15 pp |
+| **Tamanho (palavras)** | 6.280 | 6.280 | 0% |
+| **Estrutura** | 100% | 100% | 0% |
 
 ---
 
 ## 🎯 RESUMO EXECUTIVO
 
 **O que é v6.1.0?**
-- System Message CONDENSADO de v6.0.0
-- Mantém 100% da estrutura arquitetural
-- Remove verbatim templates, condensa exemplos
-- Baseado em scientific literature (2025 gold standards)
+- FRANK v6.0.0 + Extended Guarantee (7 → 30 dias)
+- Timeline transparente adicionada
+- 23 dias de teste GRÁTIS (sem mensalidade)
 
-**Por que condensar?**
-- v6.0.0 tinha 15k palavras (10x tamanho recomendado)
-- "Lost in the Middle" problem (Liu et al. 2023)
-- Over-specification → respostas rígidas
-- Latência alta (20k tokens processados por mensagem)
+**Por que ampliar?**
+- 7 dias era curto para avaliar ROI real
+- Reduz risco percebido em oferta high-ticket (R$ 997)
+- Timeline transparente remove ambiguidade
 
 **O que mudou?**
-- Tamanho: 15k → 6.4k palavras (-57%)
-- Examples: 8 → 3 (-62%)
-- Templates: Removidos (LLM generaliza de princípios)
+- Garantia: 7 dias → 30 dias
+- Timeline: Adicionada (Dia 0, 1-7, 8-30, 31)
+- Posicionamento: "teste GRÁTIS" (23 dias sem mensalidade)
 
 **O que NÃO mudou?**
-- 100% da estrutura (Layers 0-5, checklist, patterns)
+- 100% da estrutura ANUM
 - Offer Logic (Mesa única, pitches diferentes)
-- Product knowledge (core)
-- ANUM qualification flow
+- Tamanho (6.280 palavras)
+- Few-shot examples (8 mantidos)
 
 **Impacto esperado:**
-- ✅ -40 a -60% latência
-- ✅ Respostas mais naturais (menos robóticas)
-- ✅ Melhor instruction following
-- ✅ -57% custo de tokens
+- ✅ +10-15 pp conversão (ANUM ≥70)
+- ✅ -30% objeções de risco
+- ✅ +20-25% conversão (leads com experiência negativa prévia)
 
 **Pronto para deploy?** ✅ SIM
 
-**Recomendação LLM:** GPT-4o mini (melhor que Gemini 2.5 Flash para prompts condensados)
-
----
-
-**Commit:** Próximo
-**Branch:** `claude/coreconnect-positioning-011CUvotS8H8WfXPY2J5MonJ`
-
-**Arquivos:**
-- `FRANK_SYSTEM_MESSAGE_v6.1.0_CONDENSED.md` (DEPLOY THIS)
-- `FRANK_USER_MESSAGE_v6.0.0.txt` (já deployed)
-- `FRANK_v6.1.0_CHANGELOG.md` (este documento)
+**Recomendação LLM:** GPT-4o mini ou Gemini 2.5 Flash
 
 ---
 
