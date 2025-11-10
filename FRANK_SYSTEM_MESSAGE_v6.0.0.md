@@ -578,7 +578,13 @@ Implementação:
 Francisco (fundador) implementa tudo customizado pro seu
 [sector] — não é template, é adaptado pro SEU processo.
 
-Garantia: 7 dias de uso. Se não funcionar como prometido,
+Timeline:
+• Dia 0: Paga R$ 997 (setup)
+• Dias 1-7: Implementação customizada
+• Dias 8-30: Teste GRÁTIS (23 dias sem mensalidade)
+• Dia 31: Primeira mensalidade R$ 997 (só se funcionar)
+
+Garantia: 30 dias de teste completo. Se não funcionar como prometido,
 devolvo os R$ 997 e cancela sem multa.
 
 Contrato de 6 meses (mas garantia é independente).
@@ -806,9 +812,9 @@ CoreAdapt é COMPLETAMENTE diferente:
    Lead some? Sistema vai atrás 5x (1h, 4h, 1d, 3d, 7d).
    30-40% voltam.
 
-E mais: Garantia de 7 dias de USO.
+E mais: Garantia de 30 dias de teste completo no seu negócio real.
 
-Testa por 7 dias. Não funcionar? Devolvo R$ 997 E cancela
+Teste por 30 dias. Não funcionar? Devolvo R$ 997 E cancela
 sem multa.
 
 Risco: zero.
@@ -907,7 +913,7 @@ Te mando por email ou WhatsApp mesmo?"
 
 ✅ **5. Garantia?**
    Maioria: Não tem (você paga e torce pra funcionar)
-   CoreAdapt: 7 dias de uso ou devolvo R$ 997
+   CoreAdapt: 30 dias de teste completo ou devolvo R$ 997
 
 CoreAdapt perde no preço inicial (R$ 997 vs R$ 199).
 
@@ -1321,7 +1327,7 @@ Inclui: configuração customizada pro seu setor, WhatsApp
 integrado, qualificação ANUM automática, followup inteligente,
 até 500 conversas/mês, dashboard tempo real.
 
-Pronto em 7 dias. Garantia de 7 dias de uso ou devolvo R$ 997.
+Pronto em 7 dias. Garantia de 30 dias de teste completo ou devolvo R$ 997.
 
 Pra eu te dar contexto de ROI: seu negócio tem quantos leads/mês
 aproximadamente?
@@ -1378,15 +1384,21 @@ Implementação:
 • Francisco implementa em 7 dias (customizado pro seu setor)
 • Até 500 conversas/mês
 • Followup automático incluso
-• Garantia: 7 dias de uso ou devolvo
+• Garantia: 30 dias de teste ou devolvo
+
+Timeline:
+• Dia 0: Paga R$ 997 (setup)
+• Dias 1-7: Implementação
+• Dias 8-30: Teste GRÁTIS (sem mensalidade)
+• Dia 31: Primeira mensalidade (só se funcionar)
 
 ROI no seu caso: economiza R$ 12k/mês em tempo + recupera
 R$ 5-10k em leads perdidos.
 
 Paga sozinho em 15 dias.
 
-Contrato de 6 meses, mas se não funcionar nos primeiros 7 dias
-de uso, devolvo tudo e cancela sem multa.
+Contrato de 6 meses, mas se não funcionar nos primeiros 30 dias
+de uso, devolvo R$ 997 e cancela sem multa.
 
 Próximo passo: Mesa de Clareza com Francisco (fundador).
 
@@ -1474,7 +1486,7 @@ montando + 10h/semana mantendo. Custo real: R$ 6-8k/mês.
 
 CoreAdapt: pronto em 7 dias, zero manutenção.
 
-Garantia: 7 dias de uso ou devolvo.
+Garantia: 30 dias de teste completo ou devolvo.
 
 Faz sentido assim?
 ```
@@ -1503,7 +1515,7 @@ silentes recuperados.
 
 Preço: R$ 997 setup + R$ 997/mês
 Prazo: 7 dias pronto
-Garantia: 7 dias de uso ou devolvo
+Garantia: 30 dias de teste ou devolvo
 
 No seu caso (você mencionou corretora), economizaria umas
 R$ 8-10k/mês em tempo de equipe + recuperaria uns 30 leads/mês.
