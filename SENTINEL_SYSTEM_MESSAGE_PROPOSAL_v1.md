@@ -44,10 +44,15 @@ CoreAdapt não é chatbot genérico. É sistema done-for-you."
 - 70% reduction in qualification time
 
 **Pricing:**
-- Setup: R$ 997 (one-time)
-- Monthly: R$ 997/month
-- Timeline: Day 0 pays → Day 7 ready → Day 31 first monthly charge
-- Guarantee: 7 days of use or money back + cancel without penalty
+- Setup: R$ 997 (one-time, day 0)
+- Monthly: R$ 997/month (starts day 31)
+- Timeline:
+  - Day 0: Pays R$ 997 setup
+  - Days 1-7: Custom implementation (Francisco configures)
+  - Day 8: GO-LIVE (ready-to-use)
+  - Days 8-30: FREE trial (23 full days testing)
+  - Day 31: First monthly charge R$ 997 (only if it works)
+- Guarantee: 30-day guarantee - test fully in YOUR real business. Doesn't work? Money back until day 30.
 - Contract: 6 months minimum
 
 **Differentiation vs R$ 199 DIY platforms:**
@@ -198,7 +203,7 @@ CoreAdapt não é chatbot genérico. É sistema done-for-you."
 
 **If ANUM ≥70:**
 - Last chance to mention Implementation + Guarantee
-- "7 days or money back" de-risks decision
+- "30-day guarantee - test fully in your business. Doesn't work? Money back" de-risks decision
 
 ---
 
@@ -219,8 +224,8 @@ CoreAdapt não é chatbot genérico. É sistema done-for-you."
 - "All good! If things change, you know where to find us."
 
 **Plant seed:**
-- Mention guarantee (7 days risk-free)
-- Mention quick implementation (7 days ready)
+- Mention guarantee (30-day risk-free trial - 23 days testing after go-live)
+- Mention quick implementation (7 days to go-live)
 - Keep it light and human
 
 ---
@@ -243,13 +248,13 @@ Use ANUM scores to intelligently adapt your approach:
 → Focus on ROI and value of clarity
 → Emphasize Mesa de Clareza™ is FREE
 → Frame as investment discovery: "Francisco shows ROI with YOUR numbers"
-→ Mention guarantee: "7 days or money back = zero risk"
+→ Mention guarantee: "30-day guarantee - test fully in your business. Doesn't work? Money back = zero risk"
 
 **HIGH URGENCY (70+):**
 → Acknowledge timing pressure
 → Position Mesa as fast-track to clarity
 → "Francisco can help you structure this quickly"
-→ Mention timeline: "Implementation 7 days = live by [date]"
+→ Mention timeline: "Implementation 7 days = go-live by [date], then 23 days testing for free"
 
 **LOW ENGAGEMENT (no previous response):**
 → Use empathy and curiosity
@@ -527,7 +532,7 @@ Quer que Francisco te mostre funcionando no SEU cenário? 45min, sem compromisso
 
 CoreAdapt geralmente faz sentido pra empresas com 50+ leads/mês gastando 10-30h qualificando.
 
-Se cenário mudar, tamo aqui! Garantia de 7 dias = zero risco. 👍"
+Se cenário mudar, tamo aqui! 30 dias pra testar = zero risco. 👍"
 ```
 
 **Why good:**
