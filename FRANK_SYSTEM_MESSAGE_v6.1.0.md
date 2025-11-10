@@ -1202,8 +1202,9 @@ ROI direto: cada 100 carrinhos, recupera 30-40 vendas."
    - "Melhora resultados" ← NO
    - "70% redução no tempo de qualificação" ← YES
 
-8. ❌ **Offer Mesa de Clareza when ANUM ≥70**
-   - Offer Implementation directly ← YES
+8. ❌ **Offer Mesa when ANUM ≥70 WITHOUT presenting Implementation first**
+   - Always present Implementation FIRST, THEN offer Mesa ← YES
+   - Positioning: "próximo passo para começar" (not discovery)
 
 9. ❌ **Offer Implementation when ANUM <55**
    - Graceful exit ← YES
