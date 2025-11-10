@@ -4,7 +4,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Apenas histórico de conversas\nDELETE FROM corev4_chat_history WHERE contact_id = {{ $json.contact_id }};\nDELETE FROM corev4_n8n_chat_histories WHERE contact_id = {{ $json.contact_id }};",
+        "query": "-- ORDEM CORRETA: n8n PRIMEIRO, depois chat_history, depois lead_state\n-- Motivo: Precisa buscar session_id de chat_history antes de deletar\nDELETE FROM corev4_n8n_chat_histories \nWHERE session_id IN (\n  SELECT DISTINCT session_id::varchar \n  FROM corev4_chat_history \n  WHERE contact_id = {{ $json.contact_id }}\n);\n\n-- Agora deleta chat_history\nDELETE FROM corev4_chat_history \nWHERE contact_id = {{ $json.contact_id }};\n\n-- Reseta estado do lead para começar do zero\nDELETE FROM corev4_lead_state \nWHERE contact_id = {{ $json.contact_id }};",
         "options": {}
       },
       "id": "a5bfc7b7-a403-4e1a-9f5b-4ec31dd71095",
@@ -541,7 +541,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- ================================================\n-- Delete: Full Chat History - VERSÃO FINAL\n-- Strategy: CASCADE + RETURNING para validação\n-- Fail Fast: Se não achar contato, FALHA\n-- ================================================\n\nDELETE FROM corev4_contacts \nWHERE id = {{ $json.contact_id }}\nRETURNING \n    id,\n    full_name,\n    whatsapp;",
+        "query": "-- Limpeza TOTAL do contato (tudo deve ser apagado)\n-- Ordem: primeiro n8n_chat_histories, depois tabelas sem CASCADE, por fim contato\n\n-- 1. Limpa histórico do n8n (sem FK)\nDELETE FROM corev4_n8n_chat_histories\nWHERE session_id = (\n  SELECT get_or_create_session_uuid(\n    {{ $json.contact_id }}::integer,\n    {{ $json.company_id }}::integer\n  )::varchar\n);\n\n-- 2. Limpa logs de execução (SET NULL, não CASCADE)\nDELETE FROM corev4_execution_logs\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 3. Limpa migração de session_id (sem FK)\nDELETE FROM corev4_session_id_migration\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 4. Deleta contato (11 tabelas CASCADE automaticamente)\nDELETE FROM corev4_contacts\nWHERE id = {{ $json.contact_id }}\nRETURNING id, full_name, whatsapp;",
         "options": {}
       },
       "id": "eddfa26e-81b2-48c8-b3ff-7f4a53c0f2c3",
@@ -1236,7 +1236,7 @@
           "fieldValues": [
             {
               "fieldId": "session_id",
-              "fieldValue": "={{ $('Prepare: Command Data').item.json.session_id }}"
+              "fieldValue": "={{ $json.session_uuid }}"
             },
             {
               "fieldId": "contact_id",
@@ -1252,7 +1252,7 @@
             },
             {
               "fieldId": "message",
-              "fieldValue": "={{ $('Merge All Responses').item.json.message }}"
+              "fieldValue": "={{ $('Merge: All Command Responses').item.json.message }}"
             },
             {
               "fieldId": "message_type",
@@ -1266,7 +1266,7 @@
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        64,
+        272,
         240
       ],
       "credentials": {
@@ -1309,6 +1309,12 @@
               "name": "timestamp",
               "value": "={{ $now.toISO() }}",
               "type": "string"
+            },
+            {
+              "id": "output-6",
+              "name": "is_command",
+              "value": "=true",
+              "type": "boolean"
             }
           ]
         },
@@ -1319,7 +1325,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        288,
+        496,
         240
       ]
     },
@@ -1414,7 +1420,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Prepare: Command Data').item.json.evolution_api_url }}/message/sendText/{{ $('Prepare: Command Data').item.json.evolution_instance }}",
+        "url": "={{ $('Receive: Workflow Trigger').first().json.evolution_api_url }}/message/sendText/{{ $('Receive: Workflow Trigger').first().json.evolution_instance }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -1424,7 +1430,7 @@
             },
             {
               "name": "apikey",
-              "value": "={{ $('Prepare: Command Data').item.json.evolution_api_key }}"
+              "value": "={{ $('Receive: Workflow Trigger').first().json.evolution_api_key }}"
             }
           ]
         },
@@ -1433,7 +1439,7 @@
           "parameters": [
             {
               "name": "number",
-              "value": "={{ $('Prepare: Command Data').item.json.phone_number }}"
+              "value": "={{ $('Receive: Workflow Trigger').first().json.phone_number }}"
             },
             {
               "name": "text",
@@ -1451,29 +1457,32 @@
         -384,
         1008
       ]
-    }
-  ],
-  "pinData": {
-    "Receive: Workflow Trigger": [
-      {
-        "json": {
-          "contact_id": 1,
-          "company_id": 1,
-          "opt_out": "false",
-          "contact_exists": "true",
-          "whatsapp_id": "558599855443@s.whatsapp.net",
-          "contact_name": "Francisco Pasteur | Estratégia & IA",
-          "message_content": "#zerar",
-          "message_type": "text",
-          "phone_number": "558599855443",
-          "evolution_api_url": "https://evo2.bloomshield.com.br",
-          "evolution_instance": "Frank - CoreConnect AI",
-          "origin_source": null,
-          "evolution_api_key": "E2C9927AD8D7-45F4-B5A8-1FD99A6ADFC8"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT get_or_create_session_uuid(\n  $1::integer, \n  $2::integer\n)::varchar AS session_uuid;",
+        "options": {
+          "queryReplacement": "={{ [ $('Prepare: Command Data').item.json.contact_id, $('Prepare: Command Data').item.json.company_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        48,
+        240
+      ],
+      "id": "f8e562c7-30f5-448c-bee1-7182d13ebff8",
+      "name": "Fetch: Session UUID",
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
         }
       }
-    ]
-  },
+    }
+  ],
+  "pinData": {},
   "connections": {
     "Clear: Chat History": {
       "main": [
@@ -1737,7 +1746,7 @@
       "main": [
         [
           {
-            "node": "Save: Command Response",
+            "node": "Fetch: Session UUID",
             "type": "main",
             "index": 0
           }
@@ -1754,13 +1763,24 @@
           }
         ]
       ]
+    },
+    "Fetch: Session UUID": {
+      "main": [
+        [
+          {
+            "node": "Save: Command Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "284d2145-8447-422c-bf8a-49d05997ded4",
+  "versionId": "a25c644d-e337-47a3-aa1e-aa9a9c44ade5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
