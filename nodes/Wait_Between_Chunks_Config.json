@@ -1,0 +1,12 @@
+{
+  "name": "Wait: Between Chunks",
+  "type": "n8n-nodes-base.wait",
+  "typeVersion": 1.1,
+  "position": [2270, 336],
+  "parameters": {
+    "resume": "after-time",
+    "timeAmount": "={{ $json.delay }}",
+    "timeUnit": "milliseconds"
+  },
+  "notes": "⏱️ Aguarda o delay calculado pelo Split antes de enviar cada chunk.\n\nPor que é necessário?\n• Evolution API não suporta delay nativo\n• Múltiplas requisições simultâneas causam perda de mensagens\n• WhatsApp Business API tem rate limits\n\nDelay típico: 1.5s a 2.5s entre chunks\n\nAntes: 4 mensagens simultâneas → 1-2 perdidas\nDepois: 4 mensagens espaçadas → 100% entregues"
+}
