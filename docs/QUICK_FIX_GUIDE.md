@@ -49,8 +49,10 @@ Encontre estes 3 nodes na sequência:
 | **Node Type** | Wait |
 | **Name** | `Wait: Between Chunks` |
 | **Resume** | After Time Amount |
-| **Time Amount** | `={{ $json.delay }}` |
-| **Unit** | milliseconds |
+| **Time Amount** | `={{ $json.delay / 1000 }}` |
+| **Unit** | seconds |
+
+> **Nota:** O delay vem em milliseconds do Split (1500-2500ms), então dividimos por 1000 para converter para seconds.
 
 ### 4️⃣ Conectar
 

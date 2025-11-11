@@ -75,10 +75,11 @@ Evolution API ← 1 requisição por vez com intervalo adequado
      ```json
      {
        "resume": "after-time",
-       "timeAmount": "={{ $json.delay }}",
-       "timeUnit": "milliseconds"
+       "timeAmount": "={{ $json.delay / 1000 }}",
+       "timeUnit": "seconds"
      }
      ```
+   - **Importante:** Dividir por 1000 porque o delay vem em milliseconds (1500-2500) e o Wait só aceita seconds
 5. **Reconectar:**
    - `Loop: Message Chunks` (output 2) → `Wait: Between Chunks`
    - `Wait: Between Chunks` → `Send: WhatsApp Text`

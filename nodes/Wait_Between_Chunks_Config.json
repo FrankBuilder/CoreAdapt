@@ -5,8 +5,8 @@
   "position": [2270, 336],
   "parameters": {
     "resume": "after-time",
-    "timeAmount": "={{ $json.delay }}",
-    "timeUnit": "milliseconds"
+    "timeAmount": "={{ $json.delay / 1000 }}",
+    "timeUnit": "seconds"
   },
-  "notes": "⏱️ Aguarda o delay calculado pelo Split antes de enviar cada chunk.\n\nPor que é necessário?\n• Evolution API não suporta delay nativo\n• Múltiplas requisições simultâneas causam perda de mensagens\n• WhatsApp Business API tem rate limits\n\nDelay típico: 1.5s a 2.5s entre chunks\n\nAntes: 4 mensagens simultâneas → 1-2 perdidas\nDepois: 4 mensagens espaçadas → 100% entregues"
+  "notes": "⏱️ Aguarda o delay calculado pelo Split antes de enviar cada chunk.\n\nIMPORTANTE: Dividir delay por 1000 pois vem em ms (1500-2500)\n\nPor que é necessário?\n• Evolution API não suporta delay nativo\n• Múltiplas requisições simultâneas causam perda de mensagens\n• WhatsApp Business API tem rate limits\n\nDelay típico: 1.5s a 2.5s entre chunks\n\nAntes: 4 mensagens simultâneas → 1-2 perdidas\nDepois: 4 mensagens espaçadas → 100% entregues"
 }
