@@ -1,0 +1,223 @@
+{
+  "name": "Batch Processor Flow | v4",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/2 * * * * *"
+            }
+          ]
+        }
+      },
+      "id": "batch-processor-cron-trigger",
+      "name": "Trigger: Every 2 Seconds",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n-- Query: Fetch Expired Batches\n-- Purpose: Get all batches where 3s timeout has expired\n-- Used by: Batch Processor Flow (Cron every 2s)\n-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nSELECT\n  ch.id,\n  ch.contact_id,\n  ch.company_id,\n  ch.batch_messages,\n  ch.batch_expires_at,\n  ch.batch_collecting,\n\n  -- Message count\n  array_length(ch.batch_messages, 1) AS message_count,\n\n  -- Contact info\n  c.full_name AS contact_name,\n  c.whatsapp,\n  c.phone_number,\n\n  -- Company info (for Evolution API)\n  co.evolution_api_url,\n  co.evolution_instance,\n  co.evolution_api_key,\n\n  -- Timing info\n  EXTRACT(EPOCH FROM (NOW() - ch.batch_expires_at)) AS seconds_overdue\n\nFROM corev4_chats ch\nINNER JOIN corev4_contacts c ON c.id = ch.contact_id\nINNER JOIN corev4_companies co ON co.id = ch.company_id\n\nWHERE\n  ch.batch_collecting = TRUE\n  AND ch.batch_expires_at <= NOW()  -- Timer expirou!\n  AND ch.batch_messages IS NOT NULL\n  AND array_length(ch.batch_messages, 1) > 0  -- Tem mensagens\n  AND c.opt_out = FALSE  -- Contato ativo\n  AND c.is_active = TRUE\n\nORDER BY ch.batch_expires_at ASC  -- Mais antigos primeiro\nLIMIT 50;  -- Processar no máximo 50 batches por vez\n",
+        "options": {}
+      },
+      "id": "batch-processor-fetch-expired",
+      "name": "Fetch: Expired Batches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -200,
+        300
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-id",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "any",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "batch-processor-check-results",
+      "name": "Check: Has Results?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n// Node: Batch: Process Expired Batches v1.0\n// Location: Standalone Cron Flow (runs every 2 seconds)\n// Purpose: Find batches where 3s timeout expired and process them\n// Flow Structure:\n//   1. Cron Trigger (every 2s)\n//   2. Fetch Expired Batches (SQL)\n//   3. THIS NODE: Combine Messages\n//   4. Execute Workflow: CoreAdapt One Flow\n// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nconst items = $input.all();\n\nif (!items || items.length === 0) {\n  // Nenhum batch expirado, não faz nada\n  return [];\n}\n\nconst results = [];\n\nfor (const item of items) {\n  const batch = item.json;\n\n  // ════════════════════════════════════════════════════════\n  // VALIDAÇÕES\n  // ════════════════════════════════════════════════════════\n\n  if (!batch.batch_messages || batch.batch_messages.length === 0) {\n    console.log(`⚠️ Batch ${batch.id}: No messages found, skipping`);\n    continue;\n  }\n\n  // ════════════════════════════════════════════════════════\n  // COMBINAR MENSAGENS\n  // ════════════════════════════════════════════════════════\n\n  // Parse JSON strings se necessário\n  const messages = batch.batch_messages.map(msg => {\n    if (typeof msg === 'string') {\n      return JSON.parse(msg);\n    }\n    return msg;\n  });\n\n  // Ordenar por timestamp (mais antiga primeiro)\n  messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));\n\n  // Pegar primeira mensagem como base\n  const baseMessage = messages[0].raw || messages[0];\n\n  // ════════════════════════════════════════════════════════\n  // ESTRATÉGIA 1: Combinar só TEXTO\n  // ════════════════════════════════════════════════════════\n\n  // Verificar se TODAS são mensagens de texto\n  const allText = messages.every(m =>\n    !m.has_media &&\n    (m.message_type === 'conversation' || m.message_type === 'text' || m.message_type === 'extendedTextMessage')\n  );\n\n  if (allText) {\n    // Combinar textos com quebra de linha\n    const combinedContent = messages\n      .map(m => m.message_content || m.transcribed || '')\n      .filter(c => c && c.trim())\n      .join('\\n');\n\n    const combinedMessage = {\n      ...baseMessage,\n      message_content: combinedContent,\n      message_count: messages.length,\n      batch_id: batch.id,\n      is_batched: true,\n      batch_type: 'text_only',\n      original_messages: messages,\n\n      // Metadata para tracking\n      first_message_at: messages[0].timestamp,\n      last_message_at: messages[messages.length - 1].timestamp,\n      batch_duration_seconds: (\n        new Date(messages[messages.length - 1].timestamp) -\n        new Date(messages[0].timestamp)\n      ) / 1000\n    };\n\n    results.push({\n      json: combinedMessage\n    });\n\n    console.log(`✅ Batch ${batch.id}: Combined ${messages.length} text messages for contact ${batch.contact_id}`);\n    continue;\n  }\n\n  // ════════════════════════════════════════════════════════\n  // ESTRATÉGIA 2: Tem MÍDIA - Processar SOMENTE A ÚLTIMA\n  // ════════════════════════════════════════════════════════\n\n  // Se tem mídia (áudio, imagem, etc), pega só a última mensagem\n  // Porque provavelmente as anteriores eram contexto\n\n  const lastMessage = messages[messages.length - 1];\n  const previousTexts = messages\n    .slice(0, -1)\n    .filter(m => !m.has_media)\n    .map(m => m.message_content || m.transcribed || '')\n    .filter(c => c && c.trim())\n    .join('\\n');\n\n  const finalMessage = {\n    ...lastMessage.raw || lastMessage,\n    message_count: messages.length,\n    batch_id: batch.id,\n    is_batched: true,\n    batch_type: 'media_included',\n    previous_context: previousTexts || null,\n    original_messages: messages,\n\n    // Se a última é áudio e as anteriores são texto, adicionar contexto\n    combined_context: previousTexts\n      ? `${previousTexts}\\n\\n[ÁUDIO/MÍDIA]`\n      : null,\n\n    // Metadata\n    first_message_at: messages[0].timestamp,\n    last_message_at: messages[messages.length - 1].timestamp,\n    batch_duration_seconds: (\n      new Date(messages[messages.length - 1].timestamp) -\n      new Date(messages[0].timestamp)\n    ) / 1000\n  };\n\n  results.push({\n    json: finalMessage\n  });\n\n  console.log(`✅ Batch ${batch.id}: Processed ${messages.length} messages (media included) for contact ${batch.contact_id}`);\n}\n\n// ════════════════════════════════════════════════════════\n// RETORNAR MENSAGENS COMBINADAS\n// ════════════════════════════════════════════════════════\n\nconsole.log(`📦 Processed ${results.length} batches`);\n\nreturn results;\n"
+      },
+      "id": "batch-processor-combine",
+      "name": "Combine: Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n-- Query: Mark Batch as Processed\n-- Purpose: Reset batch collection flags after processing\n-- Used by: Batch Processor Flow (after sending to One Flow)\n-- Parameters: $1 = chat_id\n-- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nUPDATE corev4_chats\nSET\n  batch_collecting = FALSE,\n  batch_expires_at = NULL,\n  batch_messages = '{}',  -- Limpar array\n  updated_at = NOW()\nWHERE id = $1\nRETURNING\n  id,\n  contact_id,\n  batch_collecting,\n  updated_at;\n",
+        "options": {
+          "queryReplacement": "={{ $('Fetch: Expired Batches').item.json.id }}"
+        }
+      },
+      "id": "batch-processor-mark-processed",
+      "name": "Mark: Batch Processed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": "={{ $workflow.id }}",
+        "options": {}
+      },
+      "id": "batch-processor-execute-one",
+      "name": "Execute: One Flow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        600,
+        200
+      ],
+      "notes": "Executa CoreAdapt One Flow com mensagem combinada"
+    },
+    {
+      "parameters": {},
+      "id": "batch-processor-no-op",
+      "name": "No Operation",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        200,
+        400
+      ],
+      "notes": "Quando não há batches expirados"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Trigger: Every 2 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Expired Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Expired Batches": {
+      "main": [
+        [
+          {
+            "node": "Check: Has Results?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Has Results?": {
+      "main": [
+        [
+          {
+            "node": "Combine: Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine: Messages": {
+      "main": [
+        [
+          {
+            "node": "Mark: Batch Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark: Batch Processed": {
+      "main": [
+        [
+          {
+            "node": "Execute: One Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "tags": [
+    {
+      "createdAt": "2025-10-16T11:45:27.519Z",
+      "updatedAt": "2025-10-16T11:45:27.519Z",
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}
