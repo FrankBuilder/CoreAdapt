@@ -749,13 +749,7 @@
             }
           ]
         },
-        "options": {
-          "retry": {
-            "maxTries": 3,
-            "waitBetweenTries": 2000
-          },
-          "timeout": 15000
-        }
+        "options": {}
       },
       "id": "7fa99af6-d123-43bd-9b28-836644210ee7",
       "name": "Send: WhatsApp Text",
@@ -1130,7 +1124,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Split long AI messages into readable WhatsApp chunks\nconst aiMessage = $('Determine: Response Mode').item.json.ai_message;\nconst contextData = $('Determine: Response Mode').item.json;\n\n// ============================================================================\n// CONFIGURAÇÕES (vêm do node \"Config: Split Parameters\")\n// ============================================================================\nconst maxChars = $('Config: Split Parameters').item.json.max_chars;\nconst delayBase = $('Config: Split Parameters').item.json.delay_base;\nconst delayRandom = $('Config: Split Parameters').item.json.delay_random;\n\nfunction splitIntoChunks(text, maxLength) {\n  // Split by double newlines (paragraphs) first\n  const paragraphs = text.split(/\\n\\n+/);\n  const chunks = [];\n  let current = '';\n\n  for (const para of paragraphs) {\n    // Check if adding paragraph exceeds limit\n    if ((current + '\\n\\n' + para).length > maxLength && current) {\n      chunks.push(current.trim());\n      current = para;\n    } else {\n      current += (current ? '\\n\\n' : '') + para;\n    }\n\n    // Force split if single paragraph too long\n    if (current.length > maxLength) {\n      const sentences = current.split(/(?<=[.!?])\\s+/);\n      let sentenceChunk = '';\n\n      for (const sentence of sentences) {\n        // ✅ NOVO: Fallback para quebra por palavras se sentença muito longa\n        if (sentence.length > maxLength) {\n          const words = sentence.split(/\\s+/);\n          let wordChunk = '';\n\n          for (const word of words) {\n            if ((wordChunk + ' ' + word).length > maxLength && wordChunk) {\n              chunks.push(wordChunk.trim());\n              wordChunk = word;\n            } else {\n              wordChunk += (wordChunk ? ' ' : '') + word;\n            }\n          }\n\n          if (wordChunk) sentenceChunk = wordChunk;\n          continue;\n        }\n\n        if ((sentenceChunk + sentence).length > maxLength && sentenceChunk) {\n          chunks.push(sentenceChunk.trim());\n          sentenceChunk = sentence;\n        } else {\n          sentenceChunk += (sentenceChunk ? ' ' : '') + sentence;\n        }\n      }\n      current = sentenceChunk;\n    }\n  }\n\n  if (current) chunks.push(current.trim());\n  return chunks;\n}\n\n// Check if message needs splitting\nif (aiMessage.length <= maxChars) {\n  // Single message - no split needed\n  return [{\n    json: {\n      ...contextData,\n      text: aiMessage,\n      chunkIndex: 1,\n      totalChunks: 1,\n      delay: 0\n    }\n  }];\n}\n\n// Split message\nconst chunks = splitIntoChunks(aiMessage, maxChars);\n\nreturn chunks.map((text, index) => {\n  // ✅ NOVO: Adicionar \"...\" no final de chunks intermediários\n  let formattedText = text;\n  if (index < chunks.length - 1) {\n    formattedText += '...';\n  }\n\n  return {\n    json: {\n      ...contextData,\n      text: formattedText,\n      chunkIndex: index + 1,\n      totalChunks: chunks.length,\n      // ✅ NOVO: Delay progressivo ao invés de aleatório\n      delay: index === 0\n        ? 0                              // Primeiro chunk: sem delay\n        : delayBase + (index * 300)      // Chunks seguintes: 1.5s, 1.8s, 2.1s...\n    }\n  };\n});"
+        "jsCode": "// Split long AI messages into readable WhatsApp chunks\nconst aiMessage = $('Determine: Response Mode').item.json.ai_message;\nconst contextData = $('Determine: Response Mode').item.json;\n\n// ============================================================================\n// CONFIGURAÃ‡Ã•ES (vÃªm do node \"Config: Split Parameters\")\n// ============================================================================\nconst maxChars = $('Config: Split Parameters').item.json.max_chars;\nconst delayBase = $('Config: Split Parameters').item.json.delay_base;\nconst delayRandom = $('Config: Split Parameters').item.json.delay_random;\n\nfunction splitIntoChunks(text, maxLength) {\n  // Split by double newlines (paragraphs) first\n  const paragraphs = text.split(/\\n\\n+/);\n  const chunks = [];\n  let current = '';\n  \n  for (const para of paragraphs) {\n    // Check if adding paragraph exceeds limit\n    if ((current + '\\n\\n' + para).length > maxLength && current) {\n      chunks.push(current.trim());\n      current = para;\n    } else {\n      current += (current ? '\\n\\n' : '') + para;\n    }\n    \n    // Force split if single paragraph too long\n    if (current.length > maxLength) {\n      const sentences = current.split(/(?<=[.!?])\\s+/);\n      let sentenceChunk = '';\n      \n      for (const sentence of sentences) {\n        if ((sentenceChunk + sentence).length > maxLength && sentenceChunk) {\n          chunks.push(sentenceChunk.trim());\n          sentenceChunk = sentence;\n        } else {\n          sentenceChunk += (sentenceChunk ? ' ' : '') + sentence;\n        }\n      }\n      current = sentenceChunk;\n    }\n  }\n  \n  if (current) chunks.push(current.trim());\n  return chunks;\n}\n\n// Check if message needs splitting\nif (aiMessage.length <= maxChars) {\n  // Single message - no split needed\n  return [{\n    json: {\n      ...contextData,\n      text: aiMessage,\n      chunkIndex: 1,\n      totalChunks: 1,\n      delay: 0\n    }\n  }];\n}\n\n// Split message\nconst chunks = splitIntoChunks(aiMessage, maxChars);\n\nreturn chunks.map((text, index) => ({\n  json: {\n    ...contextData,\n    text,\n    chunkIndex: index + 1,\n    totalChunks: chunks.length,\n    // Delay = base + random variation\n    delay: delayBase + Math.floor(Math.random() * delayRandom)\n  }\n}));"
       },
       "id": "42410b22-57e9-4513-94fd-8a44c4cf4e6a",
       "name": "Split: Message into Chunks",
@@ -1161,7 +1155,7 @@
             {
               "id": "config-1",
               "name": "max_chars",
-              "value": 600,
+              "value": 250,
               "type": "number"
             },
             {
@@ -1173,7 +1167,7 @@
             {
               "id": "config-3",
               "name": "delay_random",
-              "value": 500,
+              "value": 1000,
               "type": "number"
             }
           ]
@@ -1337,32 +1331,6 @@
       "id": "1b36a0d2-602c-4020-a731-d763dbebdf69",
       "name": "Wait: Between Chunks",
       "webhookId": "3575b8a4-074a-4cb9-9b37-63249b577010"
-    },
-    {
-      "parameters": {
-        "jsCode": "// ============================================================================\n// INJECT CAL.COM LINK - Garante que o link correto sempre seja enviado\n// ============================================================================\n\nconst aiMessage = $json.output;\nconst calLink = 'https://cal.com/francisco-pasteur-coreadapt/mesa-de-clareza-45min';\n\n// Substituir placeholders comuns\nlet finalMessage = aiMessage;\n\n// Padrão 1: [CAL_LINK], [LINK], {link}\nfinalMessage = finalMessage.replace(/\\[CAL_LINK\\]/gi, calLink);\nfinalMessage = finalMessage.replace(/\\[LINK\\]/gi, calLink);\nfinalMessage = finalMessage.replace(/\\{link\\}/gi, calLink);\n\n// Padrão 2: URLs incompletas\nfinalMessage = finalMessage.replace(\n  /https?:\\/\\/cal\\.com\\/francisco-pasteur(?!-coreadapt)/gi,\n  calLink\n);\n\n// Padrão 3: Se detectar oferta de Mesa mas não tem link, adicionar\nconst mesaPatterns = [\n  /mesa de clareza/i,\n  /agendar.*francisco/i,\n  /próximo passo.*reunião/i,\n  /quer agendar/i\n];\n\nconst hasMesaOffer = mesaPatterns.some(pattern => pattern.test(finalMessage));\nconst hasCalLink = /cal\\.com\\/francisco-pasteur-coreadapt\\/mesa-de-clareza-45min/.test(finalMessage);\n\nif (hasMesaOffer && !hasCalLink) {\n  // Adicionar link no final\n  finalMessage += `\\n\\nVocê pode escolher o melhor horário aqui:\\n${calLink}`;\n  console.log('✅ Cal.com link adicionado automaticamente (IA ofereceu Mesa mas esqueceu link)');\n}\n\nreturn {\n  json: {\n    ...$json,\n    output: finalMessage,\n    cal_link_injected: finalMessage !== aiMessage,\n    original_had_link: hasCalLink,\n    mesa_offer_detected: hasMesaOffer\n  }\n};"
-      },
-      "id": "inject-calcom-link-node-001",
-      "name": "Inject: Cal.com Link",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        224
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ============================================================================\n// VALIDATE SEND CONTEXT - Garante que dados estão completos antes do envio\n// ============================================================================\n\nconst context = $json;\n\n// Validar campos obrigatórios\nconst required = [\n  'evolution_api_url',\n  'evolution_instance',\n  'evolution_api_key',\n  'phone_number',\n  'ai_message'\n];\n\nconst missing = required.filter(field => !context[field]);\n\nif (missing.length > 0) {\n  throw new Error(`❌ Missing required fields for WhatsApp send: ${missing.join(', ')}`);\n}\n\n// Validar formatos\nif (!context.phone_number.match(/^\\d{10,15}$/)) {\n  throw new Error(`❌ Invalid phone number format: ${context.phone_number}`);\n}\n\nif (!context.evolution_api_url.startsWith('http')) {\n  throw new Error(`❌ Invalid Evolution API URL: ${context.evolution_api_url}`);\n}\n\nif (!context.ai_message || context.ai_message.trim() === '') {\n  throw new Error(`❌ AI message is empty`);\n}\n\nconsole.log('✅ Send context validation passed');\n\nreturn [{\n  json: {\n    ...context,\n    validation_passed: true,\n    validated_at: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "validate-send-context-node-001",
-      "name": "Validate: Send Context",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1600,
-        224
-      ]
     }
   ],
   "pinData": {
@@ -1661,7 +1629,7 @@
       "main": [
         [
           {
-            "node": "Inject: Cal.com Link",
+            "node": "Calculate: Assistant Cost",
             "type": "main",
             "index": 0
           }
@@ -1745,7 +1713,7 @@
       "main": [
         [
           {
-            "node": "Validate: Send Context",
+            "node": "Split: Message into Chunks",
             "type": "main",
             "index": 0
           }
@@ -1808,28 +1776,6 @@
         [
           {
             "node": "Send: WhatsApp Text",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Inject: Cal.com Link": {
-      "main": [
-        [
-          {
-            "node": "Calculate: Assistant Cost",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Validate: Send Context": {
-      "main": [
-        [
-          {
-            "node": "Split: Message into Chunks",
             "type": "main",
             "index": 0
           }
