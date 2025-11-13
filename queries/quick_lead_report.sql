@@ -55,8 +55,8 @@ WHERE c.id = :contact_id
 
 UNION ALL
 SELECT
-    CONCAT('ANUM Total: ', ROUND(ls.total_score, 1), '/100 - ',
-        UPPER(ls.qualification_stage),
+    CONCAT('ANUM Total: ', ROUND(COALESCE(ls.total_score, 0)::numeric, 1), '/100 - ',
+        UPPER(COALESCE(ls.qualification_stage, 'N/A')),
         CASE WHEN ls.is_qualified THEN ' ✓ QUALIFICADO' ELSE ' ○ NÃO QUALIFICADO' END
     ) AS info,
     '' AS " "
@@ -64,10 +64,10 @@ FROM corev4_lead_state ls WHERE ls.contact_id = :contact_id
 
 UNION ALL
 SELECT
-    CONCAT('  └─ A:', ROUND(ls.authority_score, 1),
-           ' | N:', ROUND(ls.need_score, 1),
-           ' | U:', ROUND(ls.urgency_score, 1),
-           ' | M:', ROUND(ls.money_score, 1)
+    CONCAT('  └─ A:', ROUND(COALESCE(ls.authority_score, 0)::numeric, 1),
+           ' | N:', ROUND(COALESCE(ls.need_score, 0)::numeric, 1),
+           ' | U:', ROUND(COALESCE(ls.urgency_score, 0)::numeric, 1),
+           ' | M:', ROUND(COALESCE(ls.money_score, 0)::numeric, 1)
     ) AS info,
     '' AS " "
 FROM corev4_lead_state ls WHERE ls.contact_id = :contact_id
@@ -248,11 +248,11 @@ SELECT
     '┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓' AS "         ",
     '┃ SCORE ANUM                                                   ┃' AS "          ",
     '┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛' AS "           ",
-    CONCAT(ROUND(cf.anum_total_score, 1), '/100') AS "ANUM Total",
-    CONCAT(ROUND(cf.authority_score, 1), '/100') AS "└─ Authority",
-    CONCAT(ROUND(cf.need_score, 1), '/100') AS "└─ Need",
-    CONCAT(ROUND(cf.urgency_score, 1), '/100') AS "└─ Urgency",
-    CONCAT(ROUND(cf.money_score, 1), '/100') AS "└─ Money",
+    CONCAT(ROUND(COALESCE(cf.anum_total_score, 0)::numeric, 1), '/100') AS "ANUM Total",
+    CONCAT(ROUND(COALESCE(cf.authority_score, 0)::numeric, 1), '/100') AS "└─ Authority",
+    CONCAT(ROUND(COALESCE(cf.need_score, 0)::numeric, 1), '/100') AS "└─ Need",
+    CONCAT(ROUND(COALESCE(cf.urgency_score, 0)::numeric, 1), '/100') AS "└─ Urgency",
+    CONCAT(ROUND(COALESCE(cf.money_score, 0)::numeric, 1), '/100') AS "└─ Money",
     UPPER(cf.qualification_stage) AS "Estágio",
     CASE WHEN cf.is_qualified THEN '✓ QUALIFICADO' ELSE '○ NÃO QUALIFICADO' END AS "Qualificação",
     cf.analysis_count AS "Análises Realizadas",
@@ -311,7 +311,7 @@ SELECT
     COALESCE(msum.completed_meetings, 0) AS "└─ Realizadas",
     COALESCE(msum.no_show_meetings, 0) AS "└─ No-show",
     TO_CHAR(msum.next_meeting_date, 'DD/MM/YYYY HH24:MI') AS "Próxima Reunião",
-    CONCAT(ROUND(msum.last_anum_at_booking, 1), '/100') AS "ANUM no Último Agendamento"
+    CONCAT(ROUND(COALESCE(msum.last_anum_at_booking, 0)::numeric, 1), '/100') AS "ANUM no Último Agendamento"
 
 FROM contact_full cf
 LEFT JOIN message_stats ms ON cf.contact_id = ms.contact_id
@@ -366,7 +366,7 @@ ORDER BY fe.step
 
 UNION ALL
 SELECT
-    CONCAT('  └─ ANUM: ', COALESCE(ROUND(fe.anum_at_execution, 1)::text, 'N/A')) AS info,
+    CONCAT('  └─ ANUM: ', COALESCE(ROUND(fe.anum_at_execution::numeric, 1)::text, 'N/A')) AS info,
     CONCAT('  └─ Razão: ', COALESCE(fe.decision_reason, 'N/A')) AS " "
 FROM corev4_followup_executions fe
 WHERE fe.contact_id = :contact_id
@@ -406,11 +406,11 @@ SELECT
     END AS "Status Detalhado",
 
     '' AS "     ",
-    CONCAT('ANUM no agendamento: ', ROUND(sm.anum_score_at_booking, 1), '/100') AS "Score ANUM",
-    CONCAT('  A:', ROUND(sm.authority_score, 1),
-           ' | N:', ROUND(sm.need_score, 1),
-           ' | U:', ROUND(sm.urgency_score, 1),
-           ' | M:', ROUND(sm.money_score, 1)) AS "  └─ Breakdown",
+    CONCAT('ANUM no agendamento: ', ROUND(COALESCE(sm.anum_score_at_booking, 0)::numeric, 1), '/100') AS "Score ANUM",
+    CONCAT('  A:', ROUND(COALESCE(sm.authority_score, 0)::numeric, 1),
+           ' | N:', ROUND(COALESCE(sm.need_score, 0)::numeric, 1),
+           ' | U:', ROUND(COALESCE(sm.urgency_score, 0)::numeric, 1),
+           ' | M:', ROUND(COALESCE(sm.money_score, 0)::numeric, 1)) AS "  └─ Breakdown",
 
     '' AS "      ",
     sm.cal_attendee_name AS "Participante",

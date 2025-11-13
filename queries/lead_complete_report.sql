@@ -355,7 +355,7 @@ WITH contact_base AS (
         contact_id,
         first_analyzed_at AS event_timestamp,
         'first_analysis' AS event_type,
-        '📊 Primeira análise ANUM realizada (Score: ' || ROUND(anum_total_score, 1) || ')' AS event_description,
+        '📊 Primeira análise ANUM realizada (Score: ' || ROUND(COALESCE(anum_total_score, 0)::numeric, 1) || ')' AS event_description,
         3 AS event_order
     FROM contact_base
     WHERE first_analyzed_at IS NOT NULL
@@ -378,7 +378,7 @@ WITH contact_base AS (
         contact_id,
         sent_at AS event_timestamp,
         'followup_sent' AS event_type,
-        '📤 Follow-up #' || step || ' enviado (ANUM: ' || ROUND(anum_at_execution, 1) || ')' AS event_description,
+        '📤 Follow-up #' || step || ' enviado (ANUM: ' || ROUND(COALESCE(anum_at_execution, 0)::numeric, 1) || ')' AS event_description,
         10 + step AS event_order
     FROM followup_executions_detail
     WHERE executed = true AND sent_at IS NOT NULL
@@ -391,7 +391,7 @@ WITH contact_base AS (
         meeting_created_at AS event_timestamp,
         'meeting_scheduled' AS event_type,
         '📅 Reunião agendada: ' || TO_CHAR(meeting_date, 'DD/MM/YYYY HH24:MI') ||
-        ' (ANUM no agendamento: ' || ROUND(anum_score_at_booking, 1) || ')' AS event_description,
+        ' (ANUM no agendamento: ' || ROUND(COALESCE(anum_score_at_booking, 0)::numeric, 1) || ')' AS event_description,
         50 AS event_order
     FROM meetings_info
 
@@ -514,11 +514,11 @@ SELECT
     '│  SCORE ANUM (QUALIFICAÇÃO)                                          │' AS section_title_anum,
     '└─────────────────────────────────────────────────────────────────────┘' AS section_footer_anum,
     '' AS blank6,
-    CONCAT('ANUM TOTAL: ', ROUND(cb.anum_total_score, 1), '/100') AS anum_score,
-    CONCAT('  └─ Authority (Autoridade): ', ROUND(cb.authority_score, 1), '/100') AS anum_authority,
-    CONCAT('  └─ Need (Necessidade): ', ROUND(cb.need_score, 1), '/100') AS anum_need,
-    CONCAT('  └─ Urgency (Urgência): ', ROUND(cb.urgency_score, 1), '/100') AS anum_urgency,
-    CONCAT('  └─ Money (Dinheiro): ', ROUND(cb.money_score, 1), '/100') AS anum_money,
+    CONCAT('ANUM TOTAL: ', ROUND(COALESCE(cb.anum_total_score, 0)::numeric, 1), '/100') AS anum_score,
+    CONCAT('  └─ Authority (Autoridade): ', ROUND(COALESCE(cb.authority_score, 0)::numeric, 1), '/100') AS anum_authority,
+    CONCAT('  └─ Need (Necessidade): ', ROUND(COALESCE(cb.need_score, 0)::numeric, 1), '/100') AS anum_need,
+    CONCAT('  └─ Urgency (Urgência): ', ROUND(COALESCE(cb.urgency_score, 0)::numeric, 1), '/100') AS anum_urgency,
+    CONCAT('  └─ Money (Dinheiro): ', ROUND(COALESCE(cb.money_score, 0)::numeric, 1), '/100') AS anum_money,
     '' AS blank7,
     CONCAT('Estágio de Qualificação: ', UPPER(cb.qualification_stage)) AS qualification_stage,
     CASE
@@ -584,7 +584,7 @@ SELECT
     CONCAT('Passo ', fed.step, '/', fed.total_steps) AS step_number,
     fed.step_status_label AS status,
     fed.time_info AS timing,
-    CONCAT('ANUM na execução: ', COALESCE(ROUND(fed.anum_at_execution, 1), 'N/A')) AS anum_at_step,
+    CONCAT('ANUM na execução: ', COALESCE(ROUND(fed.anum_at_execution::numeric, 1)::text, 'N/A')) AS anum_at_step,
     CONCAT('Agendado para: ', TO_CHAR(fed.scheduled_at, 'DD/MM/YYYY HH24:MI')) AS scheduled_time,
     CASE
         WHEN fed.executed = true THEN CONCAT('Enviado em: ', TO_CHAR(fed.sent_at, 'DD/MM/YYYY HH24:MI'))
@@ -625,11 +625,11 @@ SELECT
     '' AS blank2,
 
     -- ANUM no momento do agendamento
-    CONCAT('ANUM no agendamento: ', ROUND(mi.anum_score_at_booking, 1)) AS anum_at_booking,
-    CONCAT('  └─ Authority: ', ROUND(mi.authority_at_booking, 1)) AS auth_at_booking,
-    CONCAT('  └─ Need: ', ROUND(mi.need_at_booking, 1)) AS need_at_booking,
-    CONCAT('  └─ Urgency: ', ROUND(mi.urgency_at_booking, 1)) AS urgency_at_booking,
-    CONCAT('  └─ Money: ', ROUND(mi.money_at_booking, 1)) AS money_at_booking,
+    CONCAT('ANUM no agendamento: ', ROUND(COALESCE(mi.anum_score_at_booking, 0)::numeric, 1)) AS anum_at_booking,
+    CONCAT('  └─ Authority: ', ROUND(COALESCE(mi.authority_at_booking, 0)::numeric, 1)) AS auth_at_booking,
+    CONCAT('  └─ Need: ', ROUND(COALESCE(mi.need_at_booking, 0)::numeric, 1)) AS need_at_booking,
+    CONCAT('  └─ Urgency: ', ROUND(COALESCE(mi.urgency_at_booking, 0)::numeric, 1)) AS urgency_at_booking,
+    CONCAT('  └─ Money: ', ROUND(COALESCE(mi.money_at_booking, 0)::numeric, 1)) AS money_at_booking,
     CONCAT('Estágio de qualificação: ', mi.qualification_at_booking) AS qual_at_booking,
     CONCAT('Categoria de dor: ', COALESCE(mi.pain_at_booking, 'N/A')) AS pain_at_booking,
     '' AS blank3,
