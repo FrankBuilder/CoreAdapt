@@ -20,7 +20,9 @@
           "id": "HCvX4Ypw2MiRDsdm",
           "name": "Postgres Core"
         }
-      }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {},
