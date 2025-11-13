@@ -49,6 +49,60 @@
               "name": "evolution_instance",
               "value": "={{ $('Prepare: Command Data').item.json.evolution_instance }}",
               "type": "string"
+            },
+            {
+              "id": "msg-5",
+              "name": "contact_id",
+              "value": "={{ $('Prepare: Command Data').item.json.contact_id }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-6",
+              "name": "company_id",
+              "value": "={{ $('Prepare: Command Data').item.json.company_id }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-7",
+              "name": "phone_number",
+              "value": "={{ $('Prepare: Command Data').item.json.phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-8",
+              "name": "evolution_api_key",
+              "value": "={{ $('Prepare: Command Data').item.json.evolution_api_key }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-9",
+              "name": "opt_out",
+              "value": "={{ $('Prepare: Command Data').item.json.opt_out }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-10",
+              "name": "contact_exists",
+              "value": "={{ $('Prepare: Command Data').item.json.contact_exists }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-11",
+              "name": "contact_name",
+              "value": "={{ $('Prepare: Command Data').item.json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-12",
+              "name": "command",
+              "value": "={{ $('Prepare: Command Data').item.json.command }}",
+              "type": "string"
+            },
+            {
+              "id": "msg-13",
+              "name": "message_type",
+              "value": "={{ $('Prepare: Command Data').item.json.message_type }}",
+              "type": "string"
             }
           ]
         },
