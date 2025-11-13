@@ -1037,7 +1037,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================================\n// CALCULATE USER TOKENS & COST - Pricing Dinâmico do Supabase\n// ============================================================================\n\nconst items = $input.all();\nconst results = [];\n\n// ✅ BUSCAR PREÇOS DO SUPABASE\nconst pricingData = $('Fetch: Model Pricing').all();\n\nconst pricingMap = new Map();\nfor (const row of pricingData) {\n  pricingMap.set(row.json.model_name, {\n    input: row.json.input_cost_per_1m,\n    output: row.json.output_cost_per_1m,\n    provider: row.json.provider,\n    display_name: row.json.display_name\n  });\n}\n\nconst DEFAULT_PRICING = {\n  input: 0.50,\n  output: 1.50,\n  provider: 'unknown',\n  display_name: 'Unknown Model'\n};\n\nfor (const item of items) {\n  const usage = item.json.usage || {};\n\n  let inputTokens = usage.promptTokens || usage.prompt_tokens || 0;\n  let outputTokens = usage.completionTokens || usage.completion_tokens || 0;\n  let totalTokens = usage.totalTokens || usage.total_tokens || 0;\n\n  if (totalTokens > 0 && inputTokens === 0 && outputTokens === 0) {\n    inputTokens = Math.floor(totalTokens * 0.6);\n    outputTokens = Math.floor(totalTokens * 0.4);\n  }\n\n  if (totalTokens === 0) {\n    totalTokens = inputTokens + outputTokens;\n  }\n\n  const rawModel = item.json.model || item.json.modelName || 'unknown';\n\n  let pricing = null;\n  let modelUsed = rawModel;\n\n  if (pricingMap.has(rawModel)) {\n    pricing = pricingMap.get(rawModel);\n  } else {\n    for (const [modelName, modelPricing] of pricingMap.entries()) {\n      if (rawModel.toLowerCase().includes(modelName.toLowerCase())) {\n        pricing = modelPricing;\n        modelUsed = modelName;\n        break;\n      }\n    }\n  }\n\n  if (!pricing) {\n    pricing = DEFAULT_PRICING;\n  }\n\n  const inputCost = (inputTokens / 1_000_000) * pricing.input;\n  const outputCost = (outputTokens / 1_000_000) * pricing.output;\n  const totalCost = inputCost + outputCost;\n\n  results.push({\n    json: {\n      ...item.json,\n      user_tokens_used: totalTokens,\n      user_tokens_input: inputTokens,\n      user_tokens_output: outputTokens,\n      user_cost_usd: parseFloat(totalCost.toFixed(8)),\n      user_cost_input: parseFloat(inputCost.toFixed(8)),\n      user_cost_output: parseFloat(outputCost.toFixed(8)),\n      model_used: modelUsed,\n      pricing_source: 'supabase'\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst INPUT_COST_PER_1M = 0.150;\nconst MODEL_NAME = 'gpt-4o-mini';\n\nfor (const item of items) {\n  const messageContent = item.json.message_content || '';\n  let tokenCount = 0;\n  \n  try {\n    const { encoding_for_model } = require('tiktoken');\n    const enc = encoding_for_model('gpt-4o-mini');\n    const tokens = enc.encode(messageContent);\n    tokenCount = tokens.length;\n    enc.free();\n  } catch (error) {\n    tokenCount = Math.ceil(messageContent.length / 4);\n  }\n  \n  const costUsd = (tokenCount / 1_000_000) * INPUT_COST_PER_1M;\n  const costRounded = parseFloat(costUsd.toFixed(8));\n  \n  results.push({\n    json: {\n      ...item.json,\n      tokens_used: tokenCount,\n      cost_usd: costRounded,\n      model_used: MODEL_NAME\n    }\n  });\n}\n\nreturn results;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1117,7 +1117,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================================\n// CALCULATE ASSISTANT COST - Pricing Dinâmico do Supabase\n// ============================================================================\n\nconst items = $input.all();\nconst results = [];\n\n// ✅ BUSCAR PREÇOS DO SUPABASE (node anterior)\nconst pricingData = $('Fetch: Model Pricing').all();\n\n// Criar mapa de pricing para lookup rápido\nconst pricingMap = new Map();\nfor (const row of pricingData) {\n  pricingMap.set(row.json.model_name, {\n    input: row.json.input_cost_per_1m,\n    output: row.json.output_cost_per_1m,\n    provider: row.json.provider,\n    display_name: row.json.display_name\n  });\n}\n\nconsole.log(`📊 Loaded pricing for ${pricingMap.size} models from Supabase`);\n\n// Fallback genérico se modelo não estiver no banco\nconst DEFAULT_PRICING = {\n  input: 0.50,\n  output: 1.50,\n  provider: 'unknown',\n  display_name: 'Unknown Model'\n};\n\nfor (const item of items) {\n  const usage = item.json.usage || {};\n\n  // Extrair tokens\n  let inputTokens = usage.promptTokens || usage.prompt_tokens || 0;\n  let outputTokens = usage.completionTokens || usage.completion_tokens || 0;\n  let totalTokens = usage.totalTokens || usage.total_tokens || 0;\n\n  // Se só tem total, estimar input/output (60/40)\n  if (totalTokens > 0 && inputTokens === 0 && outputTokens === 0) {\n    inputTokens = Math.floor(totalTokens * 0.6);\n    outputTokens = Math.floor(totalTokens * 0.4);\n  }\n\n  if (totalTokens === 0) {\n    totalTokens = inputTokens + outputTokens;\n  }\n\n  // Detectar modelo usado\n  const rawModel = item.json.model || item.json.modelName || 'unknown';\n\n  // ✅ BUSCAR PREÇOS DO MAPA (com fallback para match parcial)\n  let pricing = null;\n  let modelUsed = rawModel;\n\n  // 1. Tentar match exato\n  if (pricingMap.has(rawModel)) {\n    pricing = pricingMap.get(rawModel);\n  } else {\n    // 2. Tentar match parcial (ex: \"gemini-1.5-pro-002\" → \"gemini-1.5-pro\")\n    for (const [modelName, modelPricing] of pricingMap.entries()) {\n      if (rawModel.toLowerCase().includes(modelName.toLowerCase())) {\n        pricing = modelPricing;\n        modelUsed = modelName;\n        console.log(`🔍 Partial match: \"${rawModel}\" → \"${modelName}\"`);\n        break;\n      }\n    }\n  }\n\n  // 3. Se ainda não achou, usar fallback\n  if (!pricing) {\n    pricing = DEFAULT_PRICING;\n    console.warn(`⚠️ Model \"${rawModel}\" not found in pricing table, using default`);\n  }\n\n  // Calcular custos\n  const inputCost = (inputTokens / 1_000_000) * pricing.input;\n  const outputCost = (outputTokens / 1_000_000) * pricing.output;\n  const totalCost = inputCost + outputCost;\n\n  console.log(`💰 Cost for ${pricing.display_name || modelUsed}:`);\n  console.log(`   - Input: ${inputTokens} tokens @ $${pricing.input}/1M = $${inputCost.toFixed(8)}`);\n  console.log(`   - Output: ${outputTokens} tokens @ $${pricing.output}/1M = $${outputCost.toFixed(8)}`);\n  console.log(`   - Total: $${totalCost.toFixed(8)}`);\n\n  results.push({\n    json: {\n      ...item.json,\n      tokens_used: totalTokens,\n      tokens_input: inputTokens,\n      tokens_output: outputTokens,\n      cost_usd: parseFloat(totalCost.toFixed(8)),\n      cost_input: parseFloat(inputCost.toFixed(8)),\n      cost_output: parseFloat(outputCost.toFixed(8)),\n      model_used: modelUsed,\n      model_display_name: pricing.display_name || modelUsed,\n      pricing_provider: pricing.provider,\n      pricing_rate_input: pricing.input,\n      pricing_rate_output: pricing.output,\n      pricing_source: 'supabase'\n    }\n  });\n}\n\nreturn results;"
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nconst INPUT_COST_PER_1M = 0.150;\nconst OUTPUT_COST_PER_1M = 0.600;\n\nfor (const item of items) {\n  const usage = item.json.usage || {};\n  \n  let inputTokens = usage.promptTokens || usage.prompt_tokens || 0;\n  let outputTokens = usage.completionTokens || usage.completion_tokens || 0;\n  let totalTokens = usage.totalTokens || usage.total_tokens || 0;\n  \n  if (totalTokens > 0 && inputTokens === 0 && outputTokens === 0) {\n    inputTokens = Math.floor(totalTokens * 0.6);\n    outputTokens = Math.floor(totalTokens * 0.4);\n  }\n  \n  if (totalTokens === 0) {\n    totalTokens = inputTokens + outputTokens;\n  }\n  \n  const inputCost = (inputTokens / 1_000_000) * INPUT_COST_PER_1M;\n  const outputCost = (outputTokens / 1_000_000) * OUTPUT_COST_PER_1M;\n  const totalCost = inputCost + outputCost;\n  const costRounded = parseFloat(totalCost.toFixed(8));\n  \n  const model = item.json.model || item.json.modelName || 'gpt-4o-mini';\n  \n  results.push({\n    json: {\n      ...item.json,\n      tokens_used: totalTokens,\n      tokens_input: inputTokens,\n      tokens_output: outputTokens,\n      cost_usd: costRounded,\n      cost_input: parseFloat(inputCost.toFixed(8)),\n      cost_output: parseFloat(outputCost.toFixed(8)),\n      model_used: model\n    }\n  });\n}\n\nreturn results;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1353,7 +1353,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ============================================================================\n// VALIDATE SEND CONTEXT - Garante que dados críticos existem antes do split\n// ============================================================================\n\nconst context = $json;\n\n// Validar apenas campos que DEVEM estar no contexto neste ponto\nconst required = [\n  'ai_message',\n  'phone_number'\n];\n\nconst missing = required.filter(field => !context[field]);\n\nif (missing.length > 0) {\n  throw new Error(`❌ Missing required fields: ${missing.join(', ')} [line 19]`);\n}\n\n// Validar formatos básicos\nif (!context.phone_number || context.phone_number.toString().length < 10) {\n  throw new Error(`❌ Invalid phone number: ${context.phone_number}`);\n}\n\nif (!context.ai_message || context.ai_message.trim() === '') {\n  throw new Error(`❌ AI message is empty`);\n}\n\nconsole.log('✅ Send context validation passed');\nconsole.log(`   - Phone: ${context.phone_number}`);\nconsole.log(`   - Message length: ${context.ai_message.length} chars`);\n\n// Passar contexto adiante sem modificações\nreturn [{\n  json: {\n    ...context,\n    validation_passed: true,\n    validated_at: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ============================================================================\n// VALIDATE SEND CONTEXT - Garante que dados estão completos antes do envio\n// ============================================================================\n\nconst context = $json;\n\n// Validar campos obrigatórios\nconst required = [\n  'evolution_api_url',\n  'evolution_instance',\n  'evolution_api_key',\n  'phone_number',\n  'ai_message'\n];\n\nconst missing = required.filter(field => !context[field]);\n\nif (missing.length > 0) {\n  throw new Error(`❌ Missing required fields for WhatsApp send: ${missing.join(', ')}`);\n}\n\n// Validar formatos\nif (!context.phone_number.match(/^\\d{10,15}$/)) {\n  throw new Error(`❌ Invalid phone number format: ${context.phone_number}`);\n}\n\nif (!context.evolution_api_url.startsWith('http')) {\n  throw new Error(`❌ Invalid Evolution API URL: ${context.evolution_api_url}`);\n}\n\nif (!context.ai_message || context.ai_message.trim() === '') {\n  throw new Error(`❌ AI message is empty`);\n}\n\nconsole.log('✅ Send context validation passed');\n\nreturn [{\n  json: {\n    ...context,\n    validation_passed: true,\n    validated_at: new Date().toISOString()\n  }\n}];"
       },
       "id": "validate-send-context-node-001",
       "name": "Validate: Send Context",
@@ -1363,27 +1363,6 @@
         1600,
         224
       ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "-- Buscar todos os preços ativos de modelos LLM\nSELECT\n  model_name,\n  input_cost_per_1m,\n  output_cost_per_1m,\n  provider,\n  display_name\nFROM v_llm_pricing_active\nORDER BY provider, model_name;",
-        "options": {}
-      },
-      "id": "1d2d33fd-b61b-45f0-8337-f71294bd5300",
-      "name": "Fetch: Model Pricing",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [
-        900,
-        350
-      ],
-      "credentials": {
-        "supabaseApi": {
-          "id": "LCC4ysI1Fxd9iDGz",
-          "name": "Supabase Core"
-        }
-      }
     }
   ],
   "pinData": {
@@ -1683,11 +1662,6 @@
         [
           {
             "node": "Inject: Cal.com Link",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Fetch: Model Pricing",
             "type": "main",
             "index": 0
           }

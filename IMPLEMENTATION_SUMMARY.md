@@ -1,4 +1,4 @@
-# ✅ IMPLEMENTAÇÃO COMPLETA - CoreAdapt Flows Fixes + Message Batching
+# ✅ IMPLEMENTAÇÃO COMPLETA - CoreAdapt Flows Fixes + Message Batching + Dynamic Pricing
 
 > **Data:** 2025-11-13
 > **Status:** ✅ IMPLEMENTADO E COMMITADO
@@ -8,13 +8,15 @@
 
 ## 📊 RESUMO EXECUTIVO
 
-**TODAS as correções do DEEP_DIVE_FLOWS_ANALYSIS_REPORT.md + MESSAGE BATCHING implementadas com sucesso!**
+**TODAS as correções do DEEP_DIVE_FLOWS_ANALYSIS_REPORT.md + 2 BONUS implementados com sucesso!**
 
-✅ **11 correções** aplicadas nos 3 fluxos principais
-✅ **4 novos nodes** criados (2 no One Flow, 1 no Main Router, 1 workflow completo)
+✅ **11 correções** aplicadas nos 3 fluxos principais (One, Sync, Sentinel)
+✅ **5 novos nodes** criados (2 no One Flow, 1 no Main Router, 1 node Fetch Pricing, 1 workflow completo)
 ✅ **Message Batching** implementado (redução de 60-70% nas chamadas de IA)
+✅ **Dynamic Pricing** implementado (preços centralizados no Supabase, zero manutenção em workflows)
 ✅ **Arquivos de backup** criados automaticamente
 ✅ **Scripts de automação** documentados e versionados
+✅ **Documentação completa** (guides, migrations, troubleshooting)
 
 ---
 
@@ -774,6 +776,149 @@ const BATCH_WINDOW_MS = 3000;  // Alterar se necessário
 
 ---
 
+## 💰 BONUS 2: DYNAMIC PRICING IMPLEMENTADO
+
+**Problema resolvido:** Preços de LLMs hardcoded nos workflows
+
+**Situação anterior:**
+```javascript
+// Hardcoded no node JavaScript
+const INPUT_COST_PER_1M = 0.150;   // GPT-4o mini
+const OUTPUT_COST_PER_1M = 0.600;
+```
+
+**Problemas:**
+- ❌ Preços errados quando usuário muda de modelo (Gemini vs OpenAI)
+- ❌ Precisa editar workflow toda vez que preço muda
+- ❌ Não suporta novos modelos automaticamente
+
+**Situação nova:**
+```sql
+-- Preços centralizados no Supabase
+SELECT * FROM llm_pricing WHERE model_name = 'gemini-1.5-pro';
+-- Atualizar preço: UPDATE llm_pricing SET input_cost_per_1m = 1.50 ...
+```
+
+### 📦 Implementação
+
+**1. Tabela Supabase Criada:**
+```sql
+CREATE TABLE llm_pricing (
+  model_name TEXT PRIMARY KEY,
+  input_cost_per_1m DECIMAL(10,6),
+  output_cost_per_1m DECIMAL(10,6),
+  provider TEXT,
+  display_name TEXT,
+  is_active BOOLEAN,
+  valid_from TIMESTAMPTZ,
+  valid_until TIMESTAMPTZ
+);
+```
+
+**2. View para Lookups Rápidos:**
+```sql
+CREATE VIEW v_llm_pricing_active AS
+SELECT model_name, input_cost_per_1m, output_cost_per_1m, provider
+FROM llm_pricing
+WHERE is_active = TRUE AND (valid_until IS NULL OR valid_until > NOW());
+```
+
+**3. Modelos Pré-Configurados (14 total):**
+- **Google:** Gemini 1.5 Pro, Flash, Pro Legacy
+- **OpenAI:** GPT-4o, GPT-4o-mini, GPT-4 Turbo, GPT-4, GPT-3.5-turbo
+- **Anthropic:** Claude 3.5 Sonnet, Opus, Sonnet, Haiku
+
+**4. Node Adicionado ao Workflow:**
+- **Fetch: Model Pricing** (Supabase node)
+  - Executa em paralelo após AI Agent
+  - Busca todos os preços da view
+  - Calculate nodes usam esse resultado
+
+**5. Nodes Atualizados:**
+- **Calculate: Assistant Cost**
+  - Busca preços do node "Fetch: Model Pricing"
+  - Match exato: `gemini-1.5-pro` → usa preço exato
+  - Match parcial: `gemini-1.5-pro-latest` → usa preço do `gemini-1.5-pro`
+  - Fallback: Modelo desconhecido → usa $0.50/$1.50 genérico
+
+- **Calculate: User Tokens & Cost**
+  - Mesma lógica de lookup dinâmico
+
+### 📊 Exemplo de Uso
+
+**Mudar preço do Gemini:**
+```sql
+UPDATE llm_pricing
+SET input_cost_per_1m = 1.50, output_cost_per_1m = 6.00
+WHERE model_name = 'gemini-1.5-pro';
+```
+
+**Adicionar novo modelo:**
+```sql
+INSERT INTO llm_pricing VALUES
+  ('gpt-5', 5.00, 20.00, 'openai', 'GPT-5', TRUE, NOW(), NULL);
+```
+
+**Resultado:** Zero mudanças no workflow necessárias! 🎉
+
+### 📁 Arquivos
+
+**Criados:**
+- `migrations/create_llm_pricing_table.sql` (tabela + seed data)
+- `scripts/implement_dynamic_pricing.py` (automação)
+- `docs/DYNAMIC_PRICING_GUIDE.md` (guia completo)
+- `CoreAdapt One Flow _ v4_BEFORE_DYNAMIC_PRICING.json` (backup)
+
+**Modificados:**
+- `CoreAdapt One Flow _ v4.json` (3 nodes: +Fetch, ~Calculate Assistant, ~Calculate User)
+
+### 🎯 Benefícios
+
+| Aspecto | Antes | Depois |
+|---------|-------|--------|
+| Atualizar preço | Editar workflow | `UPDATE` SQL |
+| Novo modelo | Editar código JS | `INSERT` SQL |
+| Histórico de preços | ❌ Não existe | ✅ `valid_from/until` |
+| Match inteligente | ❌ Exato only | ✅ Parcial também |
+| Manutenção | 🔴 Dev trabalho | 🟢 SQL simples |
+
+### ⚙️ Deploy
+
+**1. Executar Migration:**
+```bash
+psql -h localhost -U postgres -d core \
+  -f migrations/create_llm_pricing_table.sql
+```
+
+**2. Reimportar Workflow:**
+- Importar `CoreAdapt One Flow _ v4.json` no n8n
+
+**3. Testar:**
+- Enviar mensagem no WhatsApp
+- Verificar logs mostrando:
+  ```
+  💰 Cost for Gemini 1.5 Pro:
+     - Input: 1500 tokens @ $1.25/1M = $0.00187500
+     - Output: 800 tokens @ $5.00/1M = $0.00400000
+     - Total: $0.00587500
+  ```
+
+**4. Atualizar Preços Quando Necessário:**
+```sql
+-- Sem tocar no workflow!
+UPDATE llm_pricing SET ... WHERE model_name = '...';
+```
+
+### 📚 Documentação Completa
+
+Ver: `docs/DYNAMIC_PRICING_GUIDE.md` para:
+- Operações comuns (CRUD de preços)
+- Troubleshooting
+- Casos de uso
+- Histórico de preços (avançado)
+
+---
+
 ## ✅ CHECKLIST DE CONCLUSÃO
 
 **Implementações Base (11 correções):**
@@ -784,12 +929,22 @@ const BATCH_WINDOW_MS = 3000;  // Alterar se necessário
 - [x] Push para repositório remoto
 - [x] Documentação completa gerada
 
-**Message Batching (bonus):**
+**Message Batching (bonus 1):**
 - [x] Batch Processor Flow criado
 - [x] Main Router Flow modificado com batch collector
 - [x] Migration SQL preparada
 - [x] Scripts de automação documentados
 - [x] Documentação atualizada
+
+**Dynamic Pricing (bonus 2):**
+- [x] Tabela llm_pricing criada (migration SQL)
+- [x] View v_llm_pricing_active criada
+- [x] 14 modelos pré-configurados (Gemini, OpenAI, Claude)
+- [x] Node "Fetch: Model Pricing" adicionado ao workflow
+- [x] "Calculate: Assistant Cost" atualizado para pricing dinâmico
+- [x] "Calculate: User Tokens & Cost" atualizado para pricing dinâmico
+- [x] Guia completo criado (docs/DYNAMIC_PRICING_GUIDE.md)
+- [x] Scripts de automação documentados
 
 **Testes e Deploy:**
 - [ ] **Executar migration SQL em staging**
