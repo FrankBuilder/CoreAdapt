@@ -7,13 +7,13 @@
         "query": "-- ORDEM CORRETA: n8n PRIMEIRO, depois chat_history, depois lead_state\n-- Motivo: Precisa buscar session_id de chat_history antes de deletar\nDELETE FROM corev4_n8n_chat_histories \nWHERE session_id IN (\n  SELECT DISTINCT session_id::varchar \n  FROM corev4_chat_history \n  WHERE contact_id = {{ $json.contact_id }}\n);\n\n-- Agora deleta chat_history\nDELETE FROM corev4_chat_history \nWHERE contact_id = {{ $json.contact_id }};\n\n-- Reseta estado do lead para começar do zero\nDELETE FROM corev4_lead_state \nWHERE contact_id = {{ $json.contact_id }};",
         "options": {}
       },
-      "id": "a5bfc7b7-a403-4e1a-9f5b-4ec31dd71095",
+      "id": "2681186f-f9d5-4e95-bf93-fca5110aa627",
       "name": "Clear: Chat History",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -832,
-        -336
+        176,
+        -80
       ],
       "credentials": {
         "postgres": {
@@ -54,13 +54,13 @@
         },
         "options": {}
       },
-      "id": "f0266ca4-7973-4ccc-8688-8405182f8407",
+      "id": "2ba6c5a2-e96a-45b7-a486-29524799294d",
       "name": "Message: Limpar",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        -336
+        400,
+        -80
       ]
     },
     {
@@ -149,13 +149,13 @@
         },
         "options": {}
       },
-      "id": "b22b40b5-92fd-4916-a4cb-b7bf82ea3a03",
+      "id": "fc0fb59f-baf0-4ff8-83bb-39282449330a",
       "name": "Message: Listar",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        -144
+        400,
+        112
       ]
     },
     {
@@ -184,13 +184,13 @@
           ]
         }
       },
-      "id": "14572780-beb1-4d87-9db7-a5ff16ea26af",
+      "id": "09322bac-8598-49fd-a8f7-dc2510245bbe",
       "name": "Set Audio Preference",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -832,
-        48
+        176,
+        304
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -286,13 +286,13 @@
         },
         "options": {}
       },
-      "id": "350c2d68-b9aa-4c45-81b9-4521bdf15beb",
+      "id": "365be960-9575-4b8f-8bf1-79572aa808d3",
       "name": "Message: Audio",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        48
+        400,
+        304
       ]
     },
     {
@@ -381,13 +381,13 @@
         },
         "options": {}
       },
-      "id": "98e9b758-adbf-4220-abe9-b0f7d8337e54",
+      "id": "52c5d6fe-0b4d-4cfc-ae66-fa6e294b770f",
       "name": "Message: Text",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        240
+        400,
+        496
       ]
     },
     {
@@ -476,13 +476,13 @@
         },
         "options": {}
       },
-      "id": "9b6232b9-6db8-485a-b948-c0f2d0e9a774",
+      "id": "c5fb5ff9-53b3-4b94-b240-f6d6179cbb6c",
       "name": "Message: Default",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        432
+        400,
+        688
       ]
     },
     {
@@ -507,13 +507,13 @@
           ]
         }
       },
-      "id": "e20d8bd5-2e39-4047-9b1f-c9d617def068",
+      "id": "6091bef6-d085-463d-a0cc-88fa6353fde2",
       "name": "Set Opt-Out",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -832,
-        624
+        176,
+        880
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -527,13 +527,13 @@
       "parameters": {
         "numberInputs": 7
       },
-      "id": "09014e0e-61c0-4197-8222-2e3de4aab95d",
+      "id": "b327a118-8d5f-4566-8cca-668b777e08e1",
       "name": "Merge: All Command Responses",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        -384,
-        160
+        624,
+        416
       ],
       "alwaysOutputData": true,
       "onError": "continueRegularOutput"
@@ -544,13 +544,13 @@
         "query": "-- Limpeza TOTAL do contato (tudo deve ser apagado)\n-- Ordem: primeiro n8n_chat_histories, depois tabelas sem CASCADE, por fim contato\n\n-- 1. Limpa histórico do n8n (sem FK)\nDELETE FROM corev4_n8n_chat_histories\nWHERE session_id = (\n  SELECT get_or_create_session_uuid(\n    {{ $json.contact_id }}::integer,\n    {{ $json.company_id }}::integer\n  )::varchar\n);\n\n-- 2. Limpa logs de execução (SET NULL, não CASCADE)\nDELETE FROM corev4_execution_logs\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 3. Limpa migração de session_id (sem FK)\nDELETE FROM corev4_session_id_migration\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 4. Deleta contato (11 tabelas CASCADE automaticamente)\nDELETE FROM corev4_contacts\nWHERE id = {{ $json.contact_id }}\nRETURNING id, full_name, whatsapp;",
         "options": {}
       },
-      "id": "eddfa26e-81b2-48c8-b3ff-7f4a53c0f2c3",
+      "id": "1a60b583-0bef-4eaf-885f-f1d0196b0a3b",
       "name": "Delete: Full Chat History",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -832,
-        1008
+        176,
+        1264
       ],
       "credentials": {
         "postgres": {
@@ -645,13 +645,13 @@
         },
         "options": {}
       },
-      "id": "f3e7fdad-8af9-4f48-9e52-bfb852f9f653",
+      "id": "017c9c59-3255-4385-b55e-1f881bbb1dbc",
       "name": "Message: Zerar",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        1008
+        400,
+        1264
       ]
     },
     {
@@ -680,13 +680,13 @@
           ]
         }
       },
-      "id": "e14e8e38-f750-4dea-9b72-5a124ad8f6f7",
+      "id": "f87b2251-0db3-4e9d-9feb-addec25d6640",
       "name": "Set Text Preference",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -832,
-        240
+        176,
+        496
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -722,13 +722,13 @@
           ]
         }
       },
-      "id": "78608409-eda7-4e4e-95cd-b76f0f3c0655",
+      "id": "32a8a91c-722f-45d3-b2fe-0c268c4c6958",
       "name": "Set Default Preference",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -832,
-        432
+        176,
+        688
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -824,13 +824,13 @@
         },
         "options": {}
       },
-      "id": "72dd9630-1680-40f9-8edd-6fd06e50063b",
+      "id": "511b791a-2ce6-4e59-906f-13a3abf86165",
       "name": "Message: Opt-Out ",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        624
+        400,
+        880
       ]
     },
     {
@@ -919,13 +919,13 @@
         },
         "options": {}
       },
-      "id": "62e2fab1-3a55-42a9-b19f-cc19c363c91d",
+      "id": "491c2477-eceb-497a-b7ff-4d01107e123f",
       "name": "Message: Unknown",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -608,
-        816
+        400,
+        1072
       ]
     },
     {
@@ -935,10 +935,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -1504,
-        304
+        -496,
+        560
       ],
-      "id": "58cb67ac-3905-4b7b-b6ba-b4e748b7261a",
+      "id": "1fb1fb6d-591f-47bc-8292-76dc1c94bb57",
       "name": "Receive: Workflow Trigger"
     },
     {
@@ -1027,13 +1027,13 @@
         },
         "options": {}
       },
-      "id": "4fa59e2d-444e-4d2a-8b78-b23df1e1f3e6",
+      "id": "14784cfc-6b94-47fe-99fa-c2852e86347d",
       "name": "Prepare: Command Data",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -1280,
-        304
+        -272,
+        560
       ]
     },
     {
@@ -1223,10 +1223,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        -1056,
-        208
+        -48,
+        464
       ],
-      "id": "d1b87dd5-4c03-4767-a982-9f6c5f1f6964",
+      "id": "80eff71d-ab84-4717-a251-8e17403b7ffb",
       "name": "Route: Commands"
     },
     {
@@ -1261,13 +1261,13 @@
           ]
         }
       },
-      "id": "9801b8cb-40a1-4a52-b4c3-46377ac0e53f",
+      "id": "4f776eab-905a-4bbd-844f-eb3f4665f1cd",
       "name": "Save: Command Response",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        272,
-        240
+        1280,
+        496
       ],
       "credentials": {
         "supabaseApi": {
@@ -1320,13 +1320,13 @@
         },
         "options": {}
       },
-      "id": "79201edf-0423-4dcd-9bfc-e25f29146155",
+      "id": "01caa637-959f-44a9-b945-db2e9e916844",
       "name": "Format: Command Output",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        496,
-        240
+        1504,
+        496
       ]
     },
     {
@@ -1367,13 +1367,13 @@
         },
         "options": {}
       },
-      "id": "4d98c676-b355-4bc3-8994-4c6e1dd3e26e",
+      "id": "a77594d3-c54b-4ec9-a238-e40c35b297eb",
       "name": "Format: Zerar Command Output ",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -160,
-        1008
+        848,
+        1264
       ]
     },
     {
@@ -1408,13 +1408,13 @@
         },
         "options": {}
       },
-      "id": "4e656918-af78-475c-8640-db236a099cd3",
+      "id": "b4dffa2f-3d26-44bd-b55a-21ac01967041",
       "name": "Send: WhatsApp Message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -160,
-        240
+        848,
+        496
       ]
     },
     {
@@ -1449,13 +1449,13 @@
         },
         "options": {}
       },
-      "id": "e28e2468-3417-46c5-817e-8276279b477b",
+      "id": "9489f70b-8347-4500-88ed-be91c60f0ec1",
       "name": "Send: WhatsApp Message Comando #Zerar",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -384,
-        1008
+        624,
+        1264
       ]
     },
     {
@@ -1469,10 +1469,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        48,
-        240
+        1056,
+        496
       ],
-      "id": "f8e562c7-30f5-448c-bee1-7182d13ebff8",
+      "id": "29b4b05f-3dea-4aba-85e3-a85611b1867d",
       "name": "Fetch: Session UUID",
       "credentials": {
         "postgres": {
@@ -1780,7 +1780,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "a25c644d-e337-47a3-aa1e-aa9a9c44ade5",
+  "versionId": "4cab15a4-ca88-4b7b-a414-2a55d2065210",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
