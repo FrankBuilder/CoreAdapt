@@ -1350,6 +1350,19 @@
         880,
         224
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// VALIDATE SEND CONTEXT - Garante que dados críticos existem antes do split\n// ============================================================================\n\nconst context = $json;\n\n// Validar apenas campos que DEVEM estar no contexto neste ponto\nconst required = [\n  'ai_message',\n  'phone_number'\n];\n\nconst missing = required.filter(field => !context[field]);\n\nif (missing.length > 0) {\n  throw new Error(`❌ Missing required fields: ${missing.join(', ')} [line 19]`);\n}\n\n// Validar formatos básicos\nif (!context.phone_number || context.phone_number.toString().length < 10) {\n  throw new Error(`❌ Invalid phone number: ${context.phone_number}`);\n}\n\nif (!context.ai_message || context.ai_message.trim() === '') {\n  throw new Error(`❌ AI message is empty`);\n}\n\nconsole.log('✅ Send context validation passed');\nconsole.log(`   - Phone: ${context.phone_number}`);\nconsole.log(`   - Message length: ${context.ai_message.length} chars`);\n\n// Passar contexto adiante sem modificações\nreturn [{\n  json: {\n    ...context,\n    validation_passed: true,\n    validated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "validate-send-context-node-001",
+      "name": "Validate: Send Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        224
+      ]
     }
   ],
   "pinData": {
@@ -1732,7 +1745,7 @@
       "main": [
         [
           {
-            "node": "Split: Message into Chunks",
+            "node": "Validate: Send Context",
             "type": "main",
             "index": 0
           }
@@ -1806,6 +1819,17 @@
         [
           {
             "node": "Calculate: Assistant Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate: Send Context": {
+      "main": [
+        [
+          {
+            "node": "Split: Message into Chunks",
             "type": "main",
             "index": 0
           }
