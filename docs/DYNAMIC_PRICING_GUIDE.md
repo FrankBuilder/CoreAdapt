@@ -29,14 +29,17 @@ O sistema de pricing dinâmico permite **atualizar preços de modelos LLM sem mo
           ├─► CoreAdapt One AI Agent (chama Gemini/OpenAI)
           │   └─► retorna: { model: "gemini-1.5-pro", usage: {...} }
           │
-          ├─► Fetch: Model Pricing (Supabase)
-          │   └─► SELECT * FROM v_llm_pricing_active
-          │   └─► retorna: [{ model_name, input_cost_per_1m, output_cost_per_1m }]
-          │
           └─► Calculate: Assistant Cost
-              └─► usa pricing do Supabase
+              ├─► fetch interno: SELECT * FROM v_llm_pricing_active
+              ├─► cria mapa de pricing
               └─► calcula: (tokens / 1M) × cost_per_1m
 ```
+
+**Mudança de Arquitetura (2025-11-13):**
+- ✅ Originalmente: Node separado "Fetch: Model Pricing"
+- ✅ Problema: Race condition - Calculate executava antes do Fetch
+- ✅ Solução: Fetch interno dentro do próprio Calculate node
+- ✅ Resultado: Mais robusto, zero race conditions
 
 ---
 
@@ -96,14 +99,35 @@ No n8n:
 3. Selecionar: `CoreAdapt One Flow _ v4.json`
 4. Confirmar substituição
 
-**Nodes adicionados/modificados:**
-- ✅ **Fetch: Model Pricing** (novo node Supabase)
-- ✅ **Calculate: Assistant Cost** (agora usa Supabase)
-- ✅ **Calculate: User Tokens & Cost** (agora usa Supabase)
+**Nodes modificados:**
+- ✅ **Calculate: Assistant Cost** (agora faz fetch interno do Supabase)
+- ✅ **Calculate: User Tokens & Cost** (agora faz fetch interno do Supabase)
 
 ---
 
-### 3. Testar
+### 3. Configurar Credenciais nos Nodes
+
+**Pegar credenciais do Supabase:**
+- Dashboard → Settings → API
+- Copiar: **Project URL** + **anon public key**
+
+**Node: Calculate: Assistant Cost**
+1. Abrir node no n8n
+2. Editar linhas 4-5:
+```javascript
+const SUPABASE_URL = 'https://SUA-URL-AQUI.supabase.co';
+const SUPABASE_ANON_KEY = 'sua-anon-key-aqui';
+```
+
+**Node: Calculate: User Tokens & Cost**
+1. Abrir node no n8n
+2. Editar linhas 4-5 (mesmas credenciais)
+
+💡 **Nota:** A anon key é pública por design. Segurança vem do Row Level Security (RLS).
+
+---
+
+### 4. Testar
 
 Enviar mensagem no WhatsApp e verificar logs:
 
