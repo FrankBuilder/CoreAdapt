@@ -1,0 +1,196 @@
+{
+  "name": "Batch Processor Flow | v4 (Native Nodes)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "a2da7678-d24b-4f7f-b82f-1543de71fa4c",
+      "name": "Cron: Every 2 Seconds",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  c.id as chat_id,\n  c.contact_id,\n  c.company_id,\n  c.batch_messages,\n  co.whatsapp as whatsapp_number,\n  co.name as contact_name\nFROM corev4_chats c\nJOIN corev4_contacts co ON c.contact_id = co.id\nWHERE c.batch_collecting = TRUE\n  AND c.batch_expires_at <= NOW()\n  AND c.batch_messages IS NOT NULL\n  AND jsonb_array_length(c.batch_messages) > 0\nLIMIT 10;",
+        "options": {}
+      },
+      "id": "d81263db-21ec-46fc-90f6-7f4115641a9e",
+      "name": "Postgres: Fetch Expired Batches",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $input.all().length }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "c8af656f-2862-40d6-8d79-785b7db36c07",
+      "name": "IF: Has Batches?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combinar mensagens do batch\nconst batch = $input.first().json;\n\n// Parse batch_messages (é JSONB array)\nconst messages = typeof batch.batch_messages === 'string'\n  ? JSON.parse(batch.batch_messages)\n  : batch.batch_messages;\n\n// Combinar em texto único\nconst combinedText = messages\n  .map((msg, idx) => {\n    const content = msg.message_content || '';\n    return content;\n  })\n  .filter(Boolean)\n  .join('\\n');\n\nconsole.log(`📦 Processing batch ${batch.chat_id}: ${messages.length} messages`);\nconsole.log(`🤝 Combined: \"${combinedText.substring(0, 100)}...\"`);\n\n// Pegar a ÚLTIMA mensagem como base (tem todos os dados de contexto)\nconst lastMessage = messages[messages.length - 1];\nconst originalData = lastMessage.raw || lastMessage;\n\n// Retornar como se fosse UMA mensagem normal\nreturn [{\n  json: {\n    ...originalData,\n    message_content: combinedText,\n    is_batched: true,\n    batch_message_count: messages.length,\n    chat_id_to_mark: batch.chat_id\n  }\n}];"
+      },
+      "id": "e7630207-4881-46ac-93b8-1980c06f9693",
+      "name": "Code: Combine Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE corev4_chats\nSET\n  batch_collecting = FALSE,\n  batch_expires_at = NULL,\n  updated_at = NOW()\nWHERE id = {{ $json.chat_id_to_mark }};",
+        "options": {}
+      },
+      "id": "70533831-5ecb-45ab-8f7a-dc3f66094784",
+      "name": "Postgres: Mark Processed",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1000,
+        250
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": "={{ 'CoreAdapt One Flow | v4' }}",
+        "options": {}
+      },
+      "id": "00da51f6-19ca-46c4-932d-91536ab176ce",
+      "name": "Execute: One Flow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1200,
+        250
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "d9b7f811-5636-495f-afc3-d384395093c2",
+      "name": "No Operation",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        800,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Cron: Every 2 Seconds": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Fetch Expired Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Fetch Expired Batches": {
+      "main": [
+        [
+          {
+            "node": "IF: Has Batches?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Has Batches?": {
+      "main": [
+        [
+          {
+            "node": "Code: Combine Messages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Combine Messages": {
+      "main": [
+        [
+          {
+            "node": "Postgres: Mark Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres: Mark Processed": {
+      "main": [
+        [
+          {
+            "node": "Execute: One Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "311cda21-d09d-4592-bb4a-b5bca634b291"
+}
