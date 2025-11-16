@@ -517,31 +517,6 @@
         80,
         352
       ]
-    },
-    {
-      "parameters": {
-        "operation": "executeQuery",
-        "query": "-- Cancelar todos os followups pendentes quando reunião é agendada\nUPDATE corev4_followup_executions\nSET\n  should_send = false,\n  decision_reason = 'meeting_scheduled',\n  updated_at = NOW()\nWHERE contact_id = $1\n  AND executed = false\n  AND should_send = true;",
-        "options": {
-          "queryReplacement": "={{ [$('Match: Contact by Email/Phone').first().json.contact_id] }}"
-        }
-      },
-      "id": "a8f3d7e2-4b9c-4a1f-8e3d-9c2b5a7f1e4d",
-      "name": "Cancel: Pending Followups",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        80,
-        368
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "postgres": {
-          "id": "HCvX4Ypw2MiRDsdm",
-          "name": "Postgres Core"
-        }
-      },
-      "notes": "Cancela followups pendentes quando reunião é agendada (objetivo atingido)"
     }
   ],
   "pinData": {},
@@ -624,11 +599,6 @@
         [
           {
             "node": "Save: Meeting Record",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Cancel: Pending Followups",
             "type": "main",
             "index": 0
           }
