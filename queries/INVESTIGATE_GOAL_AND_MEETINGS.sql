@@ -68,8 +68,7 @@ SELECT
     config_id,
     step_number,
     wait_hours,
-    wait_minutes,
-    step_type
+    wait_minutes
 FROM corev4_followup_steps
 ORDER BY config_id, step_number
 LIMIT 20;
