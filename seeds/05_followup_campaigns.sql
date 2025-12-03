@@ -81,9 +81,6 @@ INSERT INTO corev4_followup_campaigns (
 (3048, 1048, 1, 1, 'active', 1, 5, '2025-12-03 10:00:00'::timestamptz, true, NULL, '2025-12-02 10:00:00'::timestamptz, '2025-12-03 10:00:00'::timestamptz),
 (3050, 1050, 1, 1, 'active', 1, 5, '2025-12-03 15:00:00'::timestamptz, true, NULL, '2025-12-03 12:00:00'::timestamptz, '2025-12-03 15:00:00'::timestamptz);
 
--- Atualizar sequence
-SELECT setval('corev4_followup_campaigns_id_seq', GREATEST((SELECT MAX(id) FROM corev4_followup_campaigns), 3100), true);
-
 -- ============================================================================
 -- FOLLOW-UP EXECUTIONS (Steps individuais)
 -- ============================================================================
@@ -169,9 +166,6 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
-
--- Atualizar sequence
-SELECT setval('corev4_followup_executions_id_seq', GREATEST((SELECT MAX(id) FROM corev4_followup_executions), 5000), true);
 
 -- Verificar resultados
 SELECT
