@@ -36,7 +36,7 @@ INSERT INTO corev4_followup_campaigns (
 -- ============================================================================
 -- CAMPANHAS PARADAS POR QUALIFICAÇÃO (lead muito bom, não precisa mais)
 -- ============================================================================
-(3002b, 1002, 1, 1, 'stopped', 3, 5, '2025-08-14 14:00:00'::timestamptz, false, 'qualified', '2025-08-10 12:00:00'::timestamptz, '2025-08-14 14:00:00'::timestamptz),
+(3055, 1002, 1, 1, 'stopped', 3, 5, '2025-08-14 14:00:00'::timestamptz, false, 'qualified', '2025-08-10 12:00:00'::timestamptz, '2025-08-14 14:00:00'::timestamptz),
 (3015, 1015, 1, 1, 'stopped', 2, 5, '2025-09-24 15:00:00'::timestamptz, false, 'qualified', '2025-09-22 12:00:00'::timestamptz, '2025-09-24 15:00:00'::timestamptz),
 
 -- ============================================================================
