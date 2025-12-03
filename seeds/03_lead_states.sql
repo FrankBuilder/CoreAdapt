@@ -197,37 +197,37 @@ INSERT INTO corev4_lead_state (
  1, '2025-11-19 13:00:00'::timestamptz, '2025-11-16 12:30:00'::timestamptz, '2025-11-16 12:30:00'::timestamptz, '2025-11-19 13:00:00'::timestamptz),
 
 -- ============================================================================
--- PRE-QUALIFIED (0-29) - 7 leads (~15%)
+-- INICIAL (0-29) - 7 leads (~15%)
 -- ============================================================================
-(2034, 1034, 1, 25, 30, 20, 28, 25.75, 'pre', false, 'cold',
+(2034, 1034, 1, 25, 30, 20, 28, 25.75, 'inicial', false, 'cold',
  8, 'Laboratório apenas buscando informações',
  1, '2025-10-30 16:30:00'::timestamptz, '2025-10-27 11:00:00'::timestamptz, '2025-10-27 11:00:00'::timestamptz, '2025-10-30 16:30:00'::timestamptz),
 
-(2042, 1042, 1, 20, 35, 25, 18, 24.50, 'pre', false, 'cold',
+(2042, 1042, 1, 20, 35, 25, 18, 24.50, 'inicial', false, 'cold',
  5, 'Clínica veterinária apenas pesquisando opções',
  1, '2025-11-22 10:15:00'::timestamptz, '2025-11-19 10:00:00'::timestamptz, '2025-11-19 10:00:00'::timestamptz, '2025-11-22 10:15:00'::timestamptz),
 
-(2043, 1043, 1, 28, 22, 18, 30, 24.50, 'pre', false, 'cold',
+(2043, 1043, 1, 28, 22, 18, 30, 24.50, 'inicial', false, 'cold',
  6, 'Frigorífico sem urgência, apenas curiosidade',
  1, '2025-11-25 16:30:00'::timestamptz, '2025-11-22 15:00:00'::timestamptz, '2025-11-22 15:00:00'::timestamptz, '2025-11-25 16:30:00'::timestamptz),
 
-(2044, 1044, 1, 22, 28, 25, 20, 23.75, 'pre', false, 'cold',
+(2044, 1044, 1, 22, 28, 25, 20, 23.75, 'inicial', false, 'cold',
  5, 'Restaurante apenas conhecendo a solução',
  1, '2025-11-27 12:00:00'::timestamptz, '2025-11-24 11:30:00'::timestamptz, '2025-11-24 11:30:00'::timestamptz, '2025-11-27 12:00:00'::timestamptz),
 
-(2046, 1046, 1, 30, 25, 20, 22, 24.25, 'pre', false, 'cold',
+(2046, 1046, 1, 30, 25, 20, 22, 24.25, 'inicial', false, 'cold',
  5, 'Agência de viagens em fase inicial de pesquisa',
  1, '2025-12-02 10:00:00'::timestamptz, '2025-12-01 10:30:00'::timestamptz, '2025-12-01 10:30:00'::timestamptz, '2025-12-02 10:00:00'::timestamptz),
 
-(2048, 1048, 1, 25, 32, 28, 22, 26.75, 'pre', false, 'cold',
+(2048, 1048, 1, 25, 32, 28, 22, 26.75, 'inicial', false, 'cold',
  3, 'E-commerce pequeno, ainda não tem volume',
  1, '2025-12-03 09:15:00'::timestamptz, '2025-12-02 09:00:00'::timestamptz, '2025-12-02 09:00:00'::timestamptz, '2025-12-03 09:15:00'::timestamptz),
 
-(2049, 1049, 1, 18, 25, 22, 28, 23.25, 'pre', false, 'cold',
+(2049, 1049, 1, 18, 25, 22, 28, 23.25, 'inicial', false, 'cold',
  8, 'Indústria de plásticos apenas buscando informações',
  1, '2025-12-03 11:45:00'::timestamptz, '2025-12-02 17:30:00'::timestamptz, '2025-12-02 17:30:00'::timestamptz, '2025-12-03 11:45:00'::timestamptz),
 
-(2050, 1050, 1, 28, 30, 25, 20, 25.75, 'pre', false, 'cold',
+(2050, 1050, 1, 28, 30, 25, 20, 25.75, 'inicial', false, 'cold',
  5, 'Loja de decoração em fase exploratória',
  1, '2025-12-03 14:00:00'::timestamptz, '2025-12-03 11:00:00'::timestamptz, '2025-12-03 11:00:00'::timestamptz, '2025-12-03 14:00:00'::timestamptz);
 
@@ -246,5 +246,5 @@ ORDER BY
     CASE qualification_stage
         WHEN 'qualified' THEN 1
         WHEN 'developing' THEN 2
-        WHEN 'pre' THEN 3
+        WHEN 'inicial' THEN 3
     END;
