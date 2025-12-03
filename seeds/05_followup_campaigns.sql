@@ -128,7 +128,7 @@ BEGIN
                     WHEN 4 THEN 'Oi! Ainda está considerando a CoreConnect? Muitos clientes do seu setor têm resultados incríveis!'
                     ELSE 'Olá! Última mensagem por aqui. Se tiver interesse futuro, estou à disposição!'
                 END,
-                (SELECT total_score FROM corev4_lead_state WHERE contact_id = camp.contact_id LIMIT 1),
+                to_jsonb((SELECT total_score FROM corev4_lead_state WHERE contact_id = camp.contact_id LIMIT 1)),
                 step_date,
                 step_date + INTERVAL '5 minutes'
             );
