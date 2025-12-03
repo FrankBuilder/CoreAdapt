@@ -271,7 +271,7 @@ INSERT INTO corev4_contacts (
  'E-commerce', ARRAY['demo', 'ecommerce', 'varejo'], false, true,
  '2025-12-03 09:15:00'::timestamptz, '2025-12-02 08:00:00'::timestamptz, '2025-12-03 09:15:00'::timestamptz),
 
-(1049, 1, 'Marcos Paulo Ribeiro', '5531492049049@s.whatsapp.net', '31492049049', 'marcos.ribeiro@industria plasticos.com.br',
+(1049, 1, 'Marcos Paulo Ribeiro', '5531492049049@s.whatsapp.net', '31492049049', 'marcos.ribeiro@industriaplasticos.com.br',
  'whatsapp', 'linkedin', 'social', 'plasticos-mg-dez25',
  'Indústria', ARRAY['demo', 'plasticos', 'industria'], false, true,
  '2025-12-03 11:45:00'::timestamptz, '2025-12-02 16:30:00'::timestamptz, '2025-12-03 11:45:00'::timestamptz),
