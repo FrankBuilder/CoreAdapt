@@ -38,11 +38,14 @@
 
 ```
 clients/ilana-feingold/
-├── README.md                           # Este arquivo
-├── LIS_SYSTEM_MESSAGE_v1.0.md         # Prompt principal (CoreOne equivalent)
-├── LIS_SENTINEL_SYSTEM_MESSAGE_v1.0.md # Prompt de follow-up (Sentinel)
+├── README.md                              # Este arquivo
+├── LIS_SYSTEM_MESSAGE_v1.0.md            # Prompt principal (CoreOne equivalent)
+├── LIS_SENTINEL_SYSTEM_MESSAGE_v1.0.md   # Prompt de follow-up (Sentinel)
+├── migrations/
+│   ├── 00_SETUP_TENANT.sql               # Setup completo (passo a passo)
+│   └── 01_QUICK_SETUP.sql                # Setup rápido (uma query)
 └── seeds/
-    └── 01_motivation_categories.sql    # Categorias de motivação/dor
+    └── 01_motivation_categories.sql       # Categorias de motivação (referência)
 ```
 
 ---
@@ -109,12 +112,48 @@ WhatsApp: (85) 98869-2353
 
 ## Deployment Checklist
 
-- [ ] Criar registro na tabela `companies` com tenant_id
-- [ ] Executar seed `01_motivation_categories.sql` com company_id correto
-- [ ] Configurar workflow n8n com LIS_SYSTEM_MESSAGE
-- [ ] Configurar campanha Sentinel com parâmetros específicos
-- [ ] Configurar webhook Evolution API
-- [ ] Testar fluxo completo
+### Opção 1: Setup Rápido (recomendado)
+
+Execute no Supabase SQL Editor:
+```sql
+-- Arquivo: migrations/01_QUICK_SETUP.sql
+-- Cria tudo de uma vez: empresa, followup config, steps, categorias
+```
+
+### Opção 2: Setup Passo a Passo
+
+Execute no Supabase SQL Editor:
+```sql
+-- Arquivo: migrations/00_SETUP_TENANT.sql
+-- Passo 1: Criar empresa (anote o company_id retornado)
+-- Passo 2: Criar config de followup (anote o config_id)
+-- Passo 3: Criar steps de followup
+-- Passo 4: Criar categorias
+```
+
+### Checklist Completo
+
+**Banco de Dados (Supabase):**
+- [ ] Executar `01_QUICK_SETUP.sql` no SQL Editor
+- [ ] Verificar company_id criado
+- [ ] Configurar Evolution API (url, instance, api_key) na empresa
+
+**n8n (Workflows):**
+- [ ] Duplicar workflow CoreAdapt One Flow
+- [ ] Substituir system_prompt pelo conteúdo de `LIS_SYSTEM_MESSAGE_v1.0.md`
+- [ ] Configurar company_id nos nodes
+- [ ] Duplicar workflow CoreAdapt Sentinel Flow
+- [ ] Substituir system_prompt pelo conteúdo de `LIS_SENTINEL_SYSTEM_MESSAGE_v1.0.md`
+
+**Evolution API:**
+- [ ] Criar instância WhatsApp
+- [ ] Configurar webhook apontando para n8n
+- [ ] Testar conexão
+
+**Testes:**
+- [ ] Enviar mensagem "oi" e verificar resposta da Lis
+- [ ] Verificar se followup é criado corretamente
+- [ ] Testar fluxo de agendamento
 
 ---
 
