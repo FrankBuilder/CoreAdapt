@@ -130,6 +130,39 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare: Chat Context').item.json.evolution_api_url }}/chat/getBase64FromMediaMessage/{{ encodeURIComponent($('Prepare: Chat Context').item.json.evolution_instance) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Prepare: Chat Context').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { key: { id: $('Prepare: Chat Context').item.json.message_id } }, convertToMp4: false }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1168,
+        64
+      ],
+      "id": "fetch-image-base64-node",
+      "name": "Fetch: Image Base64"
+    },
+    {
+      "parameters": {
         "inputSource": "passthrough"
       },
       "type": "n8n-nodes-base.executeWorkflowTrigger",
@@ -448,7 +481,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Extrair base64 do caminho correto\n  const base64 = data.body?.data?.message?.base64;\n  \n  // Se tem base64, preparar binary data\n  if (base64 && data.media_type === 'image') {\n    // Converter base64 string para Buffer\n    const binaryBuffer = Buffer.from(base64, 'base64');\n    \n    result.push({\n      json: data,\n      binary: {\n        image_data: {\n          data: binaryBuffer.toString('base64'),\n          mimeType: data.media_mime_type || 'image/jpeg',\n          fileExtension: 'jpg',\n          fileName: 'image.jpg'\n        }\n      }\n    });\n  } else {\n    // NÃƒÆ’Ã‚Â£o tem base64, passa dados normalmente\n    result.push({\n      json: data\n    });\n  }\n}\n\nreturn result;"
+        "jsCode": "const items = $input.all();\nconst result = [];\nconst contextData = $('Prepare: Chat Context').first().json;\n\nfor (const item of items) {\n  // Base64 vem da resposta do Fetch: Image Base64\n  let base64Raw = item.json.base64;\n  \n  // Se tem base64 e é imagem, preparar binary data\n  if (base64Raw && contextData.media_type === 'image') {\n    // Remover prefixo data:image/xxx;base64, se existir\n    let base64Clean = base64Raw;\n    if (base64Raw.includes(',')) {\n      base64Clean = base64Raw.split(',')[1];\n    }\n    \n    // Converter base64 string para Buffer\n    const binaryBuffer = Buffer.from(base64Clean, 'base64');\n    \n    result.push({\n      json: contextData,\n      binary: {\n        image_data: {\n          data: binaryBuffer.toString('base64'),\n          mimeType: contextData.media_mime_type || 'image/jpeg',\n          fileExtension: 'jpg',\n          fileName: 'image.jpg'\n        }\n      }\n    });\n  } else {\n    // Não tem base64, passa dados normalmente\n    result.push({\n      json: contextData\n    });\n  }\n}\n\nreturn result;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1403,7 +1436,7 @@
       "main": [
         [
           {
-            "node": "Prepare: Image Data",
+            "node": "Fetch: Image Base64",
             "type": "main",
             "index": 0
           }
@@ -1411,6 +1444,17 @@
         [
           {
             "node": "Calculate: User Tokens & Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Image Base64": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Image Data",
             "type": "main",
             "index": 0
           }
