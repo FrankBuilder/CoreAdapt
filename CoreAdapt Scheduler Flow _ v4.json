@@ -10,13 +10,13 @@
           "rawBody": true
         }
       },
-      "id": "50957a6b-372c-4f49-b952-17e4b27a64ed",
+      "id": "0386fd21-b9da-4cb4-9687-911d80d65237",
       "name": "Webhook: Cal.com Booking",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -1328,
-        256
+        -1008,
+        240
       ],
       "webhookId": "cal-booking-webhook-v4"
     },
@@ -24,13 +24,13 @@
       "parameters": {
         "jsCode": "// Cal.com sends data in body.payload structure\nconst webhookData = $input.first().json.body || $input.first().json;\nconst payload = webhookData.payload || webhookData;\n\n// Parse dates\nconst startTime = new Date(payload.startTime);\nconst endTime = new Date(payload.endTime);\nconst duration = Math.round((endTime - startTime) / 60000); // minutes\n\n// Get attendee info\nconst attendee = payload.attendees?.[0] || {};\n\n// Get phone from responses (Cal.com structure)\nconst phoneResponse = payload.responses?.attendeePhoneNumber?.value || \n                     attendee.phoneNumber || \n                     null;\n\n// Clean phone format (remove +, spaces, dashes)\nconst cleanPhone = phoneResponse ? \n  phoneResponse.replace(/\\D/g, '') : \n  null;\n\n// Gerar múltiplos formatos para matching\nlet phoneWith9 = cleanPhone || '';\nlet phoneWithout9 = cleanPhone || '';  // Inicializa com mesmo valor\n\n// Se tem 13 dígitos e começa com 55 (ex: 5585999855443)\nif (cleanPhone && cleanPhone.length === 13 && cleanPhone.startsWith('55')) {\n  const ddd = cleanPhone.substring(2, 4);  // 85\n  const ninthDigit = cleanPhone.substring(4, 5);  // 9\n  const restDigits = cleanPhone.substring(5);  // 99855443\n  \n  // Se o 5º dígito é 9 (9º dígito), criar versão sem ele\n  if (ninthDigit === '9') {\n    phoneWithout9 = '55' + ddd + restDigits;  // 558599855443\n  }\n}\n\n// Format for WhatsApp - SEMPRE gera valor, nunca null\nconst whatsappFormat = phoneWith9 ? `${phoneWith9}@s.whatsapp.net` : '';\nconst whatsappFormatAlt = phoneWithout9 ? `${phoneWithout9}@s.whatsapp.net` : whatsappFormat;\n\n// Get meeting URL from metadata or location\nconst meetingUrl = payload.metadata?.videoCallUrl || \n                   payload.location || \n                   '';\n\nreturn [{\n  json: {\n    // Cal.com identifiers\n    booking_uid: payload.uid,\n    event_type_id: payload.eventTypeId,\n    event_title: payload.eventTitle || payload.title || 'Mesa de Clareza',\n    \n    // Meeting details\n    meeting_date: startTime.toISOString(),\n    meeting_end_date: endTime.toISOString(),\n    meeting_duration_minutes: duration,\n    meeting_timezone: attendee.timeZone || 'America/Sao_Paulo',\n    meeting_url: meetingUrl,\n    location_type: payload.location,\n    \n    // Attendee info\n    attendee_email: attendee.email || payload.responses?.email?.value || '',\n    attendee_name: attendee.name || payload.responses?.name?.value || '',\n    attendee_timezone: attendee.timeZone,\n    attendee_phone_raw: phoneResponse,\n    \n    // Phone em múltiplos formatos - NUNCA null\n    phone_with_9: phoneWith9,\n    phone_without_9: phoneWithout9,\n    whatsapp_format: whatsappFormat,\n    whatsapp_format_alt: whatsappFormatAlt,\n    \n    // Metadata\n    cal_metadata: payload.metadata || {},\n    trigger_event: webhookData.triggerEvent,\n    created_at: webhookData.createdAt,\n    \n    // Full payload for debugging\n    full_payload: webhookData\n  }\n}];"
       },
-      "id": "f271013e-c1cf-47fe-9370-6b4e0b6893d7",
+      "id": "1906b66c-c7a5-4838-a92e-41ebbcd8e979",
       "name": "Parse: Webhook Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1136,
-        256
+        -784,
+        240
       ]
     },
     {
@@ -41,13 +41,13 @@
           "queryReplacement": "={{ [$json.phone_with_9, $json.phone_without_9] }}"
         }
       },
-      "id": "9ead49d9-08f8-4c24-8f28-96168caffa86",
+      "id": "ec955e7f-dd85-446a-9ba5-f6accc8a9f38",
       "name": "Match: Contact by Email/Phone",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -928,
-        256
+        -560,
+        240
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -82,13 +82,13 @@
         },
         "options": {}
       },
-      "id": "cf6dd4e7-b970-40f3-971a-02562610ef9a",
+      "id": "f5eeb93d-db30-44de-81d3-1fc2562689c9",
       "name": "Check: Contact Found",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -736,
-        256
+        -336,
+        240
       ]
     },
     {
@@ -99,12 +99,12 @@
           "queryReplacement": "={{ [\n  $('Match: Contact by Email/Phone').item.json.contact_id,\n  $('Match: Contact by Email/Phone').item.json.company_id\n] }}"
         }
       },
-      "id": "8be7c835-355f-4528-b9be-b03fe8ed1b6c",
+      "id": "46fb365f-0883-4a9c-b702-623d3441f5d2",
       "name": "Fetch: Recent Chat History",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -528,
+        -112,
         144
       ],
       "alwaysOutputData": true,
@@ -119,12 +119,12 @@
       "parameters": {
         "jsCode": "const messages = $input.all();\nconst contactData = $('Match: Contact by Email/Phone').first().json;\n\n// Reverse to chronological order\nconst chronological = messages.reverse();\n\n// Format for AI\nconst formattedChat = chronological.map(m => {\n  const role = m.json.role === 'human' ? 'Lead' : 'Frank';\n  return `${role}: ${m.json.message}`;\n}).join('\\n\\n');\n\nreturn [{\n  json: {\n    contact_id: contactData.contact_id,\n    contact_name: contactData.full_name,\n    conversation_text: formattedChat,\n    message_count: messages.length,\n    anum_score: contactData.anum_score,\n    qualification_stage: contactData.qualification_stage,\n    pain_category: contactData.pain_category\n  }\n}];"
       },
-      "id": "0b3dcafd-0478-40c5-be3d-c13273c6e89c",
+      "id": "453601bd-17de-4d69-a7a3-923e9a471201",
       "name": "Format: Chat for AI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -336,
+        112,
         144
       ]
     },
@@ -136,15 +136,15 @@
         "nodeCredentialType": "openAiApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an executive assistant preparing Francisco Pasteur for a Mesa de Clareza (Clarity Session).\\n\\nYour task: Analyze the conversation history and create a concise, actionable summary.\\n\\nFocus on:\\n1. Lead's main business challenge/pain point\\n2. Key qualification signals (authority, urgency, budget)\\n3. Specific topics discussed\\n4. Questions or concerns raised\\n5. Opportunity areas for strategic conversation\\n\\nFormat:\\n- 3-5 bullet points\\n- Each point: 1-2 sentences\\n- Professional, objective tone\\n- Highlight action items or red flags\\n\\nKeep it under 200 words total.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"# LEAD INFORMATION\\n\\nName: \" + $('Format: Chat for AI').item.json.contact_name + \"\\nANUM Score: \" + $('Format: Chat for AI').item.json.anum_score + \"/100\\nQualification Stage: \" + $('Format: Chat for AI').item.json.qualification_stage + \"\\nPain Category: \" + $('Format: Chat for AI').item.json.pain_category + \"\\n\\n# CONVERSATION HISTORY\\n\\n\" + $('Format: Chat for AI').item.json.conversation_text + \"\\n\\n---\\n\\nGenerate a meeting prep summary for Francisco Pasteur.\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 300\n} }}",
+        "jsonBody": "={{ {\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an executive assistant preparing Francisco Pasteur for a Mesa de Clareza (Clarity Session).\\n\\nYour task: Analyze the conversation history and create a concise, actionable summary in port-br.\\n\\nFocus on:\\n1. Lead's main business challenge/pain point\\n2. Key qualification signals (authority, urgency, budget)\\n3. Specific topics discussed\\n4. Questions or concerns raised\\n5. Opportunity areas for strategic conversation\\n\\nFormat:\\n- 3-5 bullet points\\n- Each point: 1-2 sentences\\n- Professional, objective tone\\n- Highlight action items or red flags\\n\\nKeep it under 200 words total.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"# LEAD INFORMATION\\n\\nName: \" + $('Format: Chat for AI').item.json.contact_name + \"\\nANUM Score: \" + $('Format: Chat for AI').item.json.anum_score + \"/100\\nQualification Stage: \" + $('Format: Chat for AI').item.json.qualification_stage + \"\\nPain Category: \" + $('Format: Chat for AI').item.json.pain_category + \"\\n\\n# CONVERSATION HISTORY\\n\\n\" + $('Format: Chat for AI').item.json.conversation_text + \"\\n\\n---\\n\\nGenerate a meeting prep summary for Francisco Pasteur.\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 300\n} }}",
         "options": {}
       },
-      "id": "dd79dd92-2a0a-4098-9287-ea01fccbd2aa",
+      "id": "f3ff61f1-81b7-4329-92ef-02129087a6ce",
       "name": "AI: Generate Meeting Summary",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -128,
+        336,
         144
       ],
       "retryOnFail": true,
@@ -268,13 +268,13 @@
           ]
         }
       },
-      "id": "c02dcf93-f1a8-4ea1-883c-ffe63535c75c",
+      "id": "8d22cf37-e8e0-4bde-92a5-7e231fb245fe",
       "name": "Save: Meeting Record",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        80,
-        144
+        560,
+        48
       ],
       "alwaysOutputData": true,
       "retryOnFail": true,
@@ -289,13 +289,13 @@
       "parameters": {
         "jsCode": "const booking = $('Parse: Webhook Payload').first().json;\nconst contact = $('Match: Contact by Email/Phone').first().json;\n\n// Format date/time for Brazil\nconst meetingDate = new Date(booking.meeting_date);\nconst formatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst dateStr = formatter.format(meetingDate);\nconst [date, time] = dateStr.split(', ');\n\nconst message = `✅ Mesa de Clareza Confirmada!\\n\\n📅 Data: ${date}\\n⏰ Horário: ${time}\\n🔗 Link: ${booking.meeting_url}\\n\\nVou te mandar lembretes:\\n• 24h antes\\n• 1h antes\\n\\nAté lá! 🚀\\n*Frank - CoreConnect.AI*`;\n\nreturn [{\n  json: {\n    whatsapp: contact.whatsapp,\n    message: message,\n    evolution_api_url: contact.evolution_api_url,\n    evolution_instance: contact.evolution_instance,\n    evolution_api_key: contact.evolution_api_key,\n    meeting_url: booking.meeting_url,\n    meeting_date_formatted: date,\n    meeting_time_formatted: time\n  }\n}];"
       },
-      "id": "c5ca4ce9-2351-412c-987e-678fe8c3794c",
+      "id": "215df5b0-04f3-422e-9882-224178afb80c",
       "name": "Prepare: Confirmation Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        288,
-        144
+        784,
+        48
       ]
     },
     {
@@ -330,13 +330,13 @@
         },
         "options": {}
       },
-      "id": "c22b96fe-fc8a-4a24-acd6-7a4656db137b",
+      "id": "a3f32b2d-bb5a-4cdd-a75c-2a1737e28f5a",
       "name": "Send: Confirmation to Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        512,
-        144
+        1008,
+        48
       ],
       "retryOnFail": true,
       "maxTries": 3
@@ -345,13 +345,13 @@
       "parameters": {
         "jsCode": "const booking = $('Parse: Webhook Payload').first().json;\nconst contact = $('Match: Contact by Email/Phone').first().json;\nconst summary = $('AI: Generate Meeting Summary').first().json;\nconst savedMeeting = $('Save: Meeting Record').first().json;\n\n// Format date/time\nconst meetingDate = new Date(booking.meeting_date);\nconst formatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: 'America/Sao_Paulo',\n  weekday: 'long',\n  day: '2-digit',\n  month: 'long',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst fullDateStr = formatter.format(meetingDate);\n\n// Build message\nconst message = `🔔 Nova Mesa de Clareza Agendada\\n\\n👤 Lead: ${contact.full_name}\\n📱 WhatsApp: ${contact.whatsapp}\\n📧 Email: ${booking.attendee_email}\\n\\n📅 Data: ${fullDateStr}\\n🔗 Link: ${booking.meeting_url}\\n\\n🎯 ANUM: ${contact.anum_score || 'N/A'}/100\\n📊 Stage: ${contact.qualification_stage || 'N/A'}\\n💬 Dor: ${contact.pain_category || 'Não categorizada'}\\n\\n💡 RESUMO DA CONVERSA:\\n${summary.choices[0].message.content}`;\n\nreturn [{\n  json: {\n    message: message,\n    phone: '5585999855443',\n    evolution_api_url: contact.evolution_api_url,\n    evolution_instance: contact.evolution_instance,\n    evolution_api_key: contact.evolution_api_key\n  }\n}];"
       },
-      "id": "b36fb964-683c-429a-acaf-ad647fd8ce3f",
+      "id": "3b13d928-f9b2-4b22-9738-683d76bfca25",
       "name": "Prepare: Pasteur Alert",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        736,
-        144
+        1232,
+        48
       ]
     },
     {
@@ -376,13 +376,13 @@
         "jsonBody": "={{ {\n  \"number\": \"5585999855443\",\n  \"text\": $json.message\n} }}",
         "options": {}
       },
-      "id": "67de13fc-98aa-4261-b411-66a8ced26bc6",
+      "id": "89f08158-6f8b-4018-9160-8bbb72440b06",
       "name": "Send: Alert to Pasteur",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        960,
-        144
+        1456,
+        48
       ],
       "retryOnFail": true,
       "maxTries": 3
@@ -393,26 +393,26 @@
         "responseBody": "={{ {\n  \"success\": true,\n  \"message\": \"Booking processed\",\n  \"booking_uid\": $('Parse: Webhook Payload').first().json.booking_uid,\n  \"contact_id\": $('Match: Contact by Email/Phone').first().json.contact_id,\n  \"meeting_id\": $('Save: Meeting Record').first().json.id\n} }}",
         "options": {}
       },
-      "id": "14a57e82-dbbf-4ed1-a57a-8e131ac6b459",
+      "id": "2211bbdd-0dda-4ae0-bad2-1e7845efcd09",
       "name": "Respond: Webhook Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
       "position": [
-        1184,
-        144
+        1680,
+        48
       ]
     },
     {
       "parameters": {
         "jsCode": "const booking = $('Parse: Webhook Payload').first().json;\n\nconst alertMessage = `⚠️ Mesa de Clareza - REVISAR MANUALMENTE\\n\\nNovo agendamento mas contato não encontrado no sistema:\\n\\n📧 Email: ${booking.attendee_email}\\n👤 Nome: ${booking.attendee_name}\\n📞 Telefone: ${booking.attendee_phone_raw || 'N/A'}\\n📅 Data: ${booking.meeting_date}\\n\\nBooking UID: ${booking.booking_uid}\\n\\nAção necessária:\\n1. Identificar/criar contato no sistema\\n2. Vincular agendamento manualmente`;\n\nreturn [{\n  json: {\n    message: alertMessage,\n    phone: '5585999855443'\n  }\n}];"
       },
-      "id": "088b3aa8-229b-4afb-8411-8a3692f15122",
+      "id": "fe8fd599-f148-4e23-b559-019a53dfc711",
       "name": "Prepare: Manual Review Alert",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -528,
-        352
+        -112,
+        432
       ]
     },
     {
@@ -437,13 +437,13 @@
         "jsonBody": "={{ {\n  \"number\": \"5585999855443\",\n  \"text\": $json.message\n} }}",
         "options": {}
       },
-      "id": "5d7d5c6e-1351-4e8d-a4e4-9306f4241846",
+      "id": "6474fb60-cbc5-4747-a338-22a9e55c58dd",
       "name": "Send: Manual Review to Pasteur",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -336,
-        352
+        112,
+        432
       ],
       "retryOnFail": true,
       "maxTries": 3
@@ -488,13 +488,13 @@
           ]
         }
       },
-      "id": "594ba67f-513c-4ed1-bf22-707836f3fe50",
+      "id": "42904258-6330-4c0f-a175-2ff7a7c526ad",
       "name": "Save: Meeting (No Contact)",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -128,
-        352
+        336,
+        432
       ],
       "credentials": {
         "supabaseApi": {
@@ -509,13 +509,13 @@
         "responseBody": "={{ {\n  \"success\": true,\n  \"message\": \"Booking saved - manual review needed\",\n  \"booking_uid\": $('Parse: Webhook Payload').item.json.booking_uid,\n  \"warning\": \"Contact not found in system\"\n} }}",
         "options": {}
       },
-      "id": "587ffd88-120b-41d3-80c7-616293ba0bac",
+      "id": "c81ff2b6-860a-4f86-add4-a3eea2a87295",
       "name": "Respond: Manual Review",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
       "position": [
-        80,
-        352
+        560,
+        432
       ]
     },
     {
@@ -526,13 +526,13 @@
           "queryReplacement": "={{ [$('Match: Contact by Email/Phone').first().json.contact_id] }}"
         }
       },
-      "id": "a8f3d7e2-4b9c-4a1f-8e3d-9c2b5a7f1e4d",
+      "id": "526fcae5-6e0d-4cfd-a3fb-5bab0a8dbfdc",
       "name": "Cancel: Pending Followups",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        80,
-        368
+        560,
+        240
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -728,7 +728,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "9085c3b9-4cfd-4c92-904b-5de605dd13da",
+  "versionId": "468b8d8a-f1e9-419b-8a23-4080fd636324",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
@@ -736,8 +736,8 @@
   "id": "6yfuYUM0kpjvqWE1",
   "tags": [
     {
-      "createdAt": "2025-10-16T11:45:27.519Z",
       "updatedAt": "2025-10-16T11:45:27.519Z",
+      "createdAt": "2025-10-16T11:45:27.519Z",
       "id": "eTCC1MPmHZOu7LAH",
       "name": "corev4"
     }

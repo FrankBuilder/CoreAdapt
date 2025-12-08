@@ -5,13 +5,13 @@
       "parameters": {
         "options": {}
       },
-      "id": "94104317-c772-4bbe-9f66-57ecbdf7cd13",
+      "id": "8215355b-3a29-4104-b176-3b44adf5823b",
       "name": "Loop Over Steps",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        816,
-        320
+        0,
+        256
       ]
     },
     {
@@ -34,13 +34,13 @@
         },
         "options": {}
       },
-      "id": "10335315-139e-4ca4-820b-24d00e218c94",
+      "id": "6f44aa8d-a275-45a8-a71e-ed4faec9f496",
       "name": "Prepare: Campaign Data",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -304,
-        320
+        -1120,
+        256
       ]
     },
     {
@@ -81,26 +81,26 @@
         },
         "options": {}
       },
-      "id": "cf29e651-096a-4177-b3f4-1abc61367d2c",
+      "id": "36622d5c-858f-4554-b895-08ff92f78fef",
       "name": "Extract: Campaign ID",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        368,
-        320
+        -448,
+        256
       ]
     },
     {
       "parameters": {
-        "jsCode": "// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n// NODE: Create: Followup Steps\n// VERSÃO: CORRIGIDA - Opção 1 (2025-10-29)\n// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nconst contact_id = $input.first().json.contact_id;\nconst company_id = $input.first().json.company_id;\nconst total_steps = $input.first().json.total_steps;\nconst timing_pattern = $input.first().json.timing_pattern;\n\n// Timing padrão em HORAS: 1h, 25h, 73h, 145h, 313h\n// Usado apenas se tabela corev4_followup_steps estiver vazia\nconst defaultTiming = [1, 25, 73, 145, 313];\n\n// ✅ Base time: agora em UTC\nconst now = new Date();\nconst followups = [];\n\nfor (let step = 1; step <= total_steps; step++) {\n  // ✅ Pegar timing da tabela (agora em HORAS) ou usar padrão\n  const hours = timing_pattern?.[`step_${step}`] || defaultTiming[step - 1] || (step * 24);\n  \n  // ✅ Calcular timestamp futuro (JavaScript em UTC)\n  const scheduledTime = new Date(now.getTime() + hours * 60 * 60 * 1000);\n  \n  // ✅ Converter para ISO 8601 - PostgreSQL converte para timestamptz\n  const scheduled_at = scheduledTime.toISOString();\n  \n  followups.push({\n    json: {\n      contact_id: contact_id,\n      company_id: company_id,\n      step: step,\n      scheduled_at: scheduled_at,  // \"2025-10-30T14:30:00.000Z\"\n      \n      // 📊 Metadata para debug (opcional)\n      hours_from_now: hours,\n      timing_source: timing_pattern?.[`step_${step}`] ? 'database' : 'default'\n    }\n  });\n}\n\nreturn followups;"
+        "jsCode": "// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n// NODE: Create: Followup Steps\n// VERSÃO: CORRIGIDA - Opção 1 (2025-10-29)\n// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\nconst contact_id = $input.first().json.contact_id;\nconst company_id = $input.first().json.company_id;\nconst total_steps = $input.first().json.total_steps;\nconst timing_pattern = $input.first().json.timing_pattern;\n\n// Timing padrão em HORAS: 1h, 4h, 24h, 72h, 168h (1h, 4h, 1d, 3d, 7d)\n// Usado apenas se tabela corev4_followup_steps estiver vazia\n// CORRIGIDO 2025-11-10: Alinhado com Master Document\nconst defaultTiming = [1, 4, 24, 72, 168];\n\n// ✅ Base time: agora em UTC\nconst now = new Date();\nconst followups = [];\n\nfor (let step = 1; step <= total_steps; step++) {\n  // ✅ Pegar timing da tabela (agora em HORAS) ou usar padrão\n  const hours = timing_pattern?.[`step_${step}`] || defaultTiming[step - 1] || (step * 24);\n  \n  // ✅ Calcular timestamp futuro (JavaScript em UTC)\n  const scheduledTime = new Date(now.getTime() + hours * 60 * 60 * 1000);\n  \n  // ✅ Converter para ISO 8601 - PostgreSQL converte para timestamptz\n  const scheduled_at = scheduledTime.toISOString();\n  \n  followups.push({\n    json: {\n      contact_id: contact_id,\n      company_id: company_id,\n      step: step,\n      scheduled_at: scheduled_at,  // \"2025-10-30T14:30:00.000Z\"\n      \n      // 📊 Metadata para debug (opcional)\n      hours_from_now: hours,\n      timing_source: timing_pattern?.[`step_${step}`] ? 'database' : 'default'\n    }\n  });\n}\n\nreturn followups;"
       },
-      "id": "449e3f3c-d9df-4f93-ae9d-6549da90a86b",
+      "id": "0c15b9f6-1269-4fa8-a813-66557cbf60ec",
       "name": "Create: Followup Steps",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        592,
-        320
+        -224,
+        256
       ]
     },
     {
@@ -111,13 +111,13 @@
           "queryReplacement": "={{ [ $('Prepare: Campaign Data').item.json.company_id ] }}"
         }
       },
-      "id": "4a5dc4a1-b1bf-4cfb-8141-33ae1f907b64",
+      "id": "d8e82202-97c8-498e-8429-c1d017c4c0fa",
       "name": "Fetch: Company Config",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -80,
-        320
+        -896,
+        256
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -130,13 +130,13 @@
     },
     {
       "parameters": {},
-      "id": "fd78aed8-071c-4174-816e-548e72b9bf70",
+      "id": "7a3c7c14-797b-4108-8e6e-644d8fb5ed1c",
       "name": "Receive: Workflow Trigger",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1,
       "position": [
-        -528,
-        320
+        -1344,
+        256
       ]
     },
     {
@@ -171,13 +171,13 @@
           ]
         }
       },
-      "id": "89e7afd1-f84c-4fd9-b5e7-0d4064e951a8",
+      "id": "a9708ba0-2eca-4b3f-8a28-dd234a9139ab",
       "name": "Insert: Campaign Record",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        144,
-        320
+        -672,
+        256
       ],
       "credentials": {
         "supabaseApi": {
@@ -218,13 +218,13 @@
           ]
         }
       },
-      "id": "ca7cf5c1-8c7e-4383-8c68-3356bd1dbddd",
+      "id": "deb27ab1-67a2-4bfe-8a3c-1079093bb8a0",
       "name": "Insert: Execution Record",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        1040,
-        224
+        224,
+        160
       ],
       "credentials": {
         "supabaseApi": {
@@ -259,13 +259,13 @@
         },
         "options": {}
       },
-      "id": "f84d0fed-5afc-456c-95eb-c47280d2f186",
+      "id": "83c61f9e-53aa-4a34-8f03-5d1d6cec9bbe",
       "name": "Format: Output",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1040,
-        416
+        224,
+        352
       ]
     }
   ],
@@ -371,7 +371,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "8e949d69-6784-4083-9fc6-7d46579e1446",
+  "versionId": "7c346b86-1070-42aa-8324-85443145b1e6",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
@@ -379,8 +379,8 @@
   "id": "8Sfia6n3SqQIqjpd",
   "tags": [
     {
-      "createdAt": "2025-10-16T11:45:27.519Z",
       "updatedAt": "2025-10-16T11:45:27.519Z",
+      "createdAt": "2025-10-16T11:45:27.519Z",
       "id": "eTCC1MPmHZOu7LAH",
       "name": "corev4"
     }

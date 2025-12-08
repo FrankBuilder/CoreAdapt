@@ -21,10 +21,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2576,
-        -80
+        -3520,
+        -288
       ],
-      "id": "074ca1da-07fd-4bd8-a1ca-89ac33d2ea18",
+      "id": "995015e7-8a9d-466c-a68a-d4b82084be5e",
       "name": "Execute: Normalize Evolution Data"
     },
     {
@@ -54,10 +54,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2352,
-        -80
+        -1952,
+        -96
       ],
-      "id": "d9107e3c-42cb-445f-9417-4dd4f67bf75b",
+      "id": "ffabd147-76c0-4d37-aba0-0373f6d659f2",
       "name": "Route: Audio Messages"
     },
     {
@@ -65,10 +65,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -1904,
-        -80
+        -1504,
+        -96
       ],
-      "id": "5d539642-e2ac-4166-916f-419dbeb351a6",
+      "id": "d66cfab6-578f-430d-bdb5-5bdb08351646",
       "name": "Merge: Audio and Text",
       "alwaysOutputData": true
     },
@@ -105,13 +105,13 @@
         },
         "options": {}
       },
-      "id": "8a6bfaab-676a-403a-8cd5-0fdc7ab7f726",
+      "id": "7c08cbd9-be25-4002-a6cf-68042a53ee56",
       "name": "Filter: Valid Messages",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1680,
-        -80
+        -1280,
+        -96
       ]
     },
     {
@@ -123,10 +123,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1456,
-        -80
+        -1056,
+        -96
       ],
-      "id": "28ae796c-f9c7-407b-a959-502191e4daa0",
+      "id": "561bb633-6ad3-4e13-a76f-4c6ac9513fc6",
       "name": "Query: Message Deduplication",
       "alwaysOutputData": true,
       "credentials": {
@@ -164,10 +164,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1232,
-        -80
+        -832,
+        -96
       ],
-      "id": "39c96f5b-02a3-4b59-b2b1-e5c9de7d9f0d",
+      "id": "f136713c-4fce-4ca7-b6f2-104f95d1582c",
       "name": "Route: Duplicate Detection"
     },
     {
@@ -176,13 +176,13 @@
         "responseBody": "={{ {\n  \"status\": \"received\", \n  \"messageId\": $json.message_id\n} }}",
         "options": {}
       },
-      "id": "706aeaba-524a-4034-8c06-31a51d86266e",
+      "id": "4e666007-3895-43ce-87ad-7bbddb8fe82c",
       "name": "Respond: Webhook Acknowledgment",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -784,
-        -80
+        -384,
+        -96
       ]
     },
     {
@@ -199,13 +199,13 @@
         },
         "options": {}
       },
-      "id": "c25104ff-7539-48a8-9ed2-a9931b55e445",
+      "id": "d76dae5a-148f-46b8-a334-774e4ea39b31",
       "name": "Prepare: Contact Lookup",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -560,
-        -80
+        -160,
+        -96
       ]
     },
     {
@@ -223,13 +223,13 @@
           ]
         }
       },
-      "id": "6d9cd12e-e768-498c-9f56-518377a29a1d",
+      "id": "5b2c2dfb-9760-479d-9ce2-f3529fb64f7d",
       "name": "Fetch: Contact Record",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
       "position": [
-        -336,
-        -80
+        64,
+        -96
       ],
       "alwaysOutputData": true,
       "retryOnFail": true,
@@ -381,13 +381,13 @@
         },
         "options": {}
       },
-      "id": "7c50af7c-4e83-4b67-b41e-2f3c567c0cf0",
+      "id": "fc008aee-286d-47c1-9e74-321b06dcd968",
       "name": "Enrich: Message Context",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -112,
-        -80
+        288,
+        -96
       ]
     },
     {
@@ -539,13 +539,13 @@
         },
         "options": {}
       },
-      "id": "84873643-a51a-48c8-90b8-f198d8a68fde",
+      "id": "f33fbdb5-b889-4f83-9503-63230e51d190",
       "name": "Route: Contact Status",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        112,
-        -224
+        512,
+        -240
       ]
     },
     {
@@ -555,10 +555,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        784,
-        -400
+        1184,
+        -416
       ],
-      "id": "9b8b88ca-4d5e-4b3f-8e92-e4cbd6ab999c",
+      "id": "7fd332d2-3903-4937-9a0b-214c9cee59e0",
       "name": "Merge: Workflow Results"
     },
     {
@@ -704,10 +704,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1232,
-        -256
+        1632,
+        -288
       ],
-      "id": "79724b26-bddc-40ff-9dd2-9bfee2d4d026",
+      "id": "3a0263b7-4225-444d-affc-46cf40374b9c",
       "name": "Restore: Frank Context"
     },
     {
@@ -748,10 +748,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -2128,
-        -144
+        -1728,
+        -160
       ],
-      "id": "76c4bafa-1f8e-44e8-abcf-0a602a836823",
+      "id": "669a6b9f-a106-4869-9262-4794a3610e44",
       "name": "Execute: Transcribe Audio"
     },
     {
@@ -763,10 +763,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1008,
-        0
+        -608,
+        -16
       ],
-      "id": "14575422-0d32-4767-b48d-338c52cf4742",
+      "id": "a9989a8c-4b58-4e73-aade-05161016849a",
       "name": "Insert: Deduplication Record",
       "credentials": {
         "postgres": {
@@ -778,17 +778,17 @@
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "frank-webhook-v4",
+        "path": "core-adapt-v4",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -2800,
-        -80
+        -3744,
+        -288
       ],
-      "id": "ff5421ba-bd4c-48e8-98b6-43d87237679d",
+      "id": "8da63cdc-325f-40c7-837a-ee29f2db2371",
       "name": "Receive: WhatsApp Webhook",
       "webhookId": "8b811073-1a50-4741-90a1-16fbea33afc3"
     },
@@ -878,13 +878,13 @@
         },
         "options": {}
       },
-      "id": "14dc87ea-585b-43c4-85e5-6497e8eed035",
+      "id": "e04661dd-3315-4960-9ea3-c4b08697d08d",
       "name": "Prepare: Create Contact",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        336,
-        -464
+        736,
+        -480
       ]
     },
     {
@@ -973,13 +973,13 @@
         },
         "options": {}
       },
-      "id": "aa7532fb-b945-45c3-81be-e812d12d07a9",
+      "id": "1f450a86-aad4-4c4f-aec0-2dc06f9da36f",
       "name": "Prepare: Reactivate",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        336,
-        -272
+        736,
+        -288
       ]
     },
     {
@@ -1068,13 +1068,13 @@
         },
         "options": {}
       },
-      "id": "0e660c73-be10-4884-a85d-da887003b661",
+      "id": "4f871bbb-8cfd-49c9-8c2c-8c6a2914186b",
       "name": "Prepare: Process Command",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        336,
-        32
+        736,
+        16
       ]
     },
     {
@@ -1109,10 +1109,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        560,
-        -272
+        960,
+        -288
       ],
-      "id": "dba214f9-bd69-4326-ad1d-e7d3b7a34ee9",
+      "id": "6170cbf2-723b-4df6-9eef-ed2158089bc0",
       "name": "Execute: Reactivate Contact"
     },
     {
@@ -1122,10 +1122,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1008,
-        -256
+        1408,
+        -288
       ],
-      "id": "6597b8c7-8e1c-473d-a8a8-f3b847a22e58",
+      "id": "4db825b9-d1a4-4343-ba2f-2fb67fa081b7",
       "name": "Prepare: Frank Chat"
     },
     {
@@ -1172,10 +1172,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1456,
-        -256
+        1856,
+        -288
       ],
-      "id": "a66cbb59-741d-4795-bfe3-4558f58f63bf",
+      "id": "8d9449c0-ebd6-4426-affb-bcdd1054d6a1",
       "name": "Execute: CoreAdapt One Flow"
     },
     {
@@ -1210,10 +1210,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        560,
-        -464
+        960,
+        -480
       ],
-      "id": "e8bcdf83-8387-47b3-8560-899137605620",
+      "id": "7ccd37d5-7b29-47da-ad29-e2e0d5cac792",
       "name": "Execute: CoreAdapt Genesis Flow"
     },
     {
@@ -1248,10 +1248,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        560,
-        32
+        960,
+        16
       ],
-      "id": "c9038a01-e843-4fc9-a27e-2ce8cc8cb099",
+      "id": "03c1b120-7846-49ac-a8a9-989a6ee9ab17",
       "name": "Execute: CoreAdapt Commands Flow"
     },
     {
@@ -1260,13 +1260,13 @@
         "query": "SELECT recalculate_followup_schedule({{ $json.contact_id }}::BIGINT, NOW());",
         "options": {}
       },
-      "id": "e4409158-0a2f-49eb-a690-610403cbddab",
+      "id": "9e4140d2-69c4-476b-80eb-9f5d25f781bb",
       "name": "Background: Recalculate Followups",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        112,
-        48
+        512,
+        32
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1278,36 +1278,28 @@
       "continueOnFail": true
     },
     {
-      "id": "8e052439-d7a5-4531-98ee-41ca5f6d2ee7",
-      "name": "Batch: Check Active",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -2352,
-        120
-      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT\n  c.id as chat_id,\n  c.contact_id,\n  c.batch_expires_at,\n  c.batch_messages,\n  EXTRACT(EPOCH FROM (c.batch_expires_at - NOW())) AS seconds_remaining\nFROM corev4_chats c\nINNER JOIN corev4_contacts ct ON c.contact_id = ct.id\nWHERE ct.whatsapp = '={{ $json.whatsapp_id }}'\n  AND c.company_id = {{ $json.company_id || 1 }}\n  AND c.batch_collecting = TRUE\n  AND c.batch_expires_at > NOW()\nLIMIT 1;",
         "options": {}
       },
+      "id": "08f56046-0f42-4bea-9e2f-7077e4f71531",
+      "name": "Batch: Check Active",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -3296,
+        -288
+      ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "HCvX4Ypw2MiRDsdm",
           "name": "Postgres Core"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
-      "id": "14b37ba1-2f84-4b42-930b-cfa77b64fa25",
-      "name": "Batch: Exists?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        -2128,
-        120
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -1331,22 +1323,30 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "a9bc6310-33aa-4cbb-a000-090f70794ef8",
+      "name": "Batch: Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -3072,
+        -288
+      ]
     },
     {
-      "id": "9fce5ff3-b25d-444f-bdc3-aca8c01619c2",
-      "name": "Batch: Add Message",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -1904,
-        40
-      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "UPDATE corev4_chats\nSET\n  batch_messages = batch_messages || ARRAY[\n    jsonb_build_object(\n      'message_id', '={{ $('Execute: Normalize Evolution Data').item.json.message_id }}',\n      'whatsapp_id', '={{ $('Execute: Normalize Evolution Data').item.json.whatsapp_id }}',\n      'message_content', '={{ $('Execute: Normalize Evolution Data').item.json.message_content }}',\n      'message_type', '={{ $('Execute: Normalize Evolution Data').item.json.message_type }}',\n      'media_type', '={{ $('Execute: Normalize Evolution Data').item.json.media_type }}',\n      'has_media', {{ $('Execute: Normalize Evolution Data').item.json.has_media }},\n      'media_url', '={{ $('Execute: Normalize Evolution Data').item.json.media_url }}',\n      'timestamp', NOW()\n    )::jsonb\n  ],\n  batch_expires_at = NOW() + INTERVAL '3 seconds',\n  last_message_ts = EXTRACT(EPOCH FROM NOW())::bigint,\n  last_lead_message_ts = EXTRACT(EPOCH FROM NOW())::bigint,\n  updated_at = NOW()\nWHERE id = {{ $('Batch: Check Active').item.json.chat_id }}\nRETURNING\n  id,\n  contact_id,\n  array_length(batch_messages, 1) as total_messages;",
         "options": {}
       },
+      "id": "1836ec19-d373-44e3-98e3-22baf6636dea",
+      "name": "Batch: Add Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2400,
+        -480
+      ],
       "credentials": {
         "postgres": {
           "id": "HCvX4Ypw2MiRDsdm",
@@ -1355,36 +1355,28 @@
       }
     },
     {
-      "id": "c4d80d6e-02e2-466c-b39d-71efab3cfbef",
-      "name": "Batch: Get Contact ID",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -1904,
-        200
-      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "SELECT id FROM corev4_contacts\nWHERE whatsapp = '={{ $('Execute: Normalize Evolution Data').item.json.whatsapp_id }}'\n  AND company_id = {{ $('Execute: Normalize Evolution Data').item.json.company_id || 1 }}\nLIMIT 1;",
         "options": {}
       },
+      "id": "47356c7d-7eab-41e6-9494-af22c47cde23",
+      "name": "Batch: Get Contact ID",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2848,
+        -192
+      ],
+      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "HCvX4Ypw2MiRDsdm",
           "name": "Postgres Core"
         }
-      },
-      "alwaysOutputData": true
+      }
     },
     {
-      "id": "814b1847-c55f-44a4-a900-aef429c07eb0",
-      "name": "Batch: Contact Exists?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        -1680,
-        200
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -1408,22 +1400,30 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "630024d2-37b8-487c-ac8b-208f1ceec8ef",
+      "name": "Batch: Contact Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2624,
+        -192
+      ]
     },
     {
-      "id": "acb34e9d-6ac1-4f11-a002-b587c2dce39a",
-      "name": "Batch: Create New",
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.6,
-      "position": [
-        -1456,
-        120
-      ],
       "parameters": {
         "operation": "executeQuery",
         "query": "INSERT INTO corev4_chats (\n  contact_id,\n  company_id,\n  batch_collecting,\n  batch_expires_at,\n  batch_messages,\n  last_message_ts,\n  last_lead_message_ts,\n  conversation_open\n) VALUES (\n  {{ $('Batch: Get Contact ID').item.json.id }},\n  {{ $('Execute: Normalize Evolution Data').item.json.company_id || 1 }},\n  TRUE,\n  NOW() + INTERVAL '3 seconds',\n  ARRAY[\n    jsonb_build_object(\n      'message_id', '={{ $('Execute: Normalize Evolution Data').item.json.message_id }}',\n      'whatsapp_id', '={{ $('Execute: Normalize Evolution Data').item.json.whatsapp_id }}',\n      'message_content', '={{ $('Execute: Normalize Evolution Data').item.json.message_content }}',\n      'message_type', '={{ $('Execute: Normalize Evolution Data').item.json.message_type }}',\n      'media_type', '={{ $('Execute: Normalize Evolution Data').item.json.media_type }}',\n      'has_media', {{ $('Execute: Normalize Evolution Data').item.json.has_media }},\n      'media_url', '={{ $('Execute: Normalize Evolution Data').item.json.media_url }}',\n      'timestamp', NOW()\n    )::jsonb\n  ],\n  EXTRACT(EPOCH FROM NOW())::bigint,\n  EXTRACT(EPOCH FROM NOW())::bigint,\n  TRUE\n)\nON CONFLICT (contact_id, company_id) DO UPDATE\nSET\n  batch_collecting = TRUE,\n  batch_expires_at = NOW() + INTERVAL '3 seconds',\n  batch_messages = ARRAY[\n    jsonb_build_object(\n      'message_id', '={{ $('Execute: Normalize Evolution Data').item.json.message_id }}',\n      'whatsapp_id', '={{ $('Execute: Normalize Evolution Data').item.json.whatsapp_id }}',\n      'message_content', '={{ $('Execute: Normalize Evolution Data').item.json.message_content }}',\n      'message_type', '={{ $('Execute: Normalize Evolution Data').item.json.message_type }}',\n      'media_type', '={{ $('Execute: Normalize Evolution Data').item.json.media_type }}',\n      'has_media', {{ $('Execute: Normalize Evolution Data').item.json.has_media }},\n      'media_url', '={{ $('Execute: Normalize Evolution Data').item.json.media_url }}',\n      'timestamp', NOW()\n    )::jsonb\n  ],\n  last_message_ts = EXTRACT(EPOCH FROM NOW())::bigint,\n  last_lead_message_ts = EXTRACT(EPOCH FROM NOW())::bigint,\n  conversation_open = TRUE,\n  updated_at = NOW()\nRETURNING id, contact_id;",
         "options": {}
       },
+      "id": "6f3a82ba-7135-439c-b0a2-029aef0cb042",
+      "name": "Batch: Create New",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2400,
+        -288
+      ],
       "credentials": {
         "postgres": {
           "id": "HCvX4Ypw2MiRDsdm",
@@ -1432,27 +1432,17 @@
       }
     },
     {
-      "id": "3031d420-1881-4e24-bbb5-44fbdbb2080a",
+      "parameters": {},
+      "id": "e51b119c-6763-487d-b73c-c8bcc5f09b1c",
       "name": "Batch: Merge Actions",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -1232,
-        120
-      ],
-      "parameters": {
-        "numberInputs": 2
-      }
+        -2176,
+        -384
+      ]
     },
     {
-      "id": "9f788d90-8afc-4a26-9778-18e8edd2aba1",
-      "name": "Batch: Should Wait?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        -1008,
-        120
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -1476,33 +1466,39 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "9be188a3-8ff3-4b5a-adbe-684282c074f2",
+      "name": "Batch: Should Wait?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1952,
+        -384
+      ]
     },
     {
-      "id": "354837c1-3eef-4ee4-a300-1257788a76d3",
+      "parameters": {
+        "jsCode": "// Mensagem não pode fazer batch (novo contato)\n// Deixa passar direto para próximo node\nconst normalized = $('Execute: Normalize Evolution Data').first().json;\n\nreturn [{\n  json: {\n    ...normalized,\n    batch_mode: false,\n    batch_reason: 'new_contact'\n  }\n}];"
+      },
+      "id": "b9efeed9-40ee-4b52-a5ab-660fa8a6b481",
       "name": "Batch: Pass Non-Batchable",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1680,
-        280
-      ],
-      "parameters": {
-        "jsCode": "// Mensagem não pode fazer batch (novo contato)\n// Deixa passar direto para próximo node\nconst normalized = $('Execute: Normalize Evolution Data').first().json;\n\nreturn [{\n  json: {\n    ...normalized,\n    batch_mode: false,\n    batch_reason: 'new_contact'\n  }\n}];"
-      }
+        -2400,
+        -96
+      ]
     },
     {
-      "id": "ad7b425c-72e5-4e9a-bf38-1e4c5c2c4337",
+      "parameters": {},
+      "id": "8dafc849-1f60-4b15-92a7-3280bc517570",
       "name": "Batch: Output",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        -784,
-        200
+        -2176,
+        -96
       ],
-      "parameters": {
-        "numberInputs": 2
-      },
       "notes": "Aguardando (vazio) ou Passa direto (novo contato)"
     }
   ],
@@ -1801,17 +1797,6 @@
         ]
       ]
     },
-    "Batch: Collect Messages": {
-      "main": [
-        [
-          {
-            "node": "Route: Audio Messages",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Batch: Check Active": {
       "main": [
         [
@@ -1903,12 +1888,6 @@
         ]
       ]
     },
-    "Batch: Should Wait?": {
-      "main": [
-        [],
-        []
-      ]
-    },
     "Batch: Pass Non-Batchable": {
       "main": [
         [
@@ -1936,15 +1915,15 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "3be20c54-c690-478f-9447-da1d4ac49815",
+  "versionId": "e3d1ae77-1fb3-4c30-9b1d-6708beb89c0a",
   "meta": {
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
   },
   "id": "8Yip7wZKcGEYTgoo",
   "tags": [
     {
-      "createdAt": "2025-10-16T11:45:27.519Z",
       "updatedAt": "2025-10-16T11:45:27.519Z",
+      "createdAt": "2025-10-16T11:45:27.519Z",
       "id": "eTCC1MPmHZOu7LAH",
       "name": "corev4"
     }
