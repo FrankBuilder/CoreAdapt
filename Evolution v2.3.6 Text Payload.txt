@@ -1,0 +1,137 @@
+[
+  {
+    "headers": {
+      "host": "webhook.bloomshield.com.br",
+      "user-agent": "axios/1.12.2",
+      "content-length": "1616",
+      "accept": "application/json, text/plain, */*",
+      "accept-encoding": "gzip, compress, deflate, br",
+      "content-type": "application/json",
+      "x-forwarded-for": "172.18.0.1",
+      "x-forwarded-host": "webhook.bloomshield.com.br",
+      "x-forwarded-port": "443",
+      "x-forwarded-proto": "https",
+      "x-forwarded-server": "04695c1088e7",
+      "x-real-ip": "172.18.0.1"
+    },
+    "params": {},
+    "query": {},
+    "body": {
+      "event": "messages.upsert",
+      "instance": "Frank - CoreConnect AI",
+      "data": {
+        "key": {
+          "remoteJid": "558599855443@s.whatsapp.net",
+          "remoteJidAlt": "116625575534698@lid",
+          "fromMe": false,
+          "id": "3EB06AE792BCFE1FE4337A",
+          "participant": "",
+          "addressingMode": "pn"
+        },
+        "pushName": "Francisco Pasteur",
+        "status": "DELIVERY_ACK",
+        "message": {
+          "conversation": "oi",
+          "messageContextInfo": {
+            "deviceListMetadata": {
+              "senderKeyIndexes": [],
+              "recipientKeyIndexes": [],
+              "senderKeyHash": {
+                "0": 122,
+                "1": 71,
+                "2": 255,
+                "3": 87,
+                "4": 15,
+                "5": 198,
+                "6": 35,
+                "7": 134,
+                "8": 22,
+                "9": 161
+              },
+              "senderTimestamp": {
+                "low": 1764600112,
+                "high": 0,
+                "unsigned": true
+              },
+              "senderAccountType": 0,
+              "receiverAccountType": 0,
+              "recipientKeyHash": {
+                "0": 243,
+                "1": 205,
+                "2": 83,
+                "3": 237,
+                "4": 207,
+                "5": 113,
+                "6": 145,
+                "7": 143,
+                "8": 166,
+                "9": 185
+              },
+              "recipientTimestamp": {
+                "low": 1765217783,
+                "high": 0,
+                "unsigned": true
+              }
+            },
+            "deviceListMetadataVersion": 2,
+            "messageSecret": {
+              "0": 190,
+              "1": 121,
+              "2": 121,
+              "3": 158,
+              "4": 21,
+              "5": 85,
+              "6": 31,
+              "7": 167,
+              "8": 218,
+              "9": 41,
+              "10": 175,
+              "11": 103,
+              "12": 204,
+              "13": 147,
+              "14": 25,
+              "15": 8,
+              "16": 71,
+              "17": 224,
+              "18": 73,
+              "19": 94,
+              "20": 151,
+              "21": 30,
+              "22": 145,
+              "23": 164,
+              "24": 92,
+              "25": 137,
+              "26": 138,
+              "27": 175,
+              "28": 27,
+              "29": 211,
+              "30": 141,
+              "31": 189
+            },
+            "limitSharingV2": {
+              "sharingLimited": false,
+              "trigger": 0,
+              "limitSharingSettingTimestamp": {
+                "low": 0,
+                "high": 0,
+                "unsigned": false
+              },
+              "initiatedByMe": false
+            }
+          }
+        },
+        "messageType": "conversation",
+        "messageTimestamp": 1765229132,
+        "instanceId": "2d085cb0-05a2-4752-99ad-b2ef027b9a9a",
+        "source": "web"
+      },
+      "destination": "https://webhook.bloomshield.com.br/webhook/core-adapt-v4",
+      "date_time": "2025-12-08T18:25:32.493Z",
+      "sender": "558586762106@s.whatsapp.net",
+      "server_url": "https://evo2.bloomshield.com.br",
+      "apikey": "79CBCBE26FE6-48CE-AE31-6EC129E3E4E2"
+    },
+    "webhookUrl": "https://webhook.bloomshield.com.br/webhook/core-adapt-v4",
+    "executionMode": "production"
+  }
+]
