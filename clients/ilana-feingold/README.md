@@ -41,11 +41,9 @@ clients/ilana-feingold/
 ├── README.md                              # Este arquivo
 ├── LIS_SYSTEM_MESSAGE_v1.0.md            # Prompt principal (CoreOne equivalent)
 ├── LIS_SENTINEL_SYSTEM_MESSAGE_v1.0.md   # Prompt de follow-up (Sentinel)
-├── migrations/
-│   ├── 00_SETUP_TENANT.sql               # Setup completo (passo a passo)
-│   └── 01_QUICK_SETUP.sql                # Setup rápido (uma query)
-└── seeds/
-    └── 01_motivation_categories.sql       # Categorias de motivação (referência)
+└── migrations/
+    ├── 00_CLEANUP.sql                     # Limpar dados parciais (se der erro)
+    └── 01_QUICK_SETUP.sql                 # Setup completo (empresa + followup + categorias)
 ```
 
 ---
@@ -112,23 +110,18 @@ WhatsApp: (85) 98869-2353
 
 ## Deployment Checklist
 
-### Opção 1: Setup Rápido (recomendado)
+### Setup do Banco de Dados
 
-Execute no Supabase SQL Editor:
+**Se for a primeira vez:**
 ```sql
--- Arquivo: migrations/01_QUICK_SETUP.sql
--- Cria tudo de uma vez: empresa, followup config, steps, categorias
+-- Execute: migrations/01_QUICK_SETUP.sql
+-- Cria: empresa, followup config, steps, categorias
 ```
 
-### Opção 2: Setup Passo a Passo
-
-Execute no Supabase SQL Editor:
+**Se deu erro e precisa recomeçar:**
 ```sql
--- Arquivo: migrations/00_SETUP_TENANT.sql
--- Passo 1: Criar empresa (anote o company_id retornado)
--- Passo 2: Criar config de followup (anote o config_id)
--- Passo 3: Criar steps de followup
--- Passo 4: Criar categorias
+-- Execute PRIMEIRO: migrations/00_CLEANUP.sql
+-- DEPOIS: migrations/01_QUICK_SETUP.sql
 ```
 
 ### Checklist Completo
