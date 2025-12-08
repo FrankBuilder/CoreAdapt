@@ -74,7 +74,7 @@
             {
               "id": "broadcast-check",
               "name": "is_broadcast",
-              "value": "={{ $json.body.data.key.participant !== undefined }}",
+              "value": "={{ !!$json.body.data.key.participant }}",
               "type": "boolean"
             },
             {
@@ -116,8 +116,8 @@
             {
               "id": "2f85e259-25e6-4f50-b4a6-46c9074e59d7",
               "name": "is_group",
-              "value": "={{ $json.body.data.key.participant !== undefined }}",
-              "type": "string"
+              "value": "={{ !!$json.body.data.key.participant }}",
+              "type": "boolean"
             },
             {
               "id": "e179559f-5d28-4671-9f3f-bd6080dc63a7",
