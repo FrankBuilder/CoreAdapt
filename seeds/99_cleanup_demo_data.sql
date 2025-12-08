@@ -35,25 +35,13 @@ WHERE contact_id IN (
     SELECT id FROM corev4_contacts WHERE tags @> ARRAY['demo']::text[]
 );
 
--- 5. Remover n8n chat histories (se existirem)
-DELETE FROM corev4_n8n_chat_histories
-WHERE contact_id IN (
-    SELECT id FROM corev4_contacts WHERE tags @> ARRAY['demo']::text[]
-);
-
--- 6. Remover lead states
+-- 5. Remover lead states
 DELETE FROM corev4_lead_state
 WHERE contact_id IN (
     SELECT id FROM corev4_contacts WHERE tags @> ARRAY['demo']::text[]
 );
 
--- 7. Remover contact extras (se existirem)
-DELETE FROM corev4_contact_extras
-WHERE contact_id IN (
-    SELECT id FROM corev4_contacts WHERE tags @> ARRAY['demo']::text[]
-);
-
--- 8. Finalmente, remover os contatos
+-- 6. Finalmente, remover os contatos
 DELETE FROM corev4_contacts
 WHERE tags @> ARRAY['demo']::text[];
 
