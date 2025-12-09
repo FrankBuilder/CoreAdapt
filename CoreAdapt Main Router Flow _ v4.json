@@ -1257,11 +1257,11 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT recalculate_followup_schedule({{ $json.contact_id }}::BIGINT, NOW());",
+        "query": "-- 1. Atualizar last_interaction_at em contact_extras\nUPDATE corev4_contact_extras\nSET last_interaction_at = NOW()\nWHERE contact_id = {{ $json.contact_id }};\n\n-- 2. Reagendar steps pendentes baseado no tempo de silêncio configurado\nUPDATE corev4_followup_executions e\nSET scheduled_at = NOW() + (fs.wait_hours || ' hours')::interval + (COALESCE(fs.wait_minutes, 0) || ' minutes')::interval\nFROM corev4_followup_steps fs\nJOIN corev4_followup_campaigns fc ON fc.id = e.campaign_id\nWHERE e.contact_id = {{ $json.contact_id }}\n  AND e.executed = false\n  AND fs.config_id = fc.config_id\n  AND fs.step_number = e.step;",
         "options": {}
       },
       "id": "9e4140d2-69c4-476b-80eb-9f5d25f781bb",
-      "name": "Background: Recalculate Followups",
+      "name": "Background: Update Interaction & Reschedule",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
