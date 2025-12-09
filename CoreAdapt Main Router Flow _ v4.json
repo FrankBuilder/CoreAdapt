@@ -1626,7 +1626,7 @@
             "index": 0
           },
           {
-            "node": "Background: Recalculate Followups",
+            "node": "Background: Update Interaction & Reschedule",
             "type": "main",
             "index": 0
           }
