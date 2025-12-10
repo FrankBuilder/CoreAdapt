@@ -450,17 +450,6 @@
         ]
       ]
     },
-    "Model: Google Gemini Chat ": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "CoreAdapt Sentinel AI Agent",
-            "type": "ai_languageModel",
-            "index": 1
-          }
-        ]
-      ]
-    },
     "Fetch: Pending Followups": {
       "main": [
         [
