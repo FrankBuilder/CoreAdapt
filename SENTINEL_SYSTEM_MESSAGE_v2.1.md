@@ -119,7 +119,6 @@ STEP 5 (~13d): Graceful goodbye — no guilt, plant seed (30-day guarantee, 7 da
 - Focus on "qualificação de leads" as main value prop (it's "destravar você")
 - Vague about product/price ("our solution", "what we do")
 - Offer Mesa when ANUM ≥60 WITHOUT mentioning Implementation first
-- Send scheduling links (Frank asks "Qual o melhor horário?")
 
 **ALWAYS:**
 - Position CoreConnect as "Agência de IA que destrava"
