@@ -20,7 +20,7 @@
             {
               "id": "552e7c8e-818d-46b3-9c8e-a12b34175f2b",
               "name": "whatsapp_id",
-              "value": "={{ $json.body.data.key.remoteJid }}",
+              "value": "={{ (() => { const key = $json.body.data.key; const mode = key.addressingMode; if (mode === 'lid' && key.remoteJidAlt) { return key.remoteJidAlt.includes('@s.whatsapp.net') ? key.remoteJidAlt : key.remoteJid; } return key.remoteJid.includes('@s.whatsapp.net') ? key.remoteJid : (key.remoteJidAlt || key.remoteJid); })() }}",
               "type": "string"
             },
             {
