@@ -1,0 +1,108 @@
+[
+  {
+    "headers": {
+      "host": "webhook.bloomshield.com.br",
+      "user-agent": "axios/1.12.2",
+      "content-length": "1280",
+      "accept": "application/json, text/plain, */*",
+      "accept-encoding": "gzip, compress, deflate, br",
+      "content-type": "application/json",
+      "x-forwarded-for": "172.18.0.1",
+      "x-forwarded-host": "webhook.bloomshield.com.br",
+      "x-forwarded-port": "443",
+      "x-forwarded-proto": "https",
+      "x-forwarded-server": "04695c1088e7",
+      "x-real-ip": "172.18.0.1"
+    },
+    "params": {},
+    "query": {},
+    "body": {
+      "event": "messages.upsert",
+      "instance": "Frank - CoreConnect AI",
+      "data": {
+        "key": {
+          "remoteJid": "153442588844146@lid",
+          "remoteJidAlt": "558585917914@s.whatsapp.net",
+          "fromMe": false,
+          "id": "A583EC33417783BB4D5DDC08376D2068",
+          "participant": "",
+          "addressingMode": "lid"
+        },
+        "pushName": "Mestre Cepja",
+        "status": "DELIVERY_ACK",
+        "message": {
+          "conversation": "Oi",
+          "messageContextInfo": {
+            "deviceListMetadata": {
+              "senderKeyIndexes": [],
+              "recipientKeyIndexes": [],
+              "recipientKeyHash": {
+                "0": 243,
+                "1": 205,
+                "2": 83,
+                "3": 237,
+                "4": 207,
+                "5": 113,
+                "6": 145,
+                "7": 143,
+                "8": 166,
+                "9": 185
+              },
+              "recipientTimestamp": {
+                "low": 1765225037,
+                "high": 0,
+                "unsigned": true
+              }
+            },
+            "deviceListMetadataVersion": 2,
+            "messageSecret": {
+              "0": 90,
+              "1": 236,
+              "2": 6,
+              "3": 44,
+              "4": 159,
+              "5": 242,
+              "6": 211,
+              "7": 132,
+              "8": 127,
+              "9": 124,
+              "10": 26,
+              "11": 67,
+              "12": 73,
+              "13": 108,
+              "14": 48,
+              "15": 217,
+              "16": 238,
+              "17": 232,
+              "18": 236,
+              "19": 68,
+              "20": 61,
+              "21": 0,
+              "22": 101,
+              "23": 109,
+              "24": 30,
+              "25": 237,
+              "26": 93,
+              "27": 155,
+              "28": 181,
+              "29": 249,
+              "30": 17,
+              "31": 221
+            }
+          }
+        },
+        "messageType": "conversation",
+        "messageTimestamp": 1765396663,
+        "instanceId": "2d085cb0-05a2-4752-99ad-b2ef027b9a9a",
+        "source": "android"
+      },
+      "destination": "https://webhook.bloomshield.com.br/webhook/core-adapt-v4",
+      "date_time": "2025-12-10T16:57:43.996Z",
+      "sender": "558586762106@s.whatsapp.net",
+      "server_url": "https://evo2.bloomshield.com.br",
+      "apikey": "79CBCBE26FE6-48CE-AE31-6EC129E3E4E2"
+    },
+    "webhookUrl": "https://webhook.bloomshield.com.br/webhook/core-adapt-v4",
+    "executionMode": "production"
+  }
+]
