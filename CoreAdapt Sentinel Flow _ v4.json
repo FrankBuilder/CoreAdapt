@@ -85,6 +85,63 @@
     {
       "parameters": {
         "operation": "executeQuery",
+        "query": "-- Lock: Reservar step para evitar processamento duplicado\n-- Só retorna se conseguir fazer o UPDATE (ninguém mais está processando)\nUPDATE corev4_followup_executions\nSET decision_reason = 'processing'\nWHERE id = $1 \n  AND executed = false \n  AND (decision_reason IS NULL OR decision_reason NOT IN ('processing', 'sent'))\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [ $('Prepare: Followup Context').item.json.execution_id ] }}"
+        }
+      },
+      "id": "lock-step-node-001",
+      "name": "Lock: Reserve Step",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "lock-condition-001",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-got-lock-node-001",
+      "name": "IF: Got Lock",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        560,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
         "query": "-- Marcar como enviado (SQL Injection Safe)\nUPDATE corev4_followup_executions\nSET \n  executed = true,\n  sent_at = NOW(),\n  generated_message = $1,\n  generation_context = $2,\n  decision_reason = 'sent'\nWHERE id = $3;",
         "options": {
           "queryReplacement": "={{ [$('CoreAdapt Sentinel AI Agent').item.json.output, JSON.stringify($('Prepare: Followup Context').item.json), $('Prepare: Followup Context').item.json.execution_id] }}"
@@ -333,7 +390,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        608,
+        720,
         48
       ]
     }
@@ -388,7 +445,36 @@
       "main": [
         [
           {
+            "node": "Lock: Reserve Step",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lock: Reserve Step": {
+      "main": [
+        [
+          {
+            "node": "IF: Got Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Got Lock": {
+      "main": [
+        [
+          {
             "node": "CoreAdapt Sentinel AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop: Over Followups",
             "type": "main",
             "index": 0
           }
