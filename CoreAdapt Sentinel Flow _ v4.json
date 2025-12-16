@@ -112,17 +112,16 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
               "id": "lock-condition-001",
-              "leftValue": "={{ $json.id }}",
-              "rightValue": "",
+              "leftValue": "={{ $json.id != null }}",
+              "rightValue": true,
               "operator": {
                 "type": "boolean",
-                "operation": "exists",
-                "singleValue": true
+                "operation": "equals"
               }
             }
           ],
