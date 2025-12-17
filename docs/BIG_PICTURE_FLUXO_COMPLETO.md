@@ -515,38 +515,47 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                           COREADAPT — 25 FLUXOS TOTAL                                    │
+│                    COREADAPT — FLUXOS (12 existentes + 13 novos)                         │
 ├─────────────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                          │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                           PROATIVO (10 novos)                                    │   │
+│  │                        🆕 A IMPLEMENTAR (13 novos)                               │   │
 │  │                                                                                  │   │
-│  │   PROSPECÇÃO          GESTÃO              ENGAJAMENTO         TRANSIÇÃO          │   │
-│  │   ───────────         ──────              ───────────         ──────────         │   │
-│  │   1. Prospector       4. Campaign         6. Warmup           9. Nurture         │   │
-│  │   2. LinkedIn         5. List Cleanup     7. First Touch      10. Handoff        │   │
-│  │   3. List Import                          8. Opt-in Handler                      │   │
-│  │      + Validation                                                                │   │
+│  │   PROATIVO (10)                                 AGENDAMENTO AUTÔNOMO (3)         │   │
+│  │   ─────────────                                 ────────────────────────         │   │
+│  │   1. Prospector (Google Maps)                   11. Availability Flow (Google)  │   │
+│  │   2. LinkedIn Prospector (Unipile)              12. Booking Flow (Google)       │   │
+│  │   3. List Import Flow                           13. CoreOne c/ agendamento      │   │
+│  │   4. List Validation Flow                                                       │   │
+│  │   5. Campaign Orchestrator                                                      │   │
+│  │   6. Warmup Monitor Flow                                                        │   │
+│  │   7. First Touch Flow                                                           │   │
+│  │   8. Opt-in Handler Flow                                                        │   │
+│  │   9. Nurture Engine Flow                                                        │   │
+│  │   10. Handoff Flow                                                              │   │
 │  │                                                                                  │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                          │                                              │
 │                                          │ Handoff                                      │
 │                                          ▼                                              │
 │  ┌─────────────────────────────────────────────────────────────────────────────────┐   │
-│  │                          RECEPTIVO (15 existentes)                               │   │
+│  │                        ✅ EXISTENTES (12 fluxos)                                 │   │
 │  │                                                                                  │   │
-│  │   ENTRADA             CONVERSA            QUALIFICAÇÃO        AGENDAMENTO        │   │
+│  │   ENTRADA             CONVERSA            QUALIFICAÇÃO        AUXILIARES         │   │
 │  │   ────────            ────────            ────────────        ──────────         │   │
-│  │   1. Normalize        4. One Flow         8. Sync Flow        11. Scheduler      │   │
-│  │   2. Main Router      5. Commands         9. Create Follow    12. Availability   │   │
-│  │   3. Genesis          6. Process Audio    10. Sentinel        13. Booking        │   │
-│  │                       7. Batch Processor                      14. Reminders      │   │
-│  │                                                               15. Reactivate     │   │
+│  │   1. Normalize        4. One Flow         7. Sync Flow        10. Batch Proc.   │   │
+│  │   2. Main Router      5. Commands         8. Sentinel         11. Create Follow │   │
+│  │   3. Genesis          6. Process Audio    9. Reminders*       12. Reactivate    │   │
+│  │                                                                                  │   │
+│  │   * Scheduler Flow (Cal.com) será DEPRECADO e substituído pelo novo             │   │
 │  │                                                                                  │   │
 │  └─────────────────────────────────────────────────────────────────────────────────┘   │
 │                                                                                          │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+> **Nota importante:** Os fluxos de agendamento atuais (Scheduler, Availability, Booking) existem
+> mas usam Cal.com. Serão **reescritos** para usar Google Calendar API diretamente.
 
 ---
 
@@ -611,7 +620,7 @@ if (incoming.handoff === true) {
 
 ## 8. Resumo: O que Precisa Ser Construído
 
-### 8.1 MVP (15 dias)
+### 8.1 MVP (15 dias) — Proativo Básico + Agendamento Autônomo
 
 | Prioridade | Fluxo | Complexidade | Dias |
 |------------|-------|--------------|------|
@@ -621,36 +630,61 @@ if (incoming.handoff === true) {
 | 4 | Warmup Monitor Flow | Baixa | 1 |
 | 5 | First Touch Flow | Média | 2 |
 | 6 | Opt-in Handler Flow | Média | 2 |
-| 7 | Handoff Flow | Média | 2 |
+| 7 | Handoff Flow | Média | 1 |
+| 8 | **Availability Flow (Google Calendar)** | Média | 1 |
+| 9 | **Booking Flow (Google Calendar)** | Média | 1 |
+| 10 | **Atualizar CoreOne p/ agendamento** | Baixa | 1 |
 | - | Testes e ajustes | - | 2 |
-| **TOTAL** | | | **15 dias** |
+| **TOTAL** | | | **17 dias** |
 
-### 8.2 Fase 2 (até 31/01)
+> ⚠️ **Nota:** O agendamento autônomo (itens 8-10) substitui o fluxo atual via Cal.com.
+> Os fluxos Availability e Booking existem mas precisam ser reescritos para usar Google Calendar API diretamente.
+
+### 8.2 Fase 2 (até 31/01) — Sistema Completo
 
 | Fluxo | Complexidade | Dias |
 |-------|--------------|------|
-| LinkedIn Prospector Flow | Alta | 3 |
+| LinkedIn Prospector Flow (Unipile) | Alta | 3 |
 | Nurture Engine Flow | Alta | 4 |
 | List Cleanup Flow | Baixa | 1 |
-| CRM Sync Flow | Alta | 5 |
-| Google Calendar Integration | Média | 3 |
+| CRM Sync Flow (Chatwoot + outros) | Alta | 5 |
+| Meeting Reminders (atualizar) | Baixa | 1 |
 | Testes e documentação | - | 5 |
-| **TOTAL** | | **21 dias** |
+| **TOTAL** | | **19 dias** |
 
 ---
 
 ## 9. Conclusão
 
-O CoreAdapt completo terá **25 fluxos** organizados em duas camadas:
+O CoreAdapt completo terá **25 fluxos** organizados em:
 
-1. **Proativo (10 fluxos)**: Forma listas, engaja leads frios, nutre até estarem prontos
-2. **Receptivo (15 fluxos)**: Qualifica, agenda, acompanha
+| Categoria | Qtd | Status |
+|-----------|-----|--------|
+| Receptivo (existentes) | 12 | ✅ Em produção |
+| Proativo (novos) | 10 | 🆕 A implementar |
+| Agendamento Autônomo | 3 | 🆕 A implementar (substitui Cal.com) |
+
+### O que precisa ser construído:
+
+1. **Proativo (10 fluxos)**: Formar listas, engajar leads frios, nutrir até estarem prontos
+2. **Agendamento Autônomo (3 itens)**: Availability + Booking com Google Calendar API + CoreOne atualizado
 
 A integração acontece via **Handoff Flow**, que transfere leads engajados do proativo para o receptivo com todo o contexto preservado.
 
-Este é o **padrão gold standard 2025** adaptado para a realidade brasileira (WhatsApp como canal principal), combinando o melhor de:
-- **Apollo/Outreach**: Prospecção e sequências
-- **Salesloft**: Cadências e personalização
-- **IA Conversacional**: Qualificação autônoma (diferencial CoreAdapt)
+### Referências absorvidas:
 
-O resultado é um **SDR autônomo completo** que trabalha 24/7, do primeiro contato ao agendamento.
+| Plataforma | O que CoreAdapt absorve |
+|------------|------------------------|
+| **Apollo.io** | Prospecção multi-fonte |
+| **Outreach/Salesloft** | Sequências e cadências |
+| **Instantly.ai** | Warmup automático |
+| **Calendly/Cal.com** | Agendamento (mas nativo no WhatsApp!) |
+
+### O diferencial:
+
+- **Canal**: WhatsApp (98% abertura vs 20% email)
+- **Qualificação**: IA conversacional ANUM (não formulários)
+- **Agendamento**: Autônomo na conversa (não link externo)
+- **Mercado**: Brasil (onde WhatsApp é padrão)
+
+O resultado é um **SDR autônomo completo** que trabalha 24/7, do primeiro contato ao agendamento — **sem intervenção humana**.
