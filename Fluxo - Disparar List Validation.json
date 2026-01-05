@@ -1,0 +1,2893 @@
+{
+  "name": "Fluxo - Disparar List Validation",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f7132e70-4250-475b-bf40-ed7ac61c7899",
+              "name": "apiURL",
+              "value": "https://evo2.bloomshield.com.br",
+              "type": "string"
+            },
+            {
+              "id": "351cc788-92d0-4343-bd0f-9864d07ec125",
+              "name": "instancia",
+              "value": "CoreConnect-Teste",
+              "type": "string"
+            },
+            {
+              "id": "ce0b94fb-9047-4faa-8806-b8917b85b19c",
+              "name": "apikey",
+              "value": "51F114E1086C-4C42-AF0B-FB4ACE467B54",
+              "type": "string"
+            },
+            {
+              "id": "672f9d43-96cd-402b-8357-d5fe0153da06",
+              "name": "qtdDisparos",
+              "value": "50",
+              "type": "string"
+            },
+            {
+              "id": "586aea30-77cb-4435-9f60-6e2a4914d071",
+              "name": "diasFollow",
+              "value": "2",
+              "type": "string"
+            },
+            {
+              "id": "50711571-3e82-46f9-9912-1620c29c278f",
+              "name": "notionDB",
+              "value": "2dfe2463c2b0813e9277f070c1750729?v=2dfe2463c2b081dc8a54000cef5aa645",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4a7d6f03-6f7f-4656-9e33-2081d6e84342",
+      "name": "Dados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2544,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Garante que o valor é uma string e remove caracteres não numéricos\nvar WhatsApp = String(items[0].json.property_whats_app || '').replace(/[^0-9]+/g, '');\n\n// Inicializa as variáveis\nvar ddi = \"não informado\";\nvar ddd = \"não informado\";\n\n// Verifica se o número tem pelo menos 10 dígitos (mínimo para telefone com DDD)\nif (WhatsApp.length >= 10 && WhatsApp.length <= 13) {\n\n  // Se começa com 55, remove o DDI Brasil\n  if (WhatsApp.startsWith(\"55\")) {\n    ddi = \"+55\";\n    WhatsApp = WhatsApp.slice(2);\n  } else {\n    ddi = \"+55\"; // Assume Brasil caso não tenha DDI\n  }\n\n  // Extrai o DDD (2 primeiros dígitos) e o restante do número\n  ddd = WhatsApp.slice(0, 2);\n  WhatsApp = WhatsApp.slice(2);\n\n  // Se o número tiver 8 dígitos, adiciona o nono dígito\n  if (WhatsApp.length === 8) {\n    WhatsApp = \"9\" + WhatsApp;\n  }\n\n  // Garante que não há erro no tamanho final\n  if (WhatsApp.length !== 9) {\n    WhatsApp = \"Número inválido\";\n  }\n\n} else {\n  WhatsApp = \"Número inválido\";\n}\n\n// Formata corretamente\nvar whatsapp_formatado = (WhatsApp !== \"Número inválido\") ? (`${ddi}${ddd}${WhatsApp}`) : \"Número inválido\";\n\nreturn [\n  {\n    json: {\n      ddi,\n      ddd,\n      WhatsApp,\n      whatsapp_formatado,\n    },\n  },\n];\n"
+      },
+      "id": "15520f6c-5699-43ff-9a71-edffe93693a5",
+      "name": "Validar Telefone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json[\"exists\"] }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "fe143904-61b4-4e48-b479-98395bfc0132",
+      "name": "É válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1056,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function numeroRandomicoIntervalo(min, max) { // minimo e maximo incluso \n  return Math.floor(Math.random() * (max - min + 1) + min)\n}\n\nfor (item of items) {\n  item.json.numeroRandomico = numeroRandomicoIntervalo(0, 2); // altere os dois números para definir um range entre minimo e maximo\n}\n\nreturn items;"
+      },
+      "name": "Randomiza Variação",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -144,
+        720
+      ],
+      "typeVersion": 1,
+      "id": "0aff53c4-9566-408a-aeb3-d77c2b8f1652",
+      "retryOnFail": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {},
+      "id": "d97c7e72-471a-406c-a269-312f1024ab0b",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -2576,
+        1568
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Puxa todos os leads').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Data 2º Contato|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Follow-Up 2"
+            },
+            {
+              "key": "Data do último disparo|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e3d8cbfb-153e-4c90-990d-a08bedb819f0",
+      "name": "Notion1",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        720
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "limit",
+        "maxItems": "={{ $('Dados').item.json[\"qtdDisparos\"] }}"
+      },
+      "id": "3134464e-cc47-4acf-876e-8391a8b9dd38",
+      "name": "Restringir Qtde Envios",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        -1920,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "value1": "={{ $json.numeroRandomico }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "outputKey": "0"
+            },
+            {
+              "operation": "equal",
+              "value2": 1,
+              "outputKey": "1"
+            },
+            {
+              "operation": "equal",
+              "value2": 2,
+              "outputKey": "2"
+            }
+          ]
+        }
+      },
+      "id": "736c5074-5ed0-4a99-add0-d59052aa4cee",
+      "name": "Variação",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        64,
+        704
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "function numeroRandomicoIntervalo(min, max) { // minimo e maximo incluso \n  return Math.floor(Math.random() * (max - min + 1) + min)\n}\n\nfor (item of items) {\n  item.json.numeroRandomico = numeroRandomicoIntervalo(0, 2); // altere os dois números para definir um range entre minimo e maximo\n}\n\nreturn items;"
+      },
+      "name": "Randomiza Variação1",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -144,
+        240
+      ],
+      "typeVersion": 1,
+      "id": "c979307a-f00a-4d2e-91e0-eea7c4eefcad",
+      "retryOnFail": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Puxa todos os leads').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Data 1º Contato|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Follow-Up"
+            },
+            {
+              "key": "WhatsApp|phone_number",
+              "phoneValue": "={{ $('Validar Telefone').item.json.whatsapp_formatado }}"
+            },
+            {
+              "key": "Data do último disparo|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "70fa4b70-709b-4725-8ac5-b60ab4474d75",
+      "name": "Notion4",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        240
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "value1": "={{ $json.numeroRandomico }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "outputKey": "0"
+            },
+            {
+              "operation": "equal",
+              "value2": 1,
+              "outputKey": "1"
+            },
+            {
+              "operation": "equal",
+              "value2": 2,
+              "outputKey": "2"
+            }
+          ]
+        }
+      },
+      "id": "9fb88314-8251-40bd-90a9-21cc9c47b806",
+      "name": "Variação1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        64,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "=55{{ $('Validar Telefone').item.json.ddd }}{{ $('Validar Telefone').item.json.WhatsApp }}@s.whatsapp.net",
+            "message": "={\"type\": \"ai\", \"content\": \"{{ $json.body.message.conversation }}\", \"tool_calls\": [], \"additional_kwargs\": {}, \"response_metadata\": {}, \"invalid_tool_calls\": []}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b6dd8fc8-32b9-49c4-9475-a36d617be348",
+      "name": "Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        656,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres | CoreConnect"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Olá, tudo bem? Sou a Ana da Tenaz IA."
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "ab9514d0-1003-4c34-a35d-57d515cc5e1a",
+      "name": "Lead var1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        80
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Olá, Sou a Ana da Tenaz IA."
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e1cd2123-3b0a-45f4-a503-c06cb9e8fec6",
+      "name": "Lead var2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        240
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Tudo bem? Sou a Ana da Tenaz IA."
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "d8e4382a-9e00-47ba-b54d-f74bac4cd700",
+      "name": "Lead var3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        400
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Oi, tudo bem? 😊 Estou retomando o contato porque vejo uma grande oportunidade de aplicarmos automação e inteligência artificial na sua empresa."
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "41125ae2-630f-4022-83f8-0389e88dbef4",
+      "name": "Follow var1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        560
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Oi! Espero que esteja bem. Queria saber se você teve a chance de ver minha mensagem anterior."
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "222304c0-d4f4-4fd9-aed5-48c664c60958",
+      "name": "Follow var2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        720
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Olá, Tudo bem? Estou entrando em contato novamente porque realmente acredito que automação e IA podem transformar sua empresa."
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "01dfdf82-3971-4df4-ba99-a475808f83cc",
+      "name": "Follow var3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        880
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "=55{{ $('Validar Telefone').item.json.ddd }}{{ $('Validar Telefone').item.json.WhatsApp }}@s.whatsapp.net",
+            "message": "={\"type\": \"ai\", \"content\": \"{{ $json.body.message.conversation }}\", \"tool_calls\": [], \"additional_kwargs\": {}, \"response_metadata\": {}, \"invalid_tool_calls\": []}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f1b3022a-a66a-4841-aee2-76e5d8ef58c2",
+      "name": "Postgres1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        656,
+        720
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NBvNDmmd3IwFG06g",
+          "name": "Postgres n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "function numeroRandomicoIntervalo(min, max) { // minimo e maximo incluso \n  return Math.floor(Math.random() * (max - min + 1) + min)\n}\n\nfor (item of items) {\n  item.json.numeroRandomico = numeroRandomicoIntervalo(0, 2); // altere os dois números para definir um range entre minimo e maximo\n}\n\nreturn items;"
+      },
+      "name": "Randomiza Variação2",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -160,
+        1200
+      ],
+      "typeVersion": 1,
+      "id": "a5889190-518d-4260-8fe2-1ca0637c35ba",
+      "retryOnFail": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "value1": "={{ $json.numeroRandomico }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "outputKey": "0"
+            },
+            {
+              "operation": "equal",
+              "value2": 1,
+              "outputKey": "1"
+            },
+            {
+              "operation": "equal",
+              "value2": 2,
+              "outputKey": "2"
+            }
+          ]
+        }
+      },
+      "id": "578783e8-ac41-491f-818b-9a50ec4a9e00",
+      "name": "Variação2",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        64,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "=55{{ $('Validar Telefone').item.json.ddd }}{{ $('Validar Telefone').item.json.WhatsApp }}@s.whatsapp.net",
+            "message": "={\"type\": \"ai\", \"content\": \"{{ $json.body.message.conversation }}\", \"tool_calls\": [], \"additional_kwargs\": {}, \"response_metadata\": {}, \"invalid_tool_calls\": []}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "20b4e238-4108-4f08-ad05-f8db3ba2d89f",
+      "name": "Postgres2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        656,
+        1200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NBvNDmmd3IwFG06g",
+          "name": "Postgres n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Puxa todos os leads').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Data 3º Contato|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Follow-Up 3"
+            },
+            {
+              "key": "Data do último disparo|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f225008f-f798-45a6-bda3-72f454ff8f5c",
+      "name": "Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        1200
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Oi, tudo certo? Queria te contar rapidamente sobre um cliente nosso, que implementou automação e reduziu em 83% o tempo gasto com atendimento de clientes desinteressados. O impacto foi enorme na produtividade e nos custos. Se quiser, posso te mostrar como algo parecido pode funcionar para sua empresa. O que acha?"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "48aa5818-718b-4b52-91e3-5bd40872975c",
+      "name": "Follow2 var1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        1040
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Oi! Sei que a rotina é corrida, mas queria compartilhar um caso interessante. Recentemente, ajudamos um cliente a automatizar o atendimento de interessados, e o resultado foi um aumento de 83% na produtividade e uma grande economia de tempo. Posso te contar mais sobre como sua empresa pode ter benefícios parecidos?"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "209f4889-4c3c-499e-820b-d7a373df4779",
+      "name": "Follow2 var2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        1200
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Olá! Empresas que estão adotando automação e IA já estão vendo melhorias expressivas em eficiência e redução de custos. Um exemplo foi de um cliente nosso, que conseguiu automatizar toda a qualificação de clientes interessados e o agendamento de visitas. Se quiser saber como isso pode ser aplicado ao seu negócio, podemos conversar. O que acha?"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "d44824aa-a6a8-4d86-b624-66de267a5da9",
+      "name": "Follow2 var3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        1360
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "functionCode": "function numeroRandomicoIntervalo(min, max) { // minimo e maximo incluso \n  return Math.floor(Math.random() * (max - min + 1) + min)\n}\n\nfor (item of items) {\n  item.json.numeroRandomico = numeroRandomicoIntervalo(0, 2); // altere os dois números para definir um range entre minimo e maximo\n}\n\nreturn items;"
+      },
+      "name": "Randomiza Variação3",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        -144,
+        1696
+      ],
+      "typeVersion": 1,
+      "id": "6b2c999b-5849-4c3a-bf25-3fd2c5e741a6",
+      "retryOnFail": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "value1": "={{ $json.numeroRandomico }}",
+        "rules": {
+          "rules": [
+            {
+              "operation": "equal",
+              "outputKey": "0"
+            },
+            {
+              "operation": "equal",
+              "value2": 1,
+              "outputKey": "1"
+            },
+            {
+              "operation": "equal",
+              "value2": 2,
+              "outputKey": "2"
+            }
+          ]
+        }
+      },
+      "id": "017f7366-8ad1-4533-adf8-a5dc1c842158",
+      "name": "Variação3",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [
+        80,
+        1680
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "=55{{ $('Validar Telefone').item.json.ddd }}{{ $('Validar Telefone').item.json.WhatsApp }}@s.whatsapp.net",
+            "message": "={\"type\": \"ai\", \"content\": \"{{ $json.body.message.conversation }}\", \"tool_calls\": [], \"additional_kwargs\": {}, \"response_metadata\": {}, \"invalid_tool_calls\": []}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3c9b7044-aeaf-4d67-a851-fc18997006bf",
+      "name": "Postgres3",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        624,
+        1696
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NBvNDmmd3IwFG06g",
+          "name": "Postgres n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Puxa todos os leads').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Data 3º Contato|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Disparo finalizado"
+            },
+            {
+              "key": "Data do último disparo|date",
+              "includeTime": false,
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "24f00509-8006-4b88-9891-db921447a8b3",
+      "name": "Notion5",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        1696
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Oi, tudo bem? Queria fazer um último contato para saber se faz sentido falarmos sobre automação e IA para sua empresa. Caso não seja o momento, sem problemas, fico à disposição quando precisar. Se quiser, podemos marcar uma conversa rápida. Me avise!"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "bbcca1ea-6810-4c45-a32e-c91f85b4a94d",
+      "name": "Follow3 var1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        1536
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Olá! Sei que o dia a dia é corrido, mas quis te dar um último toque. Automação e IA já estão ajudando empresas a economizar tempo e reduzir custos, e acredito que sua empresa pode se beneficiar disso também. Caso queira entender melhor, podemos conversar. O que acha?"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "e46e756b-5ab1-4dff-ba87-5fb2a2223dd6",
+      "name": "Follow3 var2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        1696
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "=Oi! Quero garantir que você teve a chance de ver minhas mensagens. Sei que automação e IA podem transformar a eficiência das empresas, e estou aqui para te ajudar a entender como aplicar isso ao seu negócio. Se fizer sentido, podemos marcar um bate-papo rápido. Caso não seja o momento, sem problemas! 😊"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "3b41b408-6a3d-4e29-b900-5df85ad5574e",
+      "name": "Follow3 var3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        1840
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9a7061fa-5773-478b-80b9-9d2975c247f3",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_data_do_ltimo_disparo.start }}",
+              "rightValue": "={{ $now.minus($('Dados').item.json.diasFollow, 'days') }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "beforeOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ddfb9b57-d848-4660-a53a-434f5cb4b833",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -400,
+        736
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9a7061fa-5773-478b-80b9-9d2975c247f3",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_data_do_ltimo_disparo.start }}",
+              "rightValue": "={{ $now.minus($('Dados').item.json.diasFollow, 'days') }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "beforeOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f562f62e-1e66-49a9-8d89-cb4bfb898575",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        1216
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9a7061fa-5773-478b-80b9-9d2975c247f3",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_data_do_ltimo_disparo.start }}",
+              "rightValue": "={{ $now.minus($('Dados').item.json.diasFollow, 'days') }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "beforeOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "10c42f07-5cd7-4a57-8e50-b3aaa4e5c026",
+      "name": "If2",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -400,
+        1712
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "* 8-17 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "cfd67ace-9144-4cbf-bf86-98114bb28226",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2768,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "260015b3-6ad1-4a7a-a702-5cfce5163758",
+      "name": "Loop",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1696,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "function numeroRandomicoIntervalo(min, max) { // minimo e maximo incluso \n  return Math.floor(Math.random() * (max - min + 1) + min)\n}\n\nfor (item of items) {\n  item.json.numeroRandomico = numeroRandomicoIntervalo(80, 140); // altere os dois números para definir um range entre minimo e maximo\n}\n\nreturn items;"
+      },
+      "id": "54d74ca4-9c65-4a03-b90d-771e2c06923a",
+      "name": "geraDelay",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/chat/whatsappNumbers/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json.apikey }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"numbers\": [\n    \"{{ $('Validar Telefone').item.json.whatsapp_formatado.slice(\"1\") }}\"\n  ]\n}",
+        "options": {}
+      },
+      "id": "db7d2a20-3371-44cf-b7d4-fc26ec9b0947",
+      "name": "validaWhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -1280,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Lead",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Lead"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "98479bab-475a-44db-9931-dae7c56dd591",
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Follow-Up",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Follow-Up"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "f4c51aba-e319-4d29-9faf-75d7cf47572a",
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Follow-Up 2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Follow-Up 2"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8269e499-5d55-4463-b083-f8bcf543ff6e",
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Follow-Up 3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Follow-Up 3"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ddf459f2-c127-45f8-ba03-63181cad0b84",
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Em qualificação",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Em qualificação"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "54cafca5-d525-4001-a96b-052dd373cdf7",
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Disparo finalizado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Disparo finalizado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "25337419-811c-4577-8a43-cd008729c55d",
+                    "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+                    "rightValue": "Lead Desqualificado",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Lead Desqualificado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93c65256-c5f7-4afc-9b65-c290d2f28594",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -784,
+        912
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Dados').item.json[\"apiURL\"] }}/message/sendText/{{ $('Dados').item.json[\"instancia\"] }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Dados').item.json[\"apikey\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $node[\"Validar Telefone\"].json[\"whatsapp_formatado\"].slice(1) }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.message.content }}"
+            },
+            {
+              "name": "options.delay",
+              "value": "={{ 3000 }}"
+            },
+            {
+              "name": "options.presence",
+              "value": "composing"
+            },
+            {
+              "name": "options.linkPreview",
+              "value": "={{ false }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "fae4945a-fa0f-4911-8e8a-8a9b2c51f2c2",
+      "name": "Lead var",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        336,
+        -96
+      ],
+      "typeVersion": 4
+    },
+    {
+      "parameters": {
+        "content": "## EDITE AQUI",
+        "height": 243,
+        "width": 218
+      },
+      "id": "f5291666-4c63-4282-8c41-e6a8c62329c0",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2608,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "n8n_chat_histories",
+          "mode": "list",
+          "cachedResultName": "n8n_chat_histories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "=55{{ $('Validar Telefone').item.json.ddd }}{{ $('Validar Telefone').item.json.WhatsApp }}@s.whatsapp.net",
+            "message": "={\"type\": \"ai\", \"content\": \"{{ $json.body.message.conversation }}\", \"tool_calls\": [], \"additional_kwargs\": {}, \"response_metadata\": {}, \"invalid_tool_calls\": []}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7e3a4b9f-6577-46a7-96ea-eeffc7b882f0",
+      "name": "Postgres4",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        544,
+        -96
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "NBvNDmmd3IwFG06g",
+          "name": "Postgres n8n"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "={{ $json.notionDB }}",
+          "mode": "id"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Status|status",
+              "condition": "does_not_equal",
+              "statusValue": "Lead Desqualificado"
+            }
+          ]
+        },
+        "options": {
+          "sort": {
+            "sortValue": [
+              {
+                "key": "Data do último disparo|date",
+                "direction": "ascending"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7ccfd0a9-8e09-4ea1-a436-dc040357ff29",
+      "name": "Puxa todos os leads",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -2336,
+        1184
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "591bca9f-cc79-43c9-86ce-604c6cfcf7cf",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+              "rightValue": "Lead",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "d4b88cf1-b78a-466e-968a-2b018eb8f2ed",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+              "rightValue": "Follow-Up",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "e628f3d5-0e98-4b62-8d2d-66804f65d0b3",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+              "rightValue": "Follow-Up 2",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "19a96746-1b79-461a-b0bf-5bb40d6cc00e",
+              "leftValue": "={{ $('Puxa todos os leads').item.json.property_status }}",
+              "rightValue": "Follow-Up 3",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "909faa59-502c-456b-9812-3cd33ec0494f",
+      "name": "Filtra leads",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2144,
+        1184
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('Loop').item.json.id }}",
+          "mode": "id"
+        },
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Data 1º Contato|date",
+              "date": "={{ $now }}",
+              "timezone": "America/Sao_Paulo"
+            },
+            {
+              "key": "Motivo da desqualificação|select",
+              "selectValue": "WhatsApp Inválido"
+            },
+            {
+              "key": "Status|status",
+              "statusValue": "Lead Desqualificado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "16c1e387-ffb2-49fe-b984-4ad66ac11ac0",
+      "name": "Desqualifica lead",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -784,
+        1264
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ba039d68-8a16-401c-86ef-74dc0587bd7b",
+              "name": "",
+              "value": "={{ Number($('Dados').json[\"diasFollow\"]) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "961689d1-ed11-4321-891f-eff4f27e44e8",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{$json[\"numeroRandomico\"]}}",
+        "unit": "seconds"
+      },
+      "name": "Delay",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        1344,
+        1824
+      ],
+      "webhookId": "a7c3102c-6d9f-47f0-ab2c-599b8e07b0fc",
+      "typeVersion": 1,
+      "id": "96e545d0-31ea-4081-b542-0f1b70f8abac",
+      "retryOnFail": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1cJU2tEuXHQ6BFwcF_60YAe4pP84n4WdeNPw9Q5SqtAg",
+          "mode": "list",
+          "cachedResultName": "outubro Antigos compradores disparador",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cJU2tEuXHQ6BFwcF_60YAe4pP84n4WdeNPw9Q5SqtAg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1542486401,
+          "mode": "list",
+          "cachedResultName": "NUMEROS",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cJU2tEuXHQ6BFwcF_60YAe4pP84n4WdeNPw9Q5SqtAg/edit#gid=1542486401"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -2368,
+        1568
+      ],
+      "id": "9a4640eb-1f9e-46ea-b85b-76f4388d83eb",
+      "name": "Get row(s) in sheet"
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "2641b2dc-7841-80fa-9200-cec7f61994b5",
+          "mode": "list",
+          "cachedResultName": "CRM Tenaz IA para WhatsApp",
+          "cachedResultUrl": "https://www.notion.so/2641b2dc784180fa9200cec7f61994b5"
+        },
+        "title": "={{$json.name}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "WhatsApp|phone_number",
+              "phoneValue": "={{ $json.tel.toString() }}"
+            },
+            {
+              "key": "Responsável |people",
+              "peopleValue": [
+                "264d872b-594c-81c2-943e-000259d3ff9f"
+              ]
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        -2160,
+        1568
+      ],
+      "id": "dd6355d8-949e-494f-b557-501de14d4d8e",
+      "name": "Create a database page",
+      "credentials": {
+        "notionApi": {
+          "id": "scQiezJ9I3bkqgcl",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Adiciona LEAD no Notion",
+        "height": 256,
+        "width": 784,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2688,
+        1488
+      ],
+      "typeVersion": 1,
+      "id": "ea27cf0c-f149-4200-b8ea-2a3168a2f448",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        16,
+        -96
+      ],
+      "id": "27cde6ac-ece1-4f6e-a749-6d73b3120d3f",
+      "name": "AI Agent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Dados": {
+      "main": [
+        [
+          {
+            "node": "Puxa todos os leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Telefone": {
+      "main": [
+        [
+          {
+            "node": "validaWhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É válido?": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Desqualifica lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomiza Variação": {
+      "main": [
+        [
+          {
+            "node": "Variação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion1": {
+      "main": [
+        [
+          {
+            "node": "geraDelay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restringir Qtde Envios": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variação": {
+      "main": [
+        [
+          {
+            "node": "Follow var1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow var2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow var3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomiza Variação1": {
+      "main": [
+        [
+          {
+            "node": "Variação1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion4": {
+      "main": [
+        [
+          {
+            "node": "geraDelay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variação1": {
+      "main": [
+        [
+          {
+            "node": "Lead var1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lead var2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lead var3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Notion4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead var1": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead var2": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead var3": {
+      "main": [
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow var1": {
+      "main": [
+        [
+          {
+            "node": "Postgres1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow var2": {
+      "main": [
+        [
+          {
+            "node": "Postgres1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow var3": {
+      "main": [
+        [
+          {
+            "node": "Postgres1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres1": {
+      "main": [
+        [
+          {
+            "node": "Notion1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomiza Variação2": {
+      "main": [
+        [
+          {
+            "node": "Variação2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variação2": {
+      "main": [
+        [
+          {
+            "node": "Follow2 var1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow2 var2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow2 var3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres2": {
+      "main": [
+        [
+          {
+            "node": "Notion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion": {
+      "main": [
+        [
+          {
+            "node": "geraDelay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow2 var1": {
+      "main": [
+        [
+          {
+            "node": "Postgres2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow2 var2": {
+      "main": [
+        [
+          {
+            "node": "Postgres2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow2 var3": {
+      "main": [
+        [
+          {
+            "node": "Postgres2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Randomiza Variação3": {
+      "main": [
+        [
+          {
+            "node": "Variação3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Variação3": {
+      "main": [
+        [
+          {
+            "node": "Follow3 var1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow3 var2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Follow3 var3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres3": {
+      "main": [
+        [
+          {
+            "node": "Notion5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion5": {
+      "main": [
+        [
+          {
+            "node": "geraDelay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow3 var1": {
+      "main": [
+        [
+          {
+            "node": "Postgres3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow3 var2": {
+      "main": [
+        [
+          {
+            "node": "Postgres3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow3 var3": {
+      "main": [
+        [
+          {
+            "node": "Postgres3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Randomiza Variação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Randomiza Variação2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Randomiza Variação3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Validar Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "geraDelay": {
+      "main": [
+        [
+          {
+            "node": "Delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "validaWhatsApp": {
+      "main": [
+        [
+          {
+            "node": "É válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Randomiza Variação1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lead var": {
+      "main": [
+        [
+          {
+            "node": "Postgres4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Puxa todos os leads": {
+      "main": [
+        [
+          {
+            "node": "Filtra leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtra leads": {
+      "main": [
+        [
+          {
+            "node": "Restringir Qtde Envios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Desqualifica lead": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delay": {
+      "main": [
+        [
+          {
+            "node": "Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Create a database page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Lead var",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ac74683d-dfb8-4d08-803f-bcc1976735f7",
+  "meta": {
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "F25P2E7DHeAE8SFv",
+  "tags": []
+}
