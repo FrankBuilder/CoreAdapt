@@ -148,7 +148,7 @@
       "credentials": {
         "notionApi": {
           "id": "scQiezJ9I3bkqgcl",
-          "name": "Notion account"
+          "name": "Notion | CoreConnect"
         }
       }
     },
@@ -341,7 +341,7 @@
       "credentials": {
         "notionApi": {
           "id": "scQiezJ9I3bkqgcl",
-          "name": "Notion account"
+          "name": "Notion | CoreConnect"
         }
       }
     },
@@ -393,7 +393,7 @@
     },
     {
       "parameters": {
-        "model": "gpt-4o-mini",
+        "model": "gpt-4.1-mini",
         "options": {
           "temperature": 0.8,
           "maxTokens": 500
@@ -409,15 +409,15 @@
       ],
       "credentials": {
         "openAiApi": {
-          "id": "your-openai-credential-id",
-          "name": "OpenAI"
+          "id": "TkfL2732Ws1h0rnI",
+          "name": "OpenAI | CORE ONE™ - FRANK | TEXTO"
         }
       }
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Você é {{ $json.agentName }}, um especialista em automação e IA da {{ $json.companyName }}.\n\nGere UMA mensagem de WhatsApp personalizada para prospecção B2B.\n\n## CONTEXTO DO LEAD:\n- Nome/Empresa: {{ $json.leadContext.business_name || $json.leadContext.name }}\n- Tipo de negócio: {{ $json.leadContext.business_type || 'não informado' }}\n- Cidade: {{ $json.leadContext.city || 'não informada' }}\n- Avaliação Google: {{ $json.leadContext.rating || 'não disponível' }} ({{ $json.leadContext.reviews || '0' }} avaliações)\n- Resumo do site: {{ $json.leadContext.site_summary || 'não disponível' }}\n\n## ESTÁGIO DO FUNIL:\n{{ $json.stage === 'first_touch' ? '1º CONTATO - Primeira abordagem. Seja breve e desperte curiosidade.' : '' }}\n{{ $json.stage === 'follow_up_1' ? '2º CONTATO - Retomando contato. Mencione a mensagem anterior brevemente.' : '' }}\n{{ $json.stage === 'follow_up_2' ? '3º CONTATO - Traga um case ou benefício concreto. Seja mais direto.' : '' }}\n{{ $json.stage === 'follow_up_3' ? '4º E ÚLTIMO CONTATO - Última tentativa. Seja respeitoso e ofereça encerrar.' : '' }}\n\n## REGRAS OBRIGATÓRIAS:\n1. Máximo 3 frases curtas\n2. Tom conversacional e humano (não robótico)\n3. Se tiver dados do lead (tipo negócio, cidade, rating), USE-OS para personalizar\n4. SEMPRE termine com opções numeradas:\n   - No 1º contato: \"1️⃣ Quero saber mais\" e \"2️⃣ Não tenho interesse\"\n   - Nos follow-ups: \"1️⃣ Sim, vamos conversar\" e \"2️⃣ Não, obrigado\"\n5. NÃO use emojis excessivos (máximo 2)\n6. NÃO mencione \"automação de WhatsApp\" diretamente\n7. Foque em RESULTADOS: economia de tempo, mais vendas, menos trabalho manual\n\n## EXEMPLOS DE TOM:\n- BOM: \"Oi! Vi que a Clínica Sorriso tem ótimas avaliações em Fortaleza. Trabalho com soluções que ajudam clínicas a atender mais pacientes sem aumentar a equipe.\"\n- RUIM: \"Olá! Sou a Ana da Empresa X e gostaria de apresentar nossos serviços de automação...\"\n\nGere APENAS a mensagem, sem explicações.",
+        "text": "=Você é {{ $json.agentName }}, um especialista em automação e IA da {{ $json.companyName }}.\n\nGere UMA mensagem de WhatsApp personalizada para prospecção B2B.\n\n## CONTEXTO DO LEAD:\n- Nome/Empresa: {{ $json.leadContext.business_name || $json.leadContext.name }}\n- Tipo de negócio: {{ $json.leadContext.business_type || 'não informado' }}\n- Cidade: {{ $json.leadContext.city || 'não informada' }}\n- Avaliação Google: {{ $json.leadContext.rating || 'não disponível' }} ({{ $json.leadContext.reviews || '0' }} avaliações)\n- Resumo do site: {{ $json.leadContext.site_summary || 'não disponível' }}\n\n## ESTÁGIO DO FUNIL:\n{{ $json.stage === 'first_touch' ? '1º CONTATO - Primeira abordagem. Seja breve e desperte curiosidade.' : '' }}\n{{ $json.stage === 'follow_up_1' ? '2º CONTATO - Retomando contato. Mencione a mensagem anterior brevemente.' : '' }}\n{{ $json.stage === 'follow_up_2' ? '3º CONTATO - Traga um case ou benefício concreto. Seja mais direto.' : '' }}\n{{ $json.stage === 'follow_up_3' ? '4º E ÚLTIMO CONTATO - Última tentativa. Seja respeitoso e ofereça encerrar.' : '' }}\n\n## REGRAS OBRIGATÓRIAS:\n1. Máximo 3 frases curtas\n2. Tom conversacional e humano (não robótico)\n3. Se tiver dados do lead (tipo negócio, cidade, rating), USE-OS para personalizar\n4. NÃO inclua opções de resposta no texto (botões serão adicionados automaticamente)\n5. NÃO use emojis excessivos (máximo 2)\n6. NÃO mencione 'automação de WhatsApp' diretamente\n7. Foque em RESULTADOS: economia de tempo, mais vendas, menos trabalho manual\n8. Termine com uma pergunta aberta que convide à interação\n\n## EXEMPLOS DE TOM:\n- BOM: \"Oi! Vi que a Clínica Sorriso tem ótimas avaliações em Fortaleza. Trabalho com soluções que ajudam clínicas a atender mais pacientes sem aumentar a equipe. Posso te mostrar como funciona?\"\n- RUIM: \"Olá! Sou a Ana da Empresa X e gostaria de apresentar nossos serviços de automação...\"\n\nGere APENAS a mensagem, sem explicações ou opções de resposta.",
         "hasOutputParser": false
       },
       "id": "ai-agent-generate",
@@ -431,7 +431,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Limpa e formata a mensagem gerada pela IA\nlet mensagem = $input.first().json.text || $input.first().json.response || '';\n\n// Remove aspas extras se houver\nmensagem = mensagem.replace(/^\"|\"$/g, '').trim();\n\n// Garante que tem as opções numeradas\nif (!mensagem.includes('1️⃣') && !mensagem.includes('1)') && !mensagem.includes('1.')) {\n  mensagem += '\\n\\n1️⃣ Quero saber mais\\n2️⃣ Não tenho interesse';\n}\n\n// Pega contexto anterior\nconst ctx = $('Prepara Contexto IA').item.json;\n\nreturn [{\n  json: {\n    mensagem,\n    whatsapp: ctx.whatsapp,\n    whatsapp_formatado: ctx.whatsapp_formatado,\n    leadId: ctx.leadId,\n    currentStatus: ctx.currentStatus,\n    nextStatus: ctx.nextStatus,\n    stageNumber: ctx.stageNumber\n  }\n}];"
+        "jsCode": "// Limpa e formata a mensagem gerada pela IA\nlet mensagem = $input.first().json.text || $input.first().json.response || '';\n\n// Remove aspas extras se houver\nmensagem = mensagem.replace(/^\"|\"$/g, '').trim();\n\n// Remove qualquer opção numerada que a IA tenha incluído por engano\nmensagem = mensagem.replace(/\\n*[1-3][️⃣.)].*/g, '').trim();\n\n// Pega contexto anterior\nconst ctx = $('Prepara Contexto IA').item.json;\n\n// Define botões baseado no estágio\nconst isFirstTouch = ctx.stage === 'first_touch';\nconst isLastTouch = ctx.stage === 'follow_up_3';\n\nlet buttonRows = [];\n\nif (isFirstTouch) {\n  buttonRows = [\n    { title: 'Sim, quero saber mais', description: 'Me conte como funciona', rowId: 'interesse_sim_' + ctx.leadId },\n    { title: 'Talvez depois', description: 'Não é o momento', rowId: 'interesse_depois_' + ctx.leadId },\n    { title: 'Não tenho interesse', description: 'Não quero receber msgs', rowId: 'optout_' + ctx.leadId }\n  ];\n} else if (isLastTouch) {\n  buttonRows = [\n    { title: 'Sim, vamos conversar', description: 'Quero agendar', rowId: 'interesse_sim_' + ctx.leadId },\n    { title: 'Não, obrigado', description: 'Encerrar contato', rowId: 'optout_' + ctx.leadId }\n  ];\n} else {\n  buttonRows = [\n    { title: 'Sim, me conta mais', description: 'Tenho interesse', rowId: 'interesse_sim_' + ctx.leadId },\n    { title: 'Agora não', description: 'Outro momento', rowId: 'interesse_depois_' + ctx.leadId },\n    { title: 'Não, obrigado', description: 'Não quero receber', rowId: 'optout_' + ctx.leadId }\n  ];\n}\n\nreturn [{\n  json: {\n    mensagem,\n    whatsapp: ctx.whatsapp,\n    whatsapp_formatado: ctx.whatsapp_formatado,\n    leadId: ctx.leadId,\n    currentStatus: ctx.currentStatus,\n    nextStatus: ctx.nextStatus,\n    stageNumber: ctx.stageNumber,\n    buttonRows,\n    agentName: ctx.agentName,\n    companyName: ctx.companyName\n  }\n}];"
       },
       "id": "format-message",
       "name": "Formata Mensagem",
@@ -445,7 +445,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $('Dados').item.json.apiURL }}/message/sendText/{{ $('Dados').item.json.instancia }}",
+        "url": "={{ $('Dados').item.json.apiURL }}/message/sendList/{{ $('Dados').item.json.instancia }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -457,7 +457,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"number\": \"{{ $json.whatsapp }}\",\n  \"text\": {{ JSON.stringify($json.mensagem) }},\n  \"options\": {\n    \"delay\": 3000,\n    \"presence\": \"composing\",\n    \"linkPreview\": false\n  }\n}",
+        "jsonBody": "={\n  \"number\": \"{{ $json.whatsapp }}\",\n  \"title\": \"{{ $json.companyName || 'CoreConnect' }}\",\n  \"description\": {{ JSON.stringify($json.mensagem) }},\n  \"buttonText\": \"📋 Responder\",\n  \"footerText\": \"{{ $json.agentName || 'Frank' }} • {{ $json.companyName || 'CoreConnect' }}\",\n  \"sections\": [\n    {\n      \"title\": \"Escolha uma opção\",\n      \"rows\": {{ JSON.stringify($json.buttonRows) }}\n    }\n  ],\n  \"delay\": 2000\n}",
         "options": {
           "response": {
             "response": {
@@ -468,7 +468,7 @@
         }
       },
       "id": "send-message",
-      "name": "Envia WhatsApp",
+      "name": "Envia Lista Interativa",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
@@ -552,7 +552,7 @@
       "credentials": {
         "notionApi": {
           "id": "scQiezJ9I3bkqgcl",
-          "name": "Notion account"
+          "name": "Notion | CoreConnect"
         }
       }
     },
@@ -572,7 +572,7 @@
     },
     {
       "parameters": {
-        "content": "## 🤖 Fluxo de Disparo com IA v2\n\n**Melhorias:**\n1. ✅ Mensagens personalizadas via IA\n2. ✅ Usa contexto do lead (negócio, cidade, rating)\n3. ✅ Opções numeradas para resposta\n4. ✅ Único caminho (sem variações manuais)\n5. ✅ Credenciais via variáveis de ambiente",
+        "content": "## 🤖 Fluxo de Disparo com IA v2\n\n**Melhorias:**\n1. ✅ Mensagens personalizadas via IA (gpt-4.1-mini)\n2. ✅ Usa contexto do lead (negócio, cidade, rating)\n3. ✅ **List Buttons** interativos (mais estáveis)\n4. ✅ Botão opt-out obrigatório (evita ban)\n5. ✅ Único caminho (sem variações manuais)\n6. ✅ Credenciais padronizadas CoreConnect",
         "height": 200,
         "width": 400,
         "color": 4
