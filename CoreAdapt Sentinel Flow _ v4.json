@@ -85,7 +85,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Lock: Reservar step para evitar processamento duplicado\n-- Só retorna se conseguir fazer o UPDATE (ninguém mais está processando)\nUPDATE corev4_followup_executions\nSET decision_reason = 'processing'\nWHERE id = $1 \n  AND executed = false \n  AND (decision_reason IS NULL OR decision_reason NOT IN ('processing', 'sent'))\nRETURNING id;",
+        "query": "-- Lock: Reservar step para evitar processamento duplicado\n-- Inclui timeout de 10 minutos para locks travados\nUPDATE corev4_followup_executions\nSET decision_reason = 'processing',\n    updated_at = NOW()\nWHERE id = $1 \n  AND executed = false \n  AND (\n    decision_reason IS NULL \n    OR decision_reason NOT IN ('processing', 'sent')\n    OR (decision_reason = 'processing' AND updated_at < NOW() - INTERVAL '10 minutes')\n  )\nRETURNING id;",
         "options": {
           "queryReplacement": "={{ [ $('Prepare: Followup Context').item.json.execution_id ] }}"
         }
@@ -112,17 +112,16 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
               "id": "lock-condition-001",
-              "leftValue": "={{ $json.id }}",
-              "rightValue": "",
+              "leftValue": "={{ $json.id != null }}",
+              "rightValue": true,
               "operator": {
                 "type": "boolean",
-                "operation": "exists",
-                "singleValue": true
+                "operation": "equals"
               }
             }
           ],
