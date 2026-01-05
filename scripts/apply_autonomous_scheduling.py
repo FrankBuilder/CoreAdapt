@@ -2,15 +2,20 @@
 """
 Script para modificar o CoreAdapt One Flow adicionando agendamento autonomo.
 Executa: python3 scripts/apply_autonomous_scheduling.py
+
+v3 - Usando IF nodes encadeados para compatibilidade maxima
 """
 
 import json
-import copy
+import uuid
 from datetime import datetime
 
 # Carregar fluxo original
 with open('CoreAdapt One Flow _ v4.json', 'r', encoding='utf-8') as f:
     flow = json.load(f)
+
+def gen_id():
+    return str(uuid.uuid4())
 
 # ============================================================================
 # NOVOS NODES A ADICIONAR
@@ -26,7 +31,7 @@ NEW_NODES = [
                 "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id] }}"
             }
         },
-        "id": "fetch-conv-state-001",
+        "id": gen_id(),
         "name": "Fetch: Conversation State",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.6,
@@ -36,44 +41,53 @@ NEW_NODES = [
             "postgres": {"id": "HCvX4Ypw2MiRDsdm", "name": "Postgres Core"}
         }
     },
-    # 2. Route by Conversation State
+    # 2. Check: Is Awaiting Selection (IF node)
     {
         "parameters": {
-            "rules": {
-                "values": [
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+                "conditions": [
                     {
-                        "conditions": {
-                            "conditions": [
-                                {"leftValue": "={{ $json.conversation_state }}", "rightValue": "awaiting_slot_selection", "operator": {"type": "string", "operation": "equals"}},
-                                {"leftValue": "={{ $json.has_valid_offer }}", "rightValue": True, "operator": {"type": "boolean", "operation": "equals"}}
-                            ],
-                            "combinator": "and"
-                        },
-                        "renameOutput": True,
-                        "outputKey": "Awaiting Selection"
-                    },
-                    {
-                        "conditions": {
-                            "conditions": [
-                                {"leftValue": "={{ $json.conversation_state }}", "rightValue": "confirming_slot", "operator": {"type": "string", "operation": "equals"}}
-                            ],
-                            "combinator": "and"
-                        },
-                        "renameOutput": True,
-                        "outputKey": "Confirming"
+                        "id": gen_id(),
+                        "leftValue": "={{ $json.conversation_state === 'awaiting_slot_selection' && $json.has_valid_offer === true }}",
+                        "rightValue": "",
+                        "operator": {"type": "boolean", "operation": "true", "singleValue": True}
                     }
                 ],
-                "fallbackOutput": {"renameOutput": True, "outputKey": "Normal"}
+                "combinator": "and"
             },
             "options": {}
         },
-        "id": "route-by-state-001",
-        "name": "Route: By Conversation State",
-        "type": "n8n-nodes-base.switch",
-        "typeVersion": 3.2,
+        "id": gen_id(),
+        "name": "Check: Is Awaiting Selection",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
         "position": [-1956, 176]
     },
-    # 3. Parse Slot Selection
+    # 3. Check: Is Confirming Slot (IF node)
+    {
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+                "conditions": [
+                    {
+                        "id": gen_id(),
+                        "leftValue": "={{ $json.conversation_state === 'confirming_slot' }}",
+                        "rightValue": "",
+                        "operator": {"type": "boolean", "operation": "true", "singleValue": True}
+                    }
+                ],
+                "combinator": "and"
+            },
+            "options": {}
+        },
+        "id": gen_id(),
+        "name": "Check: Is Confirming Slot",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [-1732, 320]
+    },
+    # 4. Parse Slot Selection
     {
         "parameters": {
             "jsCode": """const stateData = $('Fetch: Conversation State').first().json;
@@ -157,41 +171,82 @@ return [{
   }
 }];"""
         },
-        "id": "parse-slot-001",
+        "id": gen_id(),
         "name": "Parse: Slot Selection",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [-1732, 80]
+        "position": [-1508, 80]
     },
-    # 4. Route Parse Result
+    # 5. Check: High Confidence (IF)
     {
         "parameters": {
-            "rules": {
-                "values": [
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+                "conditions": [
                     {
-                        "conditions": {"conditions": [{"leftValue": "={{ $json.parsed && $json.confidence >= 0.8 }}", "rightValue": True, "operator": {"type": "boolean", "operation": "equals"}}], "combinator": "and"},
-                        "renameOutput": True, "outputKey": "High Confidence"
-                    },
-                    {
-                        "conditions": {"conditions": [{"leftValue": "={{ $json.parsed && $json.confidence < 0.8 }}", "rightValue": True, "operator": {"type": "boolean", "operation": "equals"}}], "combinator": "and"},
-                        "renameOutput": True, "outputKey": "Needs Confirm"
-                    },
-                    {
-                        "conditions": {"conditions": [{"leftValue": "={{ $json.is_refusal }}", "rightValue": True, "operator": {"type": "boolean", "operation": "equals"}}], "combinator": "and"},
-                        "renameOutput": True, "outputKey": "Refusal"
+                        "id": gen_id(),
+                        "leftValue": "={{ $json.parsed === true && $json.confidence >= 0.8 }}",
+                        "rightValue": "",
+                        "operator": {"type": "boolean", "operation": "true", "singleValue": True}
                     }
                 ],
-                "fallbackOutput": {"renameOutput": True, "outputKey": "Clarify"}
+                "combinator": "and"
             },
             "options": {}
         },
-        "id": "route-parse-001",
-        "name": "Route: Parse Result",
-        "type": "n8n-nodes-base.switch",
-        "typeVersion": 3.2,
-        "position": [-1508, 80]
+        "id": gen_id(),
+        "name": "Check: High Confidence",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [-1284, 80]
     },
-    # 5. Call Booking Flow
+    # 6. Check: Needs Confirm (IF)
+    {
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+                "conditions": [
+                    {
+                        "id": gen_id(),
+                        "leftValue": "={{ $json.parsed === true && $json.confidence < 0.8 }}",
+                        "rightValue": "",
+                        "operator": {"type": "boolean", "operation": "true", "singleValue": True}
+                    }
+                ],
+                "combinator": "and"
+            },
+            "options": {}
+        },
+        "id": gen_id(),
+        "name": "Check: Needs Confirm",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [-1060, 176]
+    },
+    # 7. Check: Is Refusal (IF)
+    {
+        "parameters": {
+            "conditions": {
+                "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+                "conditions": [
+                    {
+                        "id": gen_id(),
+                        "leftValue": "={{ $json.is_refusal === true }}",
+                        "rightValue": "",
+                        "operator": {"type": "boolean", "operation": "true", "singleValue": True}
+                    }
+                ],
+                "combinator": "and"
+            },
+            "options": {}
+        },
+        "id": gen_id(),
+        "name": "Check: Is Refusal",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [-836, 272]
+    },
+    # 8. Call Booking Flow
     {
         "parameters": {
             "method": "POST",
@@ -203,15 +258,15 @@ return [{
             "jsonBody": "={{ JSON.stringify({ offer_id: $json.offer_id, selected_slot: $json.selected_slot, confidence: $json.confidence }) }}",
             "options": {"timeout": 30000}
         },
-        "id": "call-booking-001",
+        "id": gen_id(),
         "name": "Call: Booking Flow",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
-        "position": [-1284, -16],
+        "position": [-1060, -16],
         "retryOnFail": True,
         "maxTries": 3
     },
-    # 6. Handle Booking Result
+    # 9. Handle Booking Result
     {
         "parameters": {
             "jsCode": """const result = $input.first().json;
@@ -224,54 +279,54 @@ if (result.success && result.booking_created) {
   return [{ json: { ai_message: msg, booking_success: false, skip_response: false } }];
 }"""
         },
-        "id": "handle-booking-001",
+        "id": gen_id(),
         "name": "Handle: Booking Result",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [-1060, -16]
+        "position": [-836, -16]
     },
-    # 7. Reset State After Booking
+    # 10. Reset State After Booking
     {
         "parameters": {
             "operation": "executeQuery",
             "query": "SELECT reset_conversation_state($1::bigint, $2::integer)",
             "options": {"queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id] }}"}
         },
-        "id": "reset-state-001",
+        "id": gen_id(),
         "name": "Reset: State After Booking",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.6,
-        "position": [-836, -16],
+        "position": [-612, -16],
         "credentials": {"postgres": {"id": "HCvX4Ypw2MiRDsdm", "name": "Postgres Core"}}
     },
-    # 8. Prepare Confirmation Request
+    # 11. Prepare Confirmation Request
     {
         "parameters": {
             "jsCode": """const data = $('Parse: Slot Selection').first().json;
 const msg = 'Entendi! Voce escolheu:\\n\\n' + data.selected_label + '\\n\\nPosso confirmar esse horario?';
 return [{ json: { ai_message: msg, selected_slot: data.selected_slot, selected_label: data.selected_label } }];"""
         },
-        "id": "prepare-confirm-001",
+        "id": gen_id(),
         "name": "Prepare: Confirmation Request",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [-1284, 128]
+        "position": [-836, 128]
     },
-    # 9. Update State to Confirming
+    # 12. Update State to Confirming
     {
         "parameters": {
             "operation": "executeQuery",
             "query": "SELECT update_conversation_state($1::bigint, $2::integer, 'confirming_slot', $3::bigint, $4::jsonb)",
             "options": {"queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $('Parse: Slot Selection').first().json.offer_id, JSON.stringify({pending_slot: $json.selected_slot})] }}"}
         },
-        "id": "update-confirming-001",
+        "id": gen_id(),
         "name": "Update: State to Confirming",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.6,
-        "position": [-1060, 128],
+        "position": [-612, 128],
         "credentials": {"postgres": {"id": "HCvX4Ypw2MiRDsdm", "name": "Postgres Core"}}
     },
-    # 10. Prepare Clarification
+    # 13. Prepare Clarification
     {
         "parameters": {
             "jsCode": """const data = $('Parse: Slot Selection').first().json;
@@ -281,38 +336,38 @@ const msg = data.parsing_attempts >= 3
   : 'Desculpa, qual horario voce prefere?\\n\\n' + slotsText + '\\n\\nResponde 1, 2 ou 3.';
 return [{ json: { ai_message: msg } }];"""
         },
-        "id": "prepare-clarify-001",
+        "id": gen_id(),
         "name": "Prepare: Clarification",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [-1284, 272]
+        "position": [-612, 368]
     },
-    # 11. Handle Refusal
+    # 14. Handle Refusal
     {
         "parameters": {
             "jsCode": """return [{ json: { ai_message: 'Entendi! Quer outros horarios ou prefere falar com o Pasteur? WhatsApp: 5585999855443' } }];"""
         },
-        "id": "handle-refusal-001",
+        "id": gen_id(),
         "name": "Handle: Refusal",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
-        "position": [-1284, 368]
+        "position": [-612, 224]
     },
-    # 12. Cancel Offer Reset
+    # 15. Cancel Offer Reset
     {
         "parameters": {
             "operation": "executeQuery",
             "query": "UPDATE corev4_pending_slot_offers SET status = 'cancelled' WHERE id = $3; SELECT reset_conversation_state($1::bigint, $2::integer)",
             "options": {"queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $('Parse: Slot Selection').first().json.offer_id] }}"}
         },
-        "id": "cancel-reset-001",
+        "id": gen_id(),
         "name": "Cancel: Offer and Reset",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.6,
-        "position": [-1060, 368],
+        "position": [-388, 224],
         "credentials": {"postgres": {"id": "HCvX4Ypw2MiRDsdm", "name": "Postgres Core"}}
     },
-    # 13. Detect Scheduling Intent (SUBSTITUI Inject: Cal.com Link)
+    # 16. Detect Scheduling Intent (SUBSTITUI Inject: Cal.com Link)
     {
         "parameters": {
             "jsCode": """const aiOutput = $('CoreAdapt One AI Agent').item.json.output || '';
@@ -343,29 +398,36 @@ return [{
   }
 }];"""
         },
-        "id": "detect-intent-001",
+        "id": gen_id(),
         "name": "Detect: Scheduling Intent",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [320, 320]
     },
-    # 14. Route Should Fetch
+    # 17. Route Should Fetch (usando IF)
     {
         "parameters": {
             "conditions": {
                 "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
-                "conditions": [{"id": "fetch-check", "leftValue": "={{ $json.should_fetch_slots }}", "rightValue": True, "operator": {"type": "boolean", "operation": "equals"}}],
+                "conditions": [
+                    {
+                        "id": gen_id(),
+                        "leftValue": "={{ $json.should_fetch_slots === true }}",
+                        "rightValue": "",
+                        "operator": {"type": "boolean", "operation": "true", "singleValue": True}
+                    }
+                ],
                 "combinator": "and"
             },
             "options": {}
         },
-        "id": "route-fetch-001",
+        "id": gen_id(),
         "name": "Route: Should Fetch Slots",
         "type": "n8n-nodes-base.if",
         "typeVersion": 2.2,
         "position": [544, 320]
     },
-    # 15. Call Availability Flow
+    # 18. Call Availability Flow
     {
         "parameters": {
             "method": "POST",
@@ -377,7 +439,7 @@ return [{
             "jsonBody": "={{ JSON.stringify({ contact_id: $json.contact_id, company_id: $json.company_id }) }}",
             "options": {"timeout": 30000}
         },
-        "id": "call-avail-001",
+        "id": gen_id(),
         "name": "Call: Availability Flow",
         "type": "n8n-nodes-base.httpRequest",
         "typeVersion": 4.2,
@@ -385,7 +447,7 @@ return [{
         "retryOnFail": True,
         "maxTries": 2
     },
-    # 16. Inject Dynamic Slots
+    # 19. Inject Dynamic Slots
     {
         "parameters": {
             "jsCode": """const avail = $input.first().json;
@@ -398,34 +460,34 @@ if (avail.success && avail.slots_found > 0) {
   return [{ json: { ai_message: fallback, slots_offered: false, conversation_state: 'normal' } }];
 }"""
         },
-        "id": "inject-slots-001",
+        "id": gen_id(),
         "name": "Inject: Dynamic Slots",
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [992, 224]
     },
-    # 17. Update State After Offer
+    # 20. Update State After Offer
     {
         "parameters": {
             "operation": "executeQuery",
             "query": "SELECT update_conversation_state($1::bigint, $2::integer, $3::text, $4::bigint, $5::jsonb)",
             "options": {"queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $json.conversation_state, $json.offer_id || null, JSON.stringify({offered_at: new Date().toISOString()})] }}"}
         },
-        "id": "update-offer-state-001",
+        "id": gen_id(),
         "name": "Update: State After Offer",
         "type": "n8n-nodes-base.postgres",
         "typeVersion": 2.6,
         "position": [1216, 224],
         "credentials": {"postgres": {"id": "HCvX4Ypw2MiRDsdm", "name": "Postgres Core"}}
     },
-    # 18. Merge Slot Path
+    # 21. Merge Slot Path
     {
         "parameters": {"mode": "chooseBranch", "output": "empty"},
-        "id": "merge-slot-path-001",
+        "id": gen_id(),
         "name": "Merge: Slot Path",
         "type": "n8n-nodes-base.merge",
         "typeVersion": 3,
-        "position": [-612, 176]
+        "position": [-164, 176]
     }
 ]
 
@@ -445,22 +507,37 @@ new_connections = {
         "main": [[{"node": "Fetch: Conversation State", "type": "main", "index": 0}]]
     },
     "Fetch: Conversation State": {
-        "main": [[{"node": "Route: By Conversation State", "type": "main", "index": 0}]]
+        "main": [[{"node": "Check: Is Awaiting Selection", "type": "main", "index": 0}]]
     },
-    "Route: By Conversation State": {
+    "Check: Is Awaiting Selection": {
         "main": [
             [{"node": "Parse: Slot Selection", "type": "main", "index": 0}],
+            [{"node": "Check: Is Confirming Slot", "type": "main", "index": 0}]
+        ]
+    },
+    "Check: Is Confirming Slot": {
+        "main": [
             [{"node": "Parse: Slot Selection", "type": "main", "index": 0}],
             [{"node": "Fetch: Lead State and Preferences", "type": "main", "index": 0}]
         ]
     },
     "Parse: Slot Selection": {
-        "main": [[{"node": "Route: Parse Result", "type": "main", "index": 0}]]
+        "main": [[{"node": "Check: High Confidence", "type": "main", "index": 0}]]
     },
-    "Route: Parse Result": {
+    "Check: High Confidence": {
         "main": [
             [{"node": "Call: Booking Flow", "type": "main", "index": 0}],
+            [{"node": "Check: Needs Confirm", "type": "main", "index": 0}]
+        ]
+    },
+    "Check: Needs Confirm": {
+        "main": [
             [{"node": "Prepare: Confirmation Request", "type": "main", "index": 0}],
+            [{"node": "Check: Is Refusal", "type": "main", "index": 0}]
+        ]
+    },
+    "Check: Is Refusal": {
+        "main": [
             [{"node": "Handle: Refusal", "type": "main", "index": 0}],
             [{"node": "Prepare: Clarification", "type": "main", "index": 0}]
         ]
