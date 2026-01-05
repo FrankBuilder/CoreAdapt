@@ -441,6 +441,10 @@
         "fieldsUi": {
           "fieldValues": [
             {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Webhook').item.json.body.company_id || 1 }}"
+            },
+            {
               "fieldId": "full_name",
               "fieldValue": "={{ $('Loop Over Items').item.json.name }}"
             },
@@ -449,16 +453,36 @@
               "fieldValue": "={{ $('Loop Over Items').item.json.phone_number }}"
             },
             {
+              "fieldId": "email",
+              "fieldValue": "={{ $('Loop Over Items').item.json.emails_and_contacts?.email || '' }}"
+            },
+            {
               "fieldId": "address_street",
               "fieldValue": "={{ $('Loop Over Items').item.json.address }}"
             },
             {
-              "fieldId": "google_rating",
-              "fieldValue": "={{ $('Loop Over Items').item.json.rating }}"
+              "fieldId": "city",
+              "fieldValue": "={{ $('Loop Over Items').item.json.city }}"
             },
             {
-              "fieldId": "google_reviews",
-              "fieldValue": "={{ $('Loop Over Items').item.json.review_count }}"
+              "fieldId": "state",
+              "fieldValue": "={{ $('Loop Over Items').item.json.state }}"
+            },
+            {
+              "fieldId": "zipcode",
+              "fieldValue": "={{ $('Loop Over Items').item.json.zipcode }}"
+            },
+            {
+              "fieldId": "country",
+              "fieldValue": "BR"
+            },
+            {
+              "fieldId": "latitude",
+              "fieldValue": "={{ $('Loop Over Items').item.json.latitude }}"
+            },
+            {
+              "fieldId": "longitude",
+              "fieldValue": "={{ $('Loop Over Items').item.json.longitude }}"
             },
             {
               "fieldId": "website",
@@ -469,40 +493,64 @@
               "fieldValue": "={{ $json.text }}"
             },
             {
+              "fieldId": "business_type",
+              "fieldValue": "={{ $('Loop Over Items').item.json.type }}"
+            },
+            {
+              "fieldId": "business_category",
+              "fieldValue": "={{ $('Loop Over Items').item.json.subtypes?.[0] || '' }}"
+            },
+            {
+              "fieldId": "google_place_id",
+              "fieldValue": "={{ $('Loop Over Items').item.json.business_id }}"
+            },
+            {
+              "fieldId": "google_maps_url",
+              "fieldValue": "={{ $('Loop Over Items').item.json.google_maps_url || '' }}"
+            },
+            {
+              "fieldId": "google_rating",
+              "fieldValue": "={{ $('Loop Over Items').item.json.rating }}"
+            },
+            {
+              "fieldId": "google_reviews",
+              "fieldValue": "={{ $('Loop Over Items').item.json.review_count }}"
+            },
+            {
+              "fieldId": "google_photos_count",
+              "fieldValue": "={{ $('Loop Over Items').item.json.photos_count || 0 }}"
+            },
+            {
+              "fieldId": "linkedin_url",
+              "fieldValue": "={{ $('Loop Over Items').item.json.emails_and_contacts?.linkedin || '' }}"
+            },
+            {
+              "fieldId": "instagram_handle",
+              "fieldValue": "={{ $('Loop Over Items').item.json.emails_and_contacts?.instagram || '' }}"
+            },
+            {
+              "fieldId": "facebook_url",
+              "fieldValue": "={{ $('Loop Over Items').item.json.emails_and_contacts?.facebook || '' }}"
+            },
+            {
               "fieldId": "status",
               "fieldValue": "new"
             },
             {
+              "fieldId": "validation_status",
+              "fieldValue": "pending"
+            },
+            {
               "fieldId": "source_type",
-              "fieldValue": "google_map"
+              "fieldValue": "google_maps"
             },
             {
-              "fieldId": "cep",
-              "fieldValue": "={{ $('Loop Over Items').item.json.zipcode }}"
+              "fieldId": "campaign_id",
+              "fieldValue": "={{ $('Webhook').item.json.body.campaign_id || null }}"
             },
             {
-              "fieldId": "company_id",
-              "fieldValue": "={{ $('Loop Over Items').item.json.business_id }}"
-            },
-            {
-              "fieldId": "cidade",
-              "fieldValue": "={{ $('Loop Over Items').item.json.city }}"
-            },
-            {
-              "fieldId": "negocio",
-              "fieldValue": "={{ $('Loop Over Items').item.json.type }}"
-            },
-            {
-              "fieldId": "estado",
-              "fieldValue": "={{ $('Loop Over Items').item.json.state }}"
-            },
-            {
-              "fieldId": "instagram",
-              "fieldValue": "={{ $('Loop Over Items').item.json.emails_and_contacts.instagram }}"
-            },
-            {
-              "fieldId": "linkedin",
-              "fieldValue": "={{ $('Loop Over Items').item.json.emails_and_contacts.linkedin }}"
+              "fieldId": "list_name",
+              "fieldValue": "={{ $('Webhook').item.json.body.list_name || $('Webhook').item.json.body.query || '' }}"
             }
           ]
         }
