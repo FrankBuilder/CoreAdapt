@@ -1,5 +1,5 @@
 {
-  "name": "CoreAdapt One Flow | v4.2 (Preference Search)",
+  "name": "CoreAdapt One Flow | v4.3 (Fixed Scheduling)",
   "nodes": [
     {
       "parameters": {
@@ -1728,7 +1728,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const aiOutput = $('CoreAdapt One AI Agent').item.json.output || '';\nconst contextData = $('Prepare: Chat Context').item.json;\nconst canOffer = $('Check: Can Offer Meeting').item.json;\nconst lower = aiOutput.toLowerCase();\n\nconst patterns = ['agendar', 'agenda', 'horario', 'reuniao', 'mesa de clareza', 'conversa com', 'call', 'disponivel'];\nconst hasIntent = patterns.some(p => lower.includes(p));\n\n// REMOVER links externos\nlet cleanOutput = aiOutput\n  .replace(/https?:\\/\\/[^\\s]*cal\\.com[^\\s]*/gi, '')\n  .replace(/https?:\\/\\/[^\\s]*calendly[^\\s]*/gi, '')\n  .replace(/agenda\\s*(aqui|pelo\\s*link)[^\\n]*/gi, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nreturn [{\n  json: {\n    original_output: aiOutput,\n    clean_output: cleanOutput,\n    ai_message: cleanOutput,\n    has_scheduling_intent: hasIntent,\n    should_fetch_slots: hasIntent && canOffer.can_offer_meeting,\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id\n  }\n}];"
+        "jsCode": "const aiOutput = $('CoreAdapt One AI Agent').item.json.output || '';\nconst contextData = $('Prepare: Chat Context').item.json;\nconst canOffer = $('Check: Can Offer Meeting').item.json;\nconst lower = aiOutput.toLowerCase();\n\n// Padrões de intenção de agendamento - AMPLIADOS\nconst patterns = [\n  'agendar', 'agenda', 'horario', 'horário', 'reuniao', 'reunião',\n  'mesa de clareza', 'conversa com', 'call', 'disponivel', 'disponível',\n  'marcar', 'marcamos', 'bater papo', 'próximo passo', 'proximo passo',\n  'mostrar como', 'demonstrar', 'apresentar',\n  // Padrões que indicam que FRANK quer oferecer horários\n  'deixa eu ver', 'vou verificar', 'vou checar', 'temos essas opções',\n  'opções nos próximos', 'opcoes nos proximos',\n  // Dias da semana (FRANK pode estar inventando)\n  'segunda', 'terça', 'terca', 'quarta', 'quinta', 'sexta',\n  // Meses (FRANK pode estar inventando datas)\n  '/jan', '/fev', '/mar', '/abr', '/mai', '/jun',\n  '/jul', '/ago', '/set', '/out', '/nov', '/dez'\n];\nconst hasIntent = patterns.some(p => lower.includes(p));\n\n// CRÍTICO: Detectar se FRANK INVENTOU horários na resposta\n// Se ele mencionou dia da semana + horário, provavelmente inventou\nconst inventedSlotsPattern = /(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)[^\\n]*\\d{1,2}[:/h]\\d{2}/i;\nconst frankInventedSlots = inventedSlotsPattern.test(aiOutput);\n\n// REMOVER links externos E horários inventados\nlet cleanOutput = aiOutput\n  .replace(/https?:\\/\\/[^\\s]*cal\\.com[^\\s]*/gi, '')\n  .replace(/https?:\\/\\/[^\\s]*calendly[^\\s]*/gi, '')\n  .replace(/agenda\\s*(aqui|pelo\\s*link)[^\\n]*/gi, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\n// Se FRANK inventou slots, remover a parte com horários inventados\nif (frankInventedSlots) {\n  // Remover linhas que parecem horários inventados\n  cleanOutput = cleanOutput\n    .replace(/\\d+\\.?\\s*(segunda|terça|terca|quarta|quinta|sexta)[^\\n]*\\d{1,2}[:/h]\\d{2}[^\\n]*/gi, '')\n    .replace(/[1️⃣2️⃣3️⃣][^\\n]*\\d{1,2}[:/h]\\d{2}[^\\n]*/gi, '')\n    .replace(/(temos essas opções|deixa eu ver)[^\\n]*:/gi, '')\n    .replace(/qual funciona[^\\n]*/gi, '')\n    .replace(/responde 1, 2 ou 3[^\\n]*/gi, '')\n    .replace(/\\n{2,}/g, '\\n\\n')\n    .trim();\n}\n\n// Decisão: chamar Availability Flow?\n// MUDANÇA: Chamar SEMPRE que FRANK tentar agendar, independente de can_offer_meeting\n// O Availability Flow vai decidir se retorna slots ou mensagem de fallback\nconst shouldFetchSlots = hasIntent && (canOffer.can_offer_meeting || frankInventedSlots);\n\nreturn [{\n  json: {\n    original_output: aiOutput,\n    clean_output: cleanOutput,\n    ai_message: cleanOutput,\n    has_scheduling_intent: hasIntent,\n    frank_invented_slots: frankInventedSlots,\n    should_fetch_slots: shouldFetchSlots,\n    can_offer_meeting: canOffer.can_offer_meeting,\n    anum_score: canOffer.total_score || canOffer.meeting_qualification?.scores?.total || 0,\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id,\n    _debug: {\n      patterns_matched: patterns.filter(p => lower.includes(p)),\n      invented_slots_detected: frankInventedSlots\n    }\n  }\n}];"
       },
       "id": "9136f5dc-e415-48dc-abda-cc743155df08",
       "name": "Detect: Scheduling Intent",
@@ -1775,28 +1775,27 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.N8N_WEBHOOK_URL || 'https://n8n.coreadapt.cloud' }}/webhook/availability-check",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.AVAILABILITY_FLOW_ID || 'CoreAdaptAvailabilityV4' }}",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ contact_id: $json.contact_id, company_id: $json.company_id }) }}",
         "options": {
-          "timeout": 30000
+          "waitForSubWorkflow": true
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contact_id": "={{ $json.contact_id }}",
+            "company_id": "={{ $json.company_id }}"
+          }
         }
       },
       "id": "f9334b95-bb11-4cbd-b7a3-e2c306ccfc6f",
       "name": "Call: Availability Flow",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
       "position": [
         768,
         224
@@ -1806,7 +1805,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const avail = $input.first().json;\nconst detect = $('Detect: Scheduling Intent').first().json;\n\nif (avail.success && avail.slots_found > 0) {\n  return [{ json: { ai_message: avail.offer_message, slots_offered: true, offer_id: avail.offer_id, conversation_state: 'awaiting_slot_selection' } }];\n} else {\n  const fallback = detect.clean_output + '\\n\\nA agenda ta cheia. Fala com o Pasteur: 5585999855443';\n  return [{ json: { ai_message: fallback, slots_offered: false, conversation_state: 'normal' } }];\n}"
+        "jsCode": "const avail = $input.first().json;\nconst detect = $('Detect: Scheduling Intent').first().json;\n\nif (avail.success && avail.slots_found > 0) {\n  // Slots encontrados - usar mensagem do Availability Flow\n  return [{\n    json: {\n      ai_message: avail.offer_message,\n      slots_offered: true,\n      offer_id: avail.offer_id,\n      conversation_state: 'awaiting_slot_selection'\n    }\n  }];\n} else if (detect.frank_invented_slots) {\n  // FRANK inventou slots mas não temos disponibilidade real\n  // Usar a versão limpa (sem os slots inventados) + mensagem de fallback\n  const fallbackMsg = detect.clean_output +\n    (detect.clean_output ? '\\n\\n' : '') +\n    'A agenda tá bem cheia nos próximos dias. Quer falar direto com o Pasteur? WhatsApp: 5585999855443';\n  return [{\n    json: {\n      ai_message: fallbackMsg,\n      slots_offered: false,\n      conversation_state: 'normal'\n    }\n  }];\n} else {\n  // Sem intenção de agendamento ou sem slots\n  const fallback = detect.clean_output + '\\n\\nA agenda tá cheia. Fala com o Pasteur: 5585999855443';\n  return [{\n    json: {\n      ai_message: fallback,\n      slots_offered: false,\n      conversation_state: 'normal'\n    }\n  }];\n}"
       },
       "id": "09787519-4a3d-4b01-8fd0-460add9d59d3",
       "name": "Inject: Dynamic Slots",
@@ -1890,28 +1889,30 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.N8N_WEBHOOK_URL || 'https://n8n.coreadapt.cloud' }}/webhook/availability-check",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "={{ $env.AVAILABILITY_FLOW_ID || 'CoreAdaptAvailabilityV4' }}",
+          "mode": "id"
         },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  contact_id: $json.contact_id,\n  company_id: $json.company_id,\n  is_filtered_search: true,\n  filter_weekday: $json.preference_weekday || null,\n  filter_period: $json.preference_period || null\n}) }}",
         "options": {
-          "timeout": 30000
+          "waitForSubWorkflow": true
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contact_id": "={{ $json.contact_id }}",
+            "company_id": "={{ $json.company_id }}",
+            "is_filtered_search": "={{ true }}",
+            "filter_weekday": "={{ $json.preference_weekday || null }}",
+            "filter_period": "={{ $json.preference_period || null }}"
+          }
         }
       },
       "id": "554387ba-e13f-4374-9fcf-405cb4f97789",
       "name": "Call: Availability Filtered",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
       "position": [
         -1176,
         -100
@@ -2676,7 +2677,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "one-flow-v4.2-preference",
+  "versionId": "one-flow-v4.3-fixed-scheduling",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
