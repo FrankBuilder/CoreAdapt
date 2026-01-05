@@ -1375,7 +1375,7 @@
           "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id] }}"
         }
       },
-      "id": "fetch-conv-state-001",
+      "id": "f7b6d59f-4dba-4b1c-9d96-fa5ce5f8a912",
       "name": "Fetch: Conversation State",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -1393,62 +1393,33 @@
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
             {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.conversation_state }}",
-                    "rightValue": "awaiting_slot_selection",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  },
-                  {
-                    "leftValue": "={{ $json.has_valid_offer }}",
-                    "rightValue": true,
-                    "operator": {
-                      "type": "boolean",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Awaiting Selection"
-            },
-            {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.conversation_state }}",
-                    "rightValue": "confirming_slot",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Confirming"
+              "id": "dcfe3c97-a75d-43dc-a82d-afc935d4c709",
+              "leftValue": "={{ $json.conversation_state === 'awaiting_slot_selection' && $json.has_valid_offer === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
-          "fallbackOutput": {
-            "renameOutput": true,
-            "outputKey": "Normal"
-          }
+          "combinator": "and"
         },
         "options": {}
       },
-      "id": "route-by-state-001",
-      "name": "Route: By Conversation State",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
+      "id": "68fc1215-91e5-46e4-9850-a5a3b3b99a77",
+      "name": "Check: Is Awaiting Selection",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
       "position": [
         -1956,
         176
@@ -1456,87 +1427,151 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "953a6626-d215-41b9-b952-f07ca9bf3375",
+              "leftValue": "={{ $json.conversation_state === 'confirming_slot' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b4111819-0490-41ae-ba17-4b9ddd4a5946",
+      "name": "Check: Is Confirming Slot",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1732,
+        320
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "const stateData = $('Fetch: Conversation State').first().json;\nconst contextData = $('Prepare: Chat Context').first().json;\nconst message = (contextData.message_content || '').toLowerCase().trim();\n\nconst slots = [\n  { index: 1, datetime: stateData.slot_1_datetime, label: stateData.slot_1_label },\n  { index: 2, datetime: stateData.slot_2_datetime, label: stateData.slot_2_label },\n  { index: 3, datetime: stateData.slot_3_datetime, label: stateData.slot_3_label }\n].filter(s => s.datetime);\n\nlet selectedSlot = null;\nlet confidence = 0;\nlet method = null;\n\n// Numero direto\nconst directNum = message.match(/^\\s*([1-3])\\s*$/);\nif (directNum) {\n  const num = parseInt(directNum[1]);\n  if (num <= slots.length) { selectedSlot = num; confidence = 1.0; method = 'direct_number'; }\n}\n\n// Ordinal\nif (!selectedSlot) {\n  const ordinals = {'primeir': 1, 'segund': 2, 'terceir': 3, 'um': 1, 'dois': 2, 'tres': 3};\n  for (const [key, value] of Object.entries(ordinals)) {\n    if (message.includes(key) && value <= slots.length) { selectedSlot = value; confidence = 0.9; method = 'ordinal'; break; }\n  }\n}\n\n// Dia da semana\nif (!selectedSlot) {\n  const weekdays = {'segunda': 1, 'terca': 2, 'terça': 2, 'quarta': 3, 'quinta': 4, 'sexta': 5};\n  for (const [dayName, dayNum] of Object.entries(weekdays)) {\n    if (message.includes(dayName)) {\n      for (const slot of slots) {\n        if (new Date(slot.datetime).getDay() === dayNum) { selectedSlot = slot.index; confidence = 0.85; method = 'weekday'; break; }\n      }\n      if (selectedSlot) break;\n    }\n  }\n}\n\n// Generico\nif (!selectedSlot) {\n  const generic = ['pode ser', 'qualquer', 'tanto faz', 'o primeiro', 'mais cedo'];\n  if (generic.some(g => message.includes(g))) { selectedSlot = 1; confidence = 0.75; method = 'generic'; }\n}\n\n// Confirmacao\nlet isConfirmation = false;\nif (stateData.conversation_state === 'confirming_slot') {\n  const confirms = ['sim', 'isso', 'pode', 'confirma', 'certo', 'ok', 'beleza'];\n  if (confirms.some(c => message.includes(c))) {\n    selectedSlot = stateData.state_data?.pending_slot || 1;\n    confidence = 1.0; method = 'confirmation'; isConfirmation = true;\n  }\n}\n\n// Recusa\nconst refusals = ['nao', 'não', 'nenhum', 'outro', 'cancelar'];\nconst isRefusal = refusals.some(r => message.includes(r)) && !selectedSlot;\n\nreturn [{\n  json: {\n    parsed: selectedSlot !== null,\n    selected_slot: selectedSlot,\n    confidence: confidence,\n    method: method,\n    is_refusal: isRefusal,\n    is_confirmation: isConfirmation,\n    needs_clarification: !selectedSlot && !isRefusal,\n    offer_id: stateData.offer_id,\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id,\n    slots: slots,\n    selected_datetime: selectedSlot ? slots[selectedSlot - 1]?.datetime : null,\n    selected_label: selectedSlot ? slots[selectedSlot - 1]?.label : null,\n    parsing_attempts: (stateData.parsing_attempts || 0) + 1\n  }\n}];"
       },
-      "id": "parse-slot-001",
+      "id": "660ec4b4-e2bd-4d56-86d9-c42b31db1ab7",
       "name": "Parse: Slot Selection",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1732,
+        -1508,
         80
       ]
     },
     {
       "parameters": {
-        "rules": {
-          "values": [
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
             {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.parsed && $json.confidence >= 0.8 }}",
-                    "rightValue": true,
-                    "operator": {
-                      "type": "boolean",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "High Confidence"
-            },
-            {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.parsed && $json.confidence < 0.8 }}",
-                    "rightValue": true,
-                    "operator": {
-                      "type": "boolean",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Needs Confirm"
-            },
-            {
-              "conditions": {
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.is_refusal }}",
-                    "rightValue": true,
-                    "operator": {
-                      "type": "boolean",
-                      "operation": "equals"
-                    }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Refusal"
+              "id": "8355c377-1ba8-4984-9353-61e27390f7a3",
+              "leftValue": "={{ $json.parsed === true && $json.confidence >= 0.8 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
-          "fallbackOutput": {
-            "renameOutput": true,
-            "outputKey": "Clarify"
-          }
+          "combinator": "and"
         },
         "options": {}
       },
-      "id": "route-parse-001",
-      "name": "Route: Parse Result",
-      "type": "n8n-nodes-base.switch",
-      "typeVersion": 3.2,
+      "id": "e6b9f99c-1604-409c-8058-3e0c72a1305d",
+      "name": "Check: High Confidence",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
       "position": [
-        -1508,
+        -1284,
         80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "99738563-fb85-484f-8196-2305ffadcb03",
+              "leftValue": "={{ $json.parsed === true && $json.confidence < 0.8 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ca43e44a-2ea8-4ff5-8ca4-800faed9cbda",
+      "name": "Check: Needs Confirm",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1060,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8f226a99-88df-4405-8f9a-b55359457469",
+              "leftValue": "={{ $json.is_refusal === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "716ceb47-da74-4a28-a716-e7fd2270c76d",
+      "name": "Check: Is Refusal",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -836,
+        272
       ]
     },
     {
@@ -1559,12 +1594,12 @@
           "timeout": 30000
         }
       },
-      "id": "call-booking-001",
+      "id": "a8d32425-dda3-4d2a-9dce-0fdea0843e80",
       "name": "Call: Booking Flow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1284,
+        -1060,
         -16
       ],
       "retryOnFail": true,
@@ -1574,12 +1609,12 @@
       "parameters": {
         "jsCode": "const result = $input.first().json;\nif (result.success && result.booking_created) {\n  return [{ json: { ai_message: '', booking_success: true, skip_response: true } }];\n} else {\n  const msg = result.should_retry\n    ? 'Ops, esse horario acabou de ser reservado! Quer que eu busque outros?'\n    : 'Tive um problema. Voce pode falar direto com o Pasteur: 5585999855443';\n  return [{ json: { ai_message: msg, booking_success: false, skip_response: false } }];\n}"
       },
-      "id": "handle-booking-001",
+      "id": "a840ec91-7643-480c-a7c4-ada9ac5d7313",
       "name": "Handle: Booking Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1060,
+        -836,
         -16
       ]
     },
@@ -1591,12 +1626,12 @@
           "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id] }}"
         }
       },
-      "id": "reset-state-001",
+      "id": "f8a7cf1b-64ca-4406-b692-64d06c55834f",
       "name": "Reset: State After Booking",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -836,
+        -612,
         -16
       ],
       "credentials": {
@@ -1610,12 +1645,12 @@
       "parameters": {
         "jsCode": "const data = $('Parse: Slot Selection').first().json;\nconst msg = 'Entendi! Voce escolheu:\\n\\n' + data.selected_label + '\\n\\nPosso confirmar esse horario?';\nreturn [{ json: { ai_message: msg, selected_slot: data.selected_slot, selected_label: data.selected_label } }];"
       },
-      "id": "prepare-confirm-001",
+      "id": "0316b6ac-15cc-4da2-9ce7-b6a2a578f614",
       "name": "Prepare: Confirmation Request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1284,
+        -836,
         128
       ]
     },
@@ -1627,12 +1662,12 @@
           "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $('Parse: Slot Selection').first().json.offer_id, JSON.stringify({pending_slot: $json.selected_slot})] }}"
         }
       },
-      "id": "update-confirming-001",
+      "id": "3fae7cdf-26fb-48e1-a7e3-fcc6adacf45e",
       "name": "Update: State to Confirming",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1060,
+        -612,
         128
       ],
       "credentials": {
@@ -1646,26 +1681,26 @@
       "parameters": {
         "jsCode": "const data = $('Parse: Slot Selection').first().json;\nconst slotsText = data.slots.map((s, i) => (i + 1) + '. ' + s.label).join('\\n');\nconst msg = data.parsing_attempts >= 3\n  ? 'Nao entendi. Pode falar com o Pasteur: 5585999855443\\nOu diz o numero (1, 2 ou 3).'\n  : 'Desculpa, qual horario voce prefere?\\n\\n' + slotsText + '\\n\\nResponde 1, 2 ou 3.';\nreturn [{ json: { ai_message: msg } }];"
       },
-      "id": "prepare-clarify-001",
+      "id": "2b075fb9-68c2-46d1-a93c-5b9b487794c2",
       "name": "Prepare: Clarification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1284,
-        272
+        -612,
+        368
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{ json: { ai_message: 'Entendi! Quer outros horarios ou prefere falar com o Pasteur? WhatsApp: 5585999855443' } }];"
       },
-      "id": "handle-refusal-001",
+      "id": "e6dab85c-63d2-41c3-8f8e-e9aeb98356ee",
       "name": "Handle: Refusal",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1284,
-        368
+        -612,
+        224
       ]
     },
     {
@@ -1676,13 +1711,13 @@
           "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $('Parse: Slot Selection').first().json.offer_id] }}"
         }
       },
-      "id": "cancel-reset-001",
+      "id": "7c002949-c257-4df2-9b93-6bce12be5b76",
       "name": "Cancel: Offer and Reset",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -1060,
-        368
+        -388,
+        224
       ],
       "credentials": {
         "postgres": {
@@ -1695,7 +1730,7 @@
       "parameters": {
         "jsCode": "const aiOutput = $('CoreAdapt One AI Agent').item.json.output || '';\nconst contextData = $('Prepare: Chat Context').item.json;\nconst canOffer = $('Check: Can Offer Meeting').item.json;\nconst lower = aiOutput.toLowerCase();\n\nconst patterns = ['agendar', 'agenda', 'horario', 'reuniao', 'mesa de clareza', 'conversa com', 'call', 'disponivel'];\nconst hasIntent = patterns.some(p => lower.includes(p));\n\n// REMOVER links externos\nlet cleanOutput = aiOutput\n  .replace(/https?:\\/\\/[^\\s]*cal\\.com[^\\s]*/gi, '')\n  .replace(/https?:\\/\\/[^\\s]*calendly[^\\s]*/gi, '')\n  .replace(/agenda\\s*(aqui|pelo\\s*link)[^\\n]*/gi, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\nreturn [{\n  json: {\n    original_output: aiOutput,\n    clean_output: cleanOutput,\n    ai_message: cleanOutput,\n    has_scheduling_intent: hasIntent,\n    should_fetch_slots: hasIntent && canOffer.can_offer_meeting,\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id\n  }\n}];"
       },
-      "id": "detect-intent-001",
+      "id": "9136f5dc-e415-48dc-abda-cc743155df08",
       "name": "Detect: Scheduling Intent",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1715,12 +1750,13 @@
           },
           "conditions": [
             {
-              "id": "fetch-check",
-              "leftValue": "={{ $json.should_fetch_slots }}",
-              "rightValue": true,
+              "id": "2f2dc1d0-a661-452b-9799-5dbe4579f9a5",
+              "leftValue": "={{ $json.should_fetch_slots === true }}",
+              "rightValue": "",
               "operator": {
                 "type": "boolean",
-                "operation": "equals"
+                "operation": "true",
+                "singleValue": true
               }
             }
           ],
@@ -1728,7 +1764,7 @@
         },
         "options": {}
       },
-      "id": "route-fetch-001",
+      "id": "a0526cac-363b-42da-87cb-5cceb40815d7",
       "name": "Route: Should Fetch Slots",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -1757,7 +1793,7 @@
           "timeout": 30000
         }
       },
-      "id": "call-avail-001",
+      "id": "f9334b95-bb11-4cbd-b7a3-e2c306ccfc6f",
       "name": "Call: Availability Flow",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1772,7 +1808,7 @@
       "parameters": {
         "jsCode": "const avail = $input.first().json;\nconst detect = $('Detect: Scheduling Intent').first().json;\n\nif (avail.success && avail.slots_found > 0) {\n  return [{ json: { ai_message: avail.offer_message, slots_offered: true, offer_id: avail.offer_id, conversation_state: 'awaiting_slot_selection' } }];\n} else {\n  const fallback = detect.clean_output + '\\n\\nA agenda ta cheia. Fala com o Pasteur: 5585999855443';\n  return [{ json: { ai_message: fallback, slots_offered: false, conversation_state: 'normal' } }];\n}"
       },
-      "id": "inject-slots-001",
+      "id": "09787519-4a3d-4b01-8fd0-460add9d59d3",
       "name": "Inject: Dynamic Slots",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1789,7 +1825,7 @@
           "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $json.conversation_state, $json.offer_id || null, JSON.stringify({offered_at: new Date().toISOString()})] }}"
         }
       },
-      "id": "update-offer-state-001",
+      "id": "166347f8-39b7-428a-8fb6-16c558efcf5b",
       "name": "Update: State After Offer",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
@@ -1809,12 +1845,12 @@
         "mode": "chooseBranch",
         "output": "empty"
       },
-      "id": "merge-slot-path-001",
+      "id": "f05ab30c-e7ed-4932-93e7-423da69eb7fb",
       "name": "Merge: Slot Path",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
       "position": [
-        -612,
+        -164,
         176
       ]
     }
@@ -2248,14 +2284,14 @@
       "main": [
         [
           {
-            "node": "Route: By Conversation State",
+            "node": "Check: Is Awaiting Selection",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Route: By Conversation State": {
+    "Check: Is Awaiting Selection": {
       "main": [
         [
           {
@@ -2264,6 +2300,17 @@
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Check: Is Confirming Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Confirming Slot": {
+      "main": [
         [
           {
             "node": "Parse: Slot Selection",
@@ -2284,14 +2331,14 @@
       "main": [
         [
           {
-            "node": "Route: Parse Result",
+            "node": "Check: High Confidence",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Route: Parse Result": {
+    "Check: High Confidence": {
       "main": [
         [
           {
@@ -2302,11 +2349,33 @@
         ],
         [
           {
+            "node": "Check: Needs Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Needs Confirm": {
+      "main": [
+        [
+          {
             "node": "Prepare: Confirmation Request",
             "type": "main",
             "index": 0
           }
         ],
+        [
+          {
+            "node": "Check: Is Refusal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Refusal": {
+      "main": [
         [
           {
             "node": "Handle: Refusal",
