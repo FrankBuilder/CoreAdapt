@@ -1,5 +1,5 @@
 {
-  "name": "CoreAdapt Booking Flow | v4.1 (Google Calendar)",
+  "name": "CoreAdapt Booking Flow | v4.2 (Subworkflow Support)",
   "nodes": [
     {
       "parameters": {
@@ -310,7 +310,7 @@
       "id": "book-send-confirm-001",
       "name": "Send: Confirmation to Lead",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.3,
       "position": [
         1064,
         -48
@@ -356,7 +356,7 @@
       "id": "book-send-alert-001",
       "name": "Send: Alert to Pasteur",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "typeVersion": 4.3,
       "position": [
         1512,
         -48
@@ -459,6 +459,17 @@
       "position": [
         280,
         -48
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "booking-subworkflow-trigger",
+      "name": "Subworkflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        0
       ]
     }
   ],
@@ -666,7 +677,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "booking-v4.1-gcal",
+  "versionId": "booking-flow-v4.2-subworkflow",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
