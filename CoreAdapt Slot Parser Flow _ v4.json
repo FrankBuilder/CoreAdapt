@@ -1,0 +1,508 @@
+{
+  "name": "CoreAdapt Slot Parser Flow | v4",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "parse-slot-selection",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "parser-webhook-001",
+      "name": "Webhook: Parse Slot Selection",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1600, 240],
+      "webhookId": "parse-slot-selection-v4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Buscar oferta pendente com slots\nSELECT\n  o.id AS offer_id,\n  o.contact_id,\n  o.company_id,\n  o.status,\n  o.expires_at,\n  o.slot_1_datetime,\n  o.slot_1_label,\n  o.slot_2_datetime,\n  o.slot_2_label,\n  o.slot_3_datetime,\n  o.slot_3_label,\n  o.slot_4_datetime,\n  o.slot_4_label,\n  o.slot_5_datetime,\n  o.slot_5_label,\n  o.offer_timezone,\n  o.parsing_attempts,\n  c.full_name AS contact_name,\n  c.whatsapp AS contact_whatsapp,\n  co.evolution_api_url,\n  co.evolution_instance,\n  co.evolution_api_key\nFROM corev4_pending_slot_offers o\nINNER JOIN corev4_contacts c ON o.contact_id = c.id\nINNER JOIN corev4_companies co ON o.company_id = co.id\nWHERE o.contact_id = $1\n  AND o.status IN ('pending', 'needs_confirmation')\n  AND o.expires_at > NOW()\nORDER BY o.created_at DESC\nLIMIT 1",
+        "options": {
+          "queryReplacement": "={{ [$json.body.contact_id] }}"
+        }
+      },
+      "id": "parser-fetch-offer-001",
+      "name": "Fetch: Pending Offer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-1376, 240],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-offer",
+              "leftValue": "={{ $json.offer_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "parser-check-offer-001",
+      "name": "Check: Has Pending Offer",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-1152, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================\n// SLOT SELECTION PARSER\n// CoreAdapt v4 | Autonomous Scheduling\n// ============================================\n\nconst offer = $input.first().json;\nconst input = $('Webhook: Parse Slot Selection').first().json.body;\nconst message = (input.message || '').toLowerCase().trim();\n\n// Slots disponiveis na oferta\nconst slots = [\n  { index: 1, datetime: offer.slot_1_datetime, label: offer.slot_1_label },\n  { index: 2, datetime: offer.slot_2_datetime, label: offer.slot_2_label },\n  { index: 3, datetime: offer.slot_3_datetime, label: offer.slot_3_label },\n  { index: 4, datetime: offer.slot_4_datetime, label: offer.slot_4_label },\n  { index: 5, datetime: offer.slot_5_datetime, label: offer.slot_5_label }\n].filter(s => s.datetime);\n\nlet selectedSlot = null;\nlet confidence = 0;\nlet method = null;\n\n// ============================================\n// METODO 1: Numero direto (\"1\", \"2\", \"3\")\n// ============================================\nconst directNumber = message.match(/^[\\s]*([1-5])[\\s]*$/);\nif (directNumber) {\n  const num = parseInt(directNumber[1]);\n  if (num <= slots.length) {\n    selectedSlot = num;\n    confidence = 1.0;\n    method = 'direct_number';\n  }\n}\n\n// ============================================\n// METODO 2: Ordinal (\"primeiro\", \"segundo\", \"terceiro\")\n// ============================================\nif (!selectedSlot) {\n  const ordinals = {\n    'primeir': 1, '1': 1, 'um': 1, 'uma': 1,\n    'segund': 2, '2': 2, 'dois': 2, 'duas': 2,\n    'terceir': 3, '3': 3, 'tres': 3, 'três': 3,\n    'quart': 4, '4': 4, 'quatro': 4,\n    'quint': 5, '5': 5, 'cinco': 5\n  };\n  \n  for (const [key, value] of Object.entries(ordinals)) {\n    if (message.includes(key) && value <= slots.length) {\n      selectedSlot = value;\n      confidence = 0.9;\n      method = 'ordinal';\n      break;\n    }\n  }\n}\n\n// ============================================\n// METODO 3: Dia da semana (\"terca\", \"quarta\")\n// ============================================\nif (!selectedSlot) {\n  const weekdays = {\n    'segunda': 1, 'seg': 1,\n    'terca': 2, 'terça': 2, 'ter': 2,\n    'quarta': 3, 'qua': 3,\n    'quinta': 4, 'qui': 4,\n    'sexta': 5, 'sex': 5,\n    'sabado': 6, 'sábado': 6, 'sab': 6,\n    'domingo': 0, 'dom': 0\n  };\n  \n  for (const [dayName, dayNum] of Object.entries(weekdays)) {\n    if (message.includes(dayName)) {\n      // Encontrar slot que corresponde ao dia\n      for (const slot of slots) {\n        const slotDate = new Date(slot.datetime);\n        if (slotDate.getDay() === dayNum) {\n          // Verificar se tem hora especifica na mensagem\n          const hourMatch = message.match(/(\\d{1,2})(?:h|:|\\s*hora)/i);\n          if (hourMatch) {\n            const requestedHour = parseInt(hourMatch[1]);\n            const slotHour = slotDate.getHours();\n            if (Math.abs(requestedHour - slotHour) <= 1) {\n              selectedSlot = slot.index;\n              confidence = 0.95;\n              method = 'weekday_with_hour';\n              break;\n            }\n          } else {\n            selectedSlot = slot.index;\n            confidence = 0.85;\n            method = 'weekday_only';\n            break;\n          }\n        }\n      }\n      if (selectedSlot) break;\n    }\n  }\n}\n\n// ============================================\n// METODO 4: Hora especifica (\"10h\", \"14:00\")\n// ============================================\nif (!selectedSlot) {\n  const hourMatch = message.match(/(\\d{1,2})(?:h|:|\\s*hora)/i);\n  if (hourMatch) {\n    const requestedHour = parseInt(hourMatch[1]);\n    for (const slot of slots) {\n      const slotDate = new Date(slot.datetime);\n      const slotHour = slotDate.getHours();\n      if (Math.abs(requestedHour - slotHour) <= 1) {\n        selectedSlot = slot.index;\n        confidence = 0.8;\n        method = 'hour_only';\n        break;\n      }\n    }\n  }\n}\n\n// ============================================\n// METODO 5: Palavras-chave (\"manha\", \"tarde\")\n// ============================================\nif (!selectedSlot) {\n  const periods = {\n    'manha': [8, 12],\n    'manhã': [8, 12],\n    'tarde': [12, 18],\n    'noite': [18, 22]\n  };\n  \n  for (const [period, [start, end]] of Object.entries(periods)) {\n    if (message.includes(period)) {\n      for (const slot of slots) {\n        const slotHour = new Date(slot.datetime).getHours();\n        if (slotHour >= start && slotHour < end) {\n          selectedSlot = slot.index;\n          confidence = 0.7;\n          method = 'period_keyword';\n          break;\n        }\n      }\n      if (selectedSlot) break;\n    }\n  }\n}\n\n// ============================================\n// METODO 6: Afirmacao generica (\"pode ser\", \"qualquer\")\n// ============================================\nif (!selectedSlot) {\n  const genericAffirm = [\n    'pode ser', 'qualquer', 'tanto faz', 'você escolhe',\n    'vc escolhe', 'o primeiro', 'o melhor', 'mais cedo'\n  ];\n  \n  for (const phrase of genericAffirm) {\n    if (message.includes(phrase)) {\n      selectedSlot = 1; // Primeiro slot disponivel\n      confidence = 0.75;\n      method = 'generic_affirm';\n      break;\n    }\n  }\n}\n\n// ============================================\n// DETECCAO DE RECUSA/REAGENDAMENTO\n// ============================================\nconst refusalKeywords = [\n  'nao', 'não', 'nenhum', 'outro', 'diferente', 'mudar',\n  'remarcar', 'reagendar', 'cancelar', 'desistir',\n  'semana que vem', 'proxima semana', 'próxima semana'\n];\n\nlet isRefusal = refusalKeywords.some(kw => message.includes(kw));\n\n// Verificar se e recusa ou apenas preferencia\nif (isRefusal && selectedSlot) {\n  // Tem selecao junto com palavra de recusa\n  // Ex: \"nao, prefiro o segundo\" - nao e recusa\n  isRefusal = false;\n}\n\n// ============================================\n// PREPARAR RESULTADO\n// ============================================\nconst result = {\n  parsed: selectedSlot !== null,\n  selected_slot: selectedSlot,\n  confidence: confidence,\n  method: method,\n  is_refusal: isRefusal && !selectedSlot,\n  needs_clarification: !selectedSlot && !isRefusal,\n  original_message: input.message,\n  offer_id: offer.offer_id,\n  contact_id: offer.contact_id,\n  company_id: offer.company_id,\n  contact_name: offer.contact_name,\n  contact_whatsapp: offer.contact_whatsapp,\n  evolution: {\n    api_url: offer.evolution_api_url,\n    instance: offer.evolution_instance,\n    api_key: offer.evolution_api_key\n  },\n  slots: slots,\n  selected_datetime: selectedSlot ? slots[selectedSlot - 1]?.datetime : null,\n  selected_label: selectedSlot ? slots[selectedSlot - 1]?.label : null,\n  parsing_attempts: (offer.parsing_attempts || 0) + 1\n};\n\nreturn [{ json: result }];"
+      },
+      "id": "parser-parse-message-001",
+      "name": "Parse: Slot Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-928, 144]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-refusal",
+              "leftValue": "={{ $json.is_refusal }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "parser-check-refusal-001",
+      "name": "Check: Is Refusal",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-704, 144]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "high-confidence",
+              "leftValue": "={{ $json.confidence }}",
+              "rightValue": 0.8,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "parser-check-confidence-001",
+      "name": "Check: High Confidence",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-480, 48]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_WEBHOOK_URL || 'https://n8n.coreadapt.cloud' }}/webhook/create-booking",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"offer_id\": $json.offer_id,\n  \"selected_slot\": $json.selected_slot,\n  \"confidence\": $json.confidence,\n  \"method\": $json.method,\n  \"original_message\": $json.original_message\n} }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "parser-call-booking-001",
+      "name": "Call: Booking Flow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-256, -48],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: $json.success || false,\n  action: 'booking_created',\n  booking: $json.booking_created ? {\n    meeting_id: $json.meeting_id,\n    datetime: $json.meeting_datetime,\n    url: $json.meeting_url\n  } : null,\n  confirmation_sent: $json.confirmation_sent || false,\n  message_to_send: null,\n  should_respond: false\n} }}",
+        "options": {}
+      },
+      "id": "parser-respond-booking-001",
+      "name": "Respond: Booking Created",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [-32, -48]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar mensagem de confirmacao antes do booking\nconst data = $('Parse: Slot Selection').first().json;\n\nconst confirmMessage = `Entendi! Voce escolheu:\\n\\n${data.selected_label}\\n\\nPosso confirmar esse horario?`;\n\nreturn [{\n  json: {\n    action: 'needs_confirmation',\n    message_to_send: confirmMessage,\n    selected_slot: data.selected_slot,\n    selected_label: data.selected_label,\n    confidence: data.confidence,\n    method: data.method,\n    offer_id: data.offer_id,\n    contact_id: data.contact_id,\n    company_id: data.company_id,\n    evolution: data.evolution,\n    contact_whatsapp: data.contact_whatsapp\n  }\n}];"
+      },
+      "id": "parser-prepare-confirm-001",
+      "name": "Prepare: Confirmation Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-256, 144]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Atualizar status para needs_confirmation\nUPDATE corev4_pending_slot_offers\nSET\n  status = 'needs_confirmation',\n  selected_slot = $2,\n  selection_message = $3,\n  selection_confidence = $4,\n  parsing_attempts = parsing_attempts + 1,\n  last_parsing_result = $5::jsonb,\n  updated_at = NOW()\nWHERE id = $1\nRETURNING id, status",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.offer_id,\n  $json.selected_slot,\n  $('Webhook: Parse Slot Selection').first().json.body.message,\n  $json.confidence,\n  JSON.stringify({\n    method: $json.method,\n    confidence: $json.confidence,\n    timestamp: new Date().toISOString()\n  })\n] }}"
+        }
+      },
+      "id": "parser-update-needs-confirm-001",
+      "name": "Update: Needs Confirmation",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-32, 144],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: true,\n  action: 'needs_confirmation',\n  message_to_send: $('Prepare: Confirmation Request').first().json.message_to_send,\n  selected_slot: $('Prepare: Confirmation Request').first().json.selected_slot,\n  selected_label: $('Prepare: Confirmation Request').first().json.selected_label,\n  confidence: $('Prepare: Confirmation Request').first().json.confidence,\n  should_respond: true\n} }}",
+        "options": {}
+      },
+      "id": "parser-respond-confirm-001",
+      "name": "Respond: Needs Confirmation",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [192, 144]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar mensagem de esclarecimento\nconst data = $('Parse: Slot Selection').first().json;\n\nlet clarifyMessage;\n\nif (data.parsing_attempts >= 3) {\n  // Muitas tentativas, oferecer link direto\n  clarifyMessage = `Hmm, nao consegui entender qual horario voce prefere.\\n\\nVoce pode agendar diretamente pelo link: https://cal.com/francisco-pasteur-coreadapt/mesa-de-clareza-45min\\n\\nOu me diga qual numero voce escolhe (1, 2 ou 3).`;\n} else {\n  // Pedir clarificacao\n  const slotsText = data.slots.map((s, i) => `${i + 1}. ${s.label}`).join('\\n');\n  clarifyMessage = `Desculpa, nao entendi bem. Qual desses horarios funciona pra voce?\\n\\n${slotsText}\\n\\nResponde com o numero (1, 2 ou 3) ou diz o dia/horario que prefere.`;\n}\n\nreturn [{\n  json: {\n    action: 'needs_clarification',\n    message_to_send: clarifyMessage,\n    offer_id: data.offer_id,\n    contact_id: data.contact_id,\n    company_id: data.company_id,\n    evolution: data.evolution,\n    contact_whatsapp: data.contact_whatsapp,\n    parsing_attempts: data.parsing_attempts\n  }\n}];"
+      },
+      "id": "parser-prepare-clarify-001",
+      "name": "Prepare: Clarification Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-480, 240]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Incrementar tentativas de parsing\nUPDATE corev4_pending_slot_offers\nSET\n  parsing_attempts = parsing_attempts + 1,\n  last_parsing_result = $2::jsonb,\n  updated_at = NOW()\nWHERE id = $1\nRETURNING id, parsing_attempts",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.offer_id,\n  JSON.stringify({\n    method: 'clarification_needed',\n    original_message: $('Webhook: Parse Slot Selection').first().json.body.message,\n    timestamp: new Date().toISOString()\n  })\n] }}"
+        }
+      },
+      "id": "parser-update-attempts-001",
+      "name": "Update: Parsing Attempts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-256, 240],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: true,\n  action: 'needs_clarification',\n  message_to_send: $('Prepare: Clarification Request').first().json.message_to_send,\n  parsing_attempts: $json.parsing_attempts,\n  should_respond: true\n} }}",
+        "options": {}
+      },
+      "id": "parser-respond-clarify-001",
+      "name": "Respond: Needs Clarification",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [-32, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lead recusou/quer outros horarios\nconst data = $('Parse: Slot Selection').first().json;\n\nconst refusalMessage = `Entendo! Quer que eu busque outros horarios disponiveis? Ou prefere agendar depois pelo link: https://cal.com/francisco-pasteur-coreadapt/mesa-de-clareza-45min`;\n\nreturn [{\n  json: {\n    action: 'refusal',\n    message_to_send: refusalMessage,\n    offer_id: data.offer_id,\n    contact_id: data.contact_id,\n    company_id: data.company_id,\n    evolution: data.evolution,\n    contact_whatsapp: data.contact_whatsapp\n  }\n}];"
+      },
+      "id": "parser-prepare-refusal-001",
+      "name": "Prepare: Refusal Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-480, 336]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Cancelar oferta por recusa\nUPDATE corev4_pending_slot_offers\nSET\n  status = 'cancelled',\n  cancellation_reason = 'lead_refused',\n  selection_message = $2,\n  updated_at = NOW()\nWHERE id = $1;\n\n-- Resetar estado da conversa\nSELECT reset_conversation_state($3, $4) AS state_reset",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.offer_id,\n  $('Webhook: Parse Slot Selection').first().json.body.message,\n  $json.contact_id,\n  $json.company_id\n] }}"
+        }
+      },
+      "id": "parser-cancel-offer-001",
+      "name": "Cancel: Offer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [-256, 336],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: true,\n  action: 'refusal',\n  message_to_send: $('Prepare: Refusal Response').first().json.message_to_send,\n  offer_cancelled: true,\n  should_respond: true,\n  should_reset_state: true\n} }}",
+        "options": {}
+      },
+      "id": "parser-respond-refusal-001",
+      "name": "Respond: Refusal Handled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [-32, 336]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: false,\n  action: 'no_pending_offer',\n  message_to_send: null,\n  should_respond: false,\n  should_continue_to_ai: true\n} }}",
+        "options": {}
+      },
+      "id": "parser-respond-no-offer-001",
+      "name": "Respond: No Pending Offer",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [-928, 336]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Parse Slot Selection": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Pending Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Pending Offer": {
+      "main": [
+        [
+          {
+            "node": "Check: Has Pending Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Has Pending Offer": {
+      "main": [
+        [
+          {
+            "node": "Parse: Slot Selection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: No Pending Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse: Slot Selection": {
+      "main": [
+        [
+          {
+            "node": "Check: Is Refusal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Refusal": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Refusal Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check: High Confidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: High Confidence": {
+      "main": [
+        [
+          {
+            "node": "Call: Booking Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare: Confirmation Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare: Clarification Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call: Booking Flow": {
+      "main": [
+        [
+          {
+            "node": "Respond: Booking Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Confirmation Request": {
+      "main": [
+        [
+          {
+            "node": "Update: Needs Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Needs Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Respond: Needs Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Clarification Request": {
+      "main": [
+        [
+          {
+            "node": "Update: Parsing Attempts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Parsing Attempts": {
+      "main": [
+        [
+          {
+            "node": "Respond: Needs Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Refusal Response": {
+      "main": [
+        [
+          {
+            "node": "Cancel: Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel: Offer": {
+      "main": [
+        [
+          {
+            "node": "Respond: Refusal Handled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "slot-parser-v4-001",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "CoreAdaptSlotParserV4",
+  "tags": [
+    {
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}
