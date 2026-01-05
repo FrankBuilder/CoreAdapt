@@ -57,13 +57,13 @@
         },
         "options": {}
       },
-      "id": "4a7d6f03-6f7f-4656-9e33-2081d6e84342",
+      "id": "b6f7fbab-14f7-4a0a-972f-2b31248e4b78",
       "name": "Dados",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -2544,
-        1184
+        -1328,
+        1488
       ]
     },
     {
@@ -77,13 +77,13 @@
           ]
         }
       },
-      "id": "cfd67ace-9144-4cbf-bf86-98114bb28226",
+      "id": "c3a33d64-cb05-4424-8e6e-7de18f471ef5",
       "name": "Schedule Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -2768,
-        1184
+        -1552,
+        1488
       ]
     },
     {
@@ -137,13 +137,13 @@
           }
         }
       },
-      "id": "7ccfd0a9-8e09-4ea1-a436-dc040357ff29",
+      "id": "fbb4d85e-16da-4b79-aaab-24f4d94fb2c2",
       "name": "Puxa todos os leads",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        -2336,
-        1184
+        -1104,
+        1488
       ],
       "credentials": {
         "notionApi": {
@@ -203,13 +203,13 @@
         },
         "options": {}
       },
-      "id": "909faa59-502c-456b-9812-3cd33ec0494f",
+      "id": "d769f927-aa42-4aa9-923d-ed5e47ea74d7",
       "name": "Filtra leads ativos",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2144,
-        1184
+        -880,
+        1488
       ]
     },
     {
@@ -217,13 +217,13 @@
         "operation": "limit",
         "maxItems": "={{ $('Dados').item.json.qtdDisparos }}"
       },
-      "id": "3134464e-cc47-4acf-876e-8391a8b9dd38",
+      "id": "820bd275-0a09-4257-acd3-32279c5d6ffc",
       "name": "Limita Qtde Envios",
       "type": "n8n-nodes-base.itemLists",
       "typeVersion": 3,
       "position": [
-        -1920,
-        1152
+        -656,
+        1488
       ]
     },
     {
@@ -232,26 +232,26 @@
           "reset": false
         }
       },
-      "id": "260015b3-6ad1-4a7a-a702-5cfce5163758",
+      "id": "653f22cb-a996-4589-bfd5-01779c857f8e",
       "name": "Loop",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        -1696,
-        1152
+        -368,
+        1696
       ]
     },
     {
       "parameters": {
         "jsCode": "// Normaliza telefone brasileiro para E.164\nconst raw = String($input.first().json.property_whats_app || '').replace(/[^0-9]+/g, '');\n\nlet ddi = '+55';\nlet ddd = '';\nlet numero = '';\nlet valido = false;\nlet formatado = 'Número inválido';\n\nif (raw.length >= 10 && raw.length <= 13) {\n  let phone = raw;\n  \n  // Remove DDI se presente\n  if (phone.startsWith('55') && phone.length > 11) {\n    phone = phone.slice(2);\n  }\n  \n  // Extrai DDD\n  ddd = phone.slice(0, 2);\n  numero = phone.slice(2);\n  \n  // Adiciona nono dígito se necessário\n  if (numero.length === 8) {\n    numero = '9' + numero;\n  }\n  \n  // Valida\n  if (numero.length === 9 && numero.startsWith('9')) {\n    valido = true;\n    formatado = `${ddi}${ddd}${numero}`;\n  }\n}\n\nreturn [{\n  json: {\n    ddi,\n    ddd,\n    numero,\n    valido,\n    whatsapp_formatado: formatado,\n    whatsapp_sem_mais: formatado.replace('+', '')\n  }\n}];"
       },
-      "id": "15520f6c-5699-43ff-9a71-edffe93693a5",
+      "id": "50c97ca7-4d04-4c7a-858b-98a71f1360bc",
       "name": "Normaliza Telefone",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1504,
-        1248
+        -208,
+        1392
       ]
     },
     {
@@ -278,13 +278,13 @@
           }
         }
       },
-      "id": "db7d2a20-3371-44cf-b7d4-fc26ec9b0947",
+      "id": "b996c5e8-9e6b-4503-b865-52247f67ae20",
       "name": "Valida WhatsApp",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -1280,
-        1248
+        16,
+        1392
       ]
     },
     {
@@ -298,13 +298,13 @@
           ]
         }
       },
-      "id": "fe143904-61b4-4e48-b479-98395bfc0132",
+      "id": "94f89687-cad3-4bd3-819e-854692757cb3",
       "name": "Tem WhatsApp?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [
-        -1056,
-        1248
+        240,
+        1392
       ]
     },
     {
@@ -330,13 +330,13 @@
         },
         "options": {}
       },
-      "id": "16c1e387-ffb2-49fe-b984-4ad66ac11ac0",
+      "id": "fbbbc5d9-b98c-4351-8146-c471507d092f",
       "name": "Desqualifica Lead",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        -784,
-        1408
+        464,
+        1656
       ],
       "credentials": {
         "notionApi": {
@@ -369,77 +369,70 @@
         },
         "options": {}
       },
-      "id": "check-interval",
+      "id": "aefe411c-80c6-43c0-a712-1b4d276d18bc",
       "name": "Passou intervalo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -784,
-        1088
+        464,
+        1464
       ]
     },
     {
       "parameters": {
         "jsCode": "// Monta contexto para o AI Agent gerar mensagem personalizada\nconst lead = $('Loop').item.json;\nconst dados = $('Dados').item.json;\nconst telefone = $('Normaliza Telefone').item.json;\n\n// Determina o estágio do funil\nconst status = lead.property_status || 'Lead';\nlet stage = 'first_touch';\nlet stageNumber = 1;\n\nswitch(status) {\n  case 'Lead':\n    stage = 'first_touch';\n    stageNumber = 1;\n    break;\n  case 'Follow-Up':\n    stage = 'follow_up_1';\n    stageNumber = 2;\n    break;\n  case 'Follow-Up 2':\n    stage = 'follow_up_2';\n    stageNumber = 3;\n    break;\n  case 'Follow-Up 3':\n    stage = 'follow_up_3';\n    stageNumber = 4;\n    break;\n}\n\n// Extrai dados do lead do Notion\nconst leadContext = {\n  name: lead.property_name || lead.title || 'Prezado(a)',\n  business_name: lead.property_empresa || lead.property_name || '',\n  business_type: lead.property_tipo_negocio || lead.property_segmento || '',\n  city: lead.property_cidade || '',\n  state: lead.property_estado || '',\n  rating: lead.property_rating || lead.property_avaliacao || '',\n  reviews: lead.property_reviews || lead.property_avaliacoes || '',\n  website: lead.property_website || lead.property_site || '',\n  site_summary: lead.property_resumo_site || lead.property_descricao || '',\n  source: lead.property_origem || 'Google Maps'\n};\n\n// Status para próxima etapa\nconst nextStatus = {\n  'Lead': 'Follow-Up',\n  'Follow-Up': 'Follow-Up 2',\n  'Follow-Up 2': 'Follow-Up 3',\n  'Follow-Up 3': 'Disparo finalizado'\n};\n\nreturn [{\n  json: {\n    leadContext,\n    stage,\n    stageNumber,\n    currentStatus: status,\n    nextStatus: nextStatus[status] || 'Disparo finalizado',\n    agentName: dados.agentName || 'Frank',\n    companyName: dados.companyName || 'CoreConnect',\n    whatsapp: telefone.whatsapp_sem_mais,\n    whatsapp_formatado: telefone.whatsapp_formatado,\n    leadId: lead.id\n  }\n}];"
       },
-      "id": "prepare-context",
+      "id": "29ed0754-5637-4500-9de0-fad818cc1b4d",
       "name": "Prepara Contexto IA",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -560,
-        1088
+        688,
+        1464
       ]
     },
     {
       "parameters": {
         "model": "gpt-4.1-mini",
         "options": {
-          "temperature": 0.8,
-          "maxTokens": 500
+          "maxTokens": 500,
+          "temperature": 0.8
         }
       },
-      "id": "openai-model",
+      "id": "22add825-bbbd-4807-83c3-a8116a0596a7",
       "name": "OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1,
       "position": [
-        -200,
-        1280
-      ],
-      "credentials": {
-        "openAiApi": {
-          "id": "TkfL2732Ws1h0rnI",
-          "name": "OpenAI | CORE ONE™ - FRANK | TEXTO"
-        }
-      }
+        984,
+        1688
+      ]
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=Você é {{ $json.agentName }}, um especialista em automação e IA da {{ $json.companyName }}.\n\nGere UMA mensagem de WhatsApp personalizada para prospecção B2B.\n\n## CONTEXTO DO LEAD:\n- Nome/Empresa: {{ $json.leadContext.business_name || $json.leadContext.name }}\n- Tipo de negócio: {{ $json.leadContext.business_type || 'não informado' }}\n- Cidade: {{ $json.leadContext.city || 'não informada' }}\n- Avaliação Google: {{ $json.leadContext.rating || 'não disponível' }} ({{ $json.leadContext.reviews || '0' }} avaliações)\n- Resumo do site: {{ $json.leadContext.site_summary || 'não disponível' }}\n\n## ESTÁGIO DO FUNIL:\n{{ $json.stage === 'first_touch' ? '1º CONTATO - Primeira abordagem. Seja breve e desperte curiosidade.' : '' }}\n{{ $json.stage === 'follow_up_1' ? '2º CONTATO - Retomando contato. Mencione a mensagem anterior brevemente.' : '' }}\n{{ $json.stage === 'follow_up_2' ? '3º CONTATO - Traga um case ou benefício concreto. Seja mais direto.' : '' }}\n{{ $json.stage === 'follow_up_3' ? '4º E ÚLTIMO CONTATO - Última tentativa. Seja respeitoso e ofereça encerrar.' : '' }}\n\n## REGRAS OBRIGATÓRIAS:\n1. Máximo 3 frases curtas\n2. Tom conversacional e humano (não robótico)\n3. Se tiver dados do lead (tipo negócio, cidade, rating), USE-OS para personalizar\n4. NÃO inclua opções de resposta no texto (botões serão adicionados automaticamente)\n5. NÃO use emojis excessivos (máximo 2)\n6. NÃO mencione 'automação de WhatsApp' diretamente\n7. Foque em RESULTADOS: economia de tempo, mais vendas, menos trabalho manual\n8. Termine com uma pergunta aberta que convide à interação\n\n## EXEMPLOS DE TOM:\n- BOM: \"Oi! Vi que a Clínica Sorriso tem ótimas avaliações em Fortaleza. Trabalho com soluções que ajudam clínicas a atender mais pacientes sem aumentar a equipe. Posso te mostrar como funciona?\"\n- RUIM: \"Olá! Sou a Ana da Empresa X e gostaria de apresentar nossos serviços de automação...\"\n\nGere APENAS a mensagem, sem explicações ou opções de resposta.",
-        "hasOutputParser": false
+        "text": "=Você é {{ $json.agentName }}, um especialista em automação e IA da {{ $json.companyName }}.\n\nGere UMA mensagem de WhatsApp personalizada para prospecção B2B.\n\n## CONTEXTO DO LEAD:\n- Nome/Empresa: {{ $json.leadContext.business_name || $json.leadContext.name }}\n- Tipo de negócio: {{ $json.leadContext.business_type || 'não informado' }}\n- Cidade: {{ $json.leadContext.city || 'não informada' }}\n- Avaliação Google: {{ $json.leadContext.rating || 'não disponível' }} ({{ $json.leadContext.reviews || '0' }} avaliações)\n- Resumo do site: {{ $json.leadContext.site_summary || 'não disponível' }}\n\n## ESTÁGIO DO FUNIL:\n{{ $json.stage === 'first_touch' ? '1º CONTATO - Primeira abordagem. Seja breve e desperte curiosidade.' : '' }}\n{{ $json.stage === 'follow_up_1' ? '2º CONTATO - Retomando contato. Mencione a mensagem anterior brevemente.' : '' }}\n{{ $json.stage === 'follow_up_2' ? '3º CONTATO - Traga um case ou benefício concreto. Seja mais direto.' : '' }}\n{{ $json.stage === 'follow_up_3' ? '4º E ÚLTIMO CONTATO - Última tentativa. Seja respeitoso e ofereça encerrar.' : '' }}\n\n## REGRAS OBRIGATÓRIAS:\n1. Máximo 3 frases curtas\n2. Tom conversacional e humano (não robótico)\n3. Se tiver dados do lead (tipo negócio, cidade, rating), USE-OS para personalizar\n4. NÃO inclua opções de resposta no texto (botões serão adicionados automaticamente)\n5. NÃO use emojis excessivos (máximo 2)\n6. NÃO mencione 'automação de WhatsApp' diretamente\n7. Foque em RESULTADOS: economia de tempo, mais vendas, menos trabalho manual\n8. Termine com uma pergunta aberta que convide à interação\n\n## EXEMPLOS DE TOM:\n- BOM: \"Oi! Vi que a Clínica Sorriso tem ótimas avaliações em Fortaleza. Trabalho com soluções que ajudam clínicas a atender mais pacientes sem aumentar a equipe. Posso te mostrar como funciona?\"\n- RUIM: \"Olá! Sou a Ana da Empresa X e gostaria de apresentar nossos serviços de automação...\"\n\nGere APENAS a mensagem, sem explicações ou opções de resposta."
       },
-      "id": "ai-agent-generate",
+      "id": "bcc9e61f-1670-4520-8408-f3b1ab36ddc8",
       "name": "Gera Mensagem IA",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.4,
       "position": [
-        -320,
-        1088
+        912,
+        1464
       ]
     },
     {
       "parameters": {
         "jsCode": "// Limpa e formata a mensagem gerada pela IA\nlet mensagem = $input.first().json.text || $input.first().json.response || '';\n\n// Remove aspas extras se houver\nmensagem = mensagem.replace(/^\"|\"$/g, '').trim();\n\n// Remove qualquer opção numerada que a IA tenha incluído por engano\nmensagem = mensagem.replace(/\\n*[1-3][️⃣.)].*/g, '').trim();\n\n// Pega contexto anterior\nconst ctx = $('Prepara Contexto IA').item.json;\n\n// Define botões baseado no estágio\nconst isFirstTouch = ctx.stage === 'first_touch';\nconst isLastTouch = ctx.stage === 'follow_up_3';\n\nlet buttonRows = [];\n\nif (isFirstTouch) {\n  buttonRows = [\n    { title: 'Sim, quero saber mais', description: 'Me conte como funciona', rowId: 'interesse_sim_' + ctx.leadId },\n    { title: 'Talvez depois', description: 'Não é o momento', rowId: 'interesse_depois_' + ctx.leadId },\n    { title: 'Não tenho interesse', description: 'Não quero receber msgs', rowId: 'optout_' + ctx.leadId }\n  ];\n} else if (isLastTouch) {\n  buttonRows = [\n    { title: 'Sim, vamos conversar', description: 'Quero agendar', rowId: 'interesse_sim_' + ctx.leadId },\n    { title: 'Não, obrigado', description: 'Encerrar contato', rowId: 'optout_' + ctx.leadId }\n  ];\n} else {\n  buttonRows = [\n    { title: 'Sim, me conta mais', description: 'Tenho interesse', rowId: 'interesse_sim_' + ctx.leadId },\n    { title: 'Agora não', description: 'Outro momento', rowId: 'interesse_depois_' + ctx.leadId },\n    { title: 'Não, obrigado', description: 'Não quero receber', rowId: 'optout_' + ctx.leadId }\n  ];\n}\n\nreturn [{\n  json: {\n    mensagem,\n    whatsapp: ctx.whatsapp,\n    whatsapp_formatado: ctx.whatsapp_formatado,\n    leadId: ctx.leadId,\n    currentStatus: ctx.currentStatus,\n    nextStatus: ctx.nextStatus,\n    stageNumber: ctx.stageNumber,\n    buttonRows,\n    agentName: ctx.agentName,\n    companyName: ctx.companyName\n  }\n}];"
       },
-      "id": "format-message",
+      "id": "b8aa0448-1973-42dd-a3f6-ca181ade4f6d",
       "name": "Formata Mensagem",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -80,
-        1088
+        1264,
+        1464
       ]
     },
     {
@@ -467,18 +460,17 @@
           }
         }
       },
-      "id": "send-message",
+      "id": "719eae85-0864-41e8-a24c-dba7c85b1622",
       "name": "Envia Lista Interativa",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        144,
-        1088
+        1488,
+        1464
       ]
     },
     {
       "parameters": {
-        "operation": "insert",
         "schema": {
           "__rl": true,
           "mode": "list",
@@ -498,13 +490,13 @@
         },
         "options": {}
       },
-      "id": "save-chat-history",
+      "id": "12525d95-c3dd-41be-bb54-ad5b43566a6d",
       "name": "Salva Histórico",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        368,
-        1088
+        1472,
+        1936
       ],
       "credentials": {
         "postgres": {
@@ -541,13 +533,13 @@
         },
         "options": {}
       },
-      "id": "update-notion",
+      "id": "1c3fcae6-fd5d-49b0-a871-8ab4a89eecf1",
       "name": "Atualiza Notion",
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2.2,
       "position": [
-        592,
-        1088
+        -880,
+        1680
       ],
       "credentials": {
         "notionApi": {
@@ -558,17 +550,17 @@
     },
     {
       "parameters": {
-        "amount": "={{ Math.floor(Math.random() * 60) + 80 }}",
-        "unit": "seconds"
+        "amount": "={{ Math.floor(Math.random() * 60) + 80 }}"
       },
-      "id": "delay-between",
+      "id": "c9c49413-79af-4ac2-8e24-7b506e1220cc",
       "name": "Delay 80-140s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        816,
-        1088
-      ]
+        -656,
+        1680
+      ],
+      "webhookId": "c96bc089-b998-411d-a740-eded2585c5f5"
     },
     {
       "parameters": {
@@ -577,13 +569,13 @@
         "width": 400,
         "color": 4
       },
-      "id": "sticky-header",
+      "id": "87c5a8a5-3dfc-4038-94c5-23ec67dc6f72",
       "name": "Info",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -2800,
-        960
+        -1712,
+        864
       ]
     },
     {
@@ -593,16 +585,17 @@
         "width": 220,
         "color": 6
       },
-      "id": "sticky-config",
+      "id": "f1cb0d06-5a1b-42ab-ae8d-536c3c39b889",
       "name": "Config",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -2608,
-        1096
+        -1392,
+        1120
       ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Schedule Trigger": {
       "main": [
@@ -661,7 +654,7 @@
     },
     "Loop": {
       "main": [
-        null,
+        [],
         [
           {
             "node": "Normaliza Telefone",
@@ -773,28 +766,6 @@
         ]
       ]
     },
-    "Formata Mensagem": {
-      "main": [
-        [
-          {
-            "node": "Envia Lista Interativa",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Envia Lista Interativa": {
-      "main": [
-        [
-          {
-            "node": "Salva Histórico",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Salva Histórico": {
       "main": [
         [
@@ -827,14 +798,39 @@
           }
         ]
       ]
+    },
+    "Formata Mensagem": {
+      "main": [
+        [
+          {
+            "node": "Envia Lista Interativa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envia Lista Interativa": {
+      "main": [
+        [
+          {
+            "node": "Salva Histórico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "staticData": null,
-  "tags": [],
-  "triggerCount": 1,
-  "updatedAt": "2026-01-05T20:00:00.000Z",
-  "versionId": "v2-ai-personalized"
+  "versionId": "7e9cb939-b216-4694-b423-d3f4d3a67a50",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "F25P2E7DHeAE8SFv",
+  "tags": []
 }
