@@ -1,5 +1,5 @@
 {
-  "name": "CoreAdapt Availability Flow | v4.1 (Google Calendar)",
+  "name": "CoreAdapt Availability Flow | v4.2 (Preference Filters)",
   "nodes": [
     {
       "parameters": {
@@ -14,7 +14,10 @@
       "name": "Webhook: Check Availability",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-1200, 240],
+      "position": [
+        -1200,
+        240
+      ],
       "webhookId": "availability-check-v4"
     },
     {
@@ -29,7 +32,10 @@
       "name": "Fetch: Calendar Settings",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-976, 240],
+      "position": [
+        -976,
+        240
+      ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
@@ -66,17 +72,23 @@
       "name": "Check: Settings Exist",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [-752, 240]
+      "position": [
+        -752,
+        240
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Preparar parâmetros para busca de disponibilidade\nconst settings = $input.first().json;\nconst inputData = $('Webhook: Check Availability').first().json.body;\n\n// Calcular range de datas\nconst now = new Date();\nconst minNoticeMs = (settings.min_notice_hours || 2) * 60 * 60 * 1000;\nconst timeMin = new Date(now.getTime() + minNoticeMs);\nconst timeMax = new Date(now.getTime() + ((settings.max_days_ahead || 14) * 24 * 60 * 60 * 1000));\n\n// Dias da semana permitidos (converter para índices)\nconst weekdayMap = {\n  'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,\n  'thursday': 4, 'friday': 5, 'saturday': 6\n};\nconst allowedDays = (settings.allowed_weekdays || ['monday','tuesday','wednesday','thursday','friday'])\n  .map(d => weekdayMap[d.toLowerCase()]);\n\n// Horário comercial\nconst [startHour, startMin] = (settings.business_hours_start || '09:00:00').split(':').map(Number);\nconst [endHour, endMin] = (settings.business_hours_end || '18:00:00').split(':').map(Number);\n\n// Preferências de horário para scoring\nlet preferredSlots = settings.preferred_time_slots;\nif (typeof preferredSlots === 'string') {\n  try { preferredSlots = JSON.parse(preferredSlots); } catch(e) { preferredSlots = []; }\n}\n\n// Preferências de dia da semana\nlet preferredWeekdays = settings.preferred_weekdays;\nif (typeof preferredWeekdays === 'string') {\n  try { preferredWeekdays = JSON.parse(preferredWeekdays); } catch(e) { preferredWeekdays = {}; }\n}\n\n// Datas excluídas\nconst excludedDates = (settings.excluded_dates || []).map(d => {\n  const date = new Date(d);\n  return date.toISOString().split('T')[0];\n});\n\nreturn [{\n  json: {\n    settings: {\n      calendar_provider: settings.calendar_provider,\n      calendar_id: settings.calendar_id || 'primary',\n      timezone: settings.timezone || 'America/Sao_Paulo',\n      meeting_duration: settings.meeting_duration_minutes || 45,\n      buffer_before: settings.buffer_before_minutes || 15,\n      buffer_after: settings.buffer_after_minutes || 15,\n      slots_to_offer: settings.slots_to_offer || 3,\n      max_meetings_per_day: settings.max_meetings_per_day || 4,\n      offer_template: settings.slot_offer_template\n    },\n    time_range: {\n      min: timeMin.toISOString(),\n      max: timeMax.toISOString()\n    },\n    business_hours: {\n      start_hour: startHour,\n      start_min: startMin,\n      end_hour: endHour,\n      end_min: endMin\n    },\n    allowed_weekdays: allowedDays,\n    excluded_dates: excludedDates,\n    scoring: {\n      preferred_slots: preferredSlots || [],\n      preferred_weekdays: preferredWeekdays || {}\n    },\n    contact: {\n      id: inputData.contact_id,\n      name: settings.contact_name,\n      whatsapp: settings.contact_whatsapp,\n      anum_score: settings.anum_score\n    },\n    company_id: inputData.company_id\n  }\n}];"
+        "jsCode": "// Preparar parâmetros para busca de disponibilidade\nconst settings = $input.first().json;\nconst inputData = $('Webhook: Check Availability').first().json.body;\n\n// NOVO: Filtros de preferência do lead\nconst filterWeekday = inputData.filter_weekday || null; // 'monday', 'tuesday', etc.\nconst filterPeriod = inputData.filter_period || null; // 'morning', 'afternoon', 'evening'\nconst isFilteredSearch = inputData.is_filtered_search === true;\n\n// Calcular range de datas\nconst now = new Date();\nconst minNoticeMs = (settings.min_notice_hours || 2) * 60 * 60 * 1000;\nconst timeMin = new Date(now.getTime() + minNoticeMs);\n\n// Se busca filtrada, expandir o range para garantir encontrar slots\nconst maxDays = isFilteredSearch ? Math.min((settings.max_days_ahead || 14) + 7, 21) : (settings.max_days_ahead || 14);\nconst timeMax = new Date(now.getTime() + (maxDays * 24 * 60 * 60 * 1000));\n\n// Dias da semana permitidos (converter para índices)\nconst weekdayMap = {\n  'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,\n  'thursday': 4, 'friday': 5, 'saturday': 6,\n  // Portuguese aliases\n  'domingo': 0, 'segunda': 1, 'terca': 2, 'terça': 2, 'quarta': 3,\n  'quinta': 4, 'sexta': 5, 'sabado': 6, 'sábado': 6\n};\nlet allowedDays = (settings.allowed_weekdays || ['monday','tuesday','wednesday','thursday','friday'])\n  .map(d => weekdayMap[d.toLowerCase()]);\n\n// Se tem filtro de dia, sobrepor\nif (filterWeekday) {\n  const filteredDay = weekdayMap[filterWeekday.toLowerCase()];\n  if (filteredDay !== undefined) {\n    // Só permite esse dia (se estiver nos dias permitidos originalmente)\n    if (allowedDays.includes(filteredDay)) {\n      allowedDays = [filteredDay];\n    } else {\n      // Dia não permitido nas configurações\n      allowedDays = [];\n    }\n  }\n}\n\n// Horário comercial\nconst [startHour, startMin] = (settings.business_hours_start || '09:00:00').split(':').map(Number);\nconst [endHour, endMin] = (settings.business_hours_end || '18:00:00').split(':').map(Number);\n\n// Aplicar filtro de período\nlet businessStart = { hour: startHour, min: startMin };\nlet businessEnd = { hour: endHour, min: endMin };\n\nif (filterPeriod) {\n  switch (filterPeriod.toLowerCase()) {\n    case 'morning':\n    case 'manha':\n    case 'manhã':\n      businessStart = { hour: Math.max(startHour, 8), min: startMin };\n      businessEnd = { hour: Math.min(12, endHour), min: 0 };\n      break;\n    case 'afternoon':\n    case 'tarde':\n      businessStart = { hour: Math.max(12, startHour), min: 0 };\n      businessEnd = { hour: Math.min(18, endHour), min: 0 };\n      break;\n    case 'evening':\n    case 'noite':\n      businessStart = { hour: Math.max(18, startHour), min: 0 };\n      businessEnd = { hour: endHour, min: endMin };\n      break;\n  }\n}\n\n// Preferências de horário para scoring\nlet preferredSlots = settings.preferred_time_slots;\nif (typeof preferredSlots === 'string') {\n  try { preferredSlots = JSON.parse(preferredSlots); } catch(e) { preferredSlots = []; }\n}\n\n// Preferências de dia da semana\nlet preferredWeekdays = settings.preferred_weekdays;\nif (typeof preferredWeekdays === 'string') {\n  try { preferredWeekdays = JSON.parse(preferredWeekdays); } catch(e) { preferredWeekdays = {}; }\n}\n\n// Datas excluídas\nconst excludedDates = (settings.excluded_dates || []).map(d => {\n  const date = new Date(d);\n  return date.toISOString().split('T')[0];\n});\n\nreturn [{\n  json: {\n    settings: {\n      calendar_provider: settings.calendar_provider,\n      calendar_id: settings.calendar_id || 'primary',\n      timezone: settings.timezone || 'America/Sao_Paulo',\n      meeting_duration: settings.meeting_duration_minutes || 45,\n      buffer_before: settings.buffer_before_minutes || 15,\n      buffer_after: settings.buffer_after_minutes || 15,\n      slots_to_offer: settings.slots_to_offer || 3,\n      max_meetings_per_day: settings.max_meetings_per_day || 4,\n      offer_template: settings.slot_offer_template\n    },\n    time_range: {\n      min: timeMin.toISOString(),\n      max: timeMax.toISOString()\n    },\n    business_hours: {\n      start_hour: businessStart.hour,\n      start_min: businessStart.min,\n      end_hour: businessEnd.hour,\n      end_min: businessEnd.min\n    },\n    allowed_weekdays: allowedDays,\n    excluded_dates: excludedDates,\n    scoring: {\n      preferred_slots: preferredSlots || [],\n      preferred_weekdays: preferredWeekdays || {}\n    },\n    contact: {\n      id: inputData.contact_id,\n      name: settings.contact_name,\n      whatsapp: settings.contact_whatsapp,\n      anum_score: settings.anum_score\n    },\n    company_id: inputData.company_id,\n    // NOVO: Metadados de filtro\n    filter_applied: {\n      is_filtered: isFilteredSearch,\n      weekday: filterWeekday,\n      period: filterPeriod\n    }\n  }\n}];"
       },
       "id": "avail-prepare-params-001",
       "name": "Prepare: Query Parameters",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-528, 144]
+      "position": [
+        -528,
+        144
+      ]
     },
     {
       "parameters": {
@@ -93,7 +105,10 @@
       "name": "Google Calendar: Check FreeBusy",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
-      "position": [-304, 48],
+      "position": [
+        -304,
+        48
+      ],
       "alwaysOutputData": true,
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -114,7 +129,10 @@
       "name": "Fetch: Existing Meetings (DB)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [-304, 240],
+      "position": [
+        -304,
+        240
+      ],
       "alwaysOutputData": true,
       "credentials": {
         "postgres": {
@@ -131,17 +149,23 @@
       "name": "Merge: Busy Blocks",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-80, 144]
+      "position": [
+        -80,
+        144
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Gerar slots disponíveis considerando Google Calendar + DB\nconst { busy_blocks, params } = $input.first().json;\n\n// Configurações\nconst {\n  settings,\n  time_range,\n  business_hours,\n  allowed_weekdays,\n  excluded_dates,\n  scoring\n} = params;\n\nconst meetingDuration = settings.meeting_duration; // minutos\nconst bufferBefore = settings.buffer_before;\nconst bufferAfter = settings.buffer_after;\n\n// Converter busy_blocks para objetos Date\nconst busyBlocks = busy_blocks.map(b => ({\n  start: new Date(b.start),\n  end: new Date(b.end)\n}));\n\n// Função para verificar se slot conflita com bloco ocupado\nfunction isSlotAvailable(slotStart, slotEnd) {\n  const bufferStart = new Date(slotStart.getTime() - bufferBefore * 60000);\n  const bufferEnd = new Date(slotEnd.getTime() + bufferAfter * 60000);\n  \n  for (const block of busyBlocks) {\n    // Verifica overlap\n    if (bufferStart < block.end && bufferEnd > block.start) {\n      return false;\n    }\n  }\n  return true;\n}\n\n// Função para calcular score do slot\nfunction calculateSlotScore(slotDate) {\n  let score = 100; // Base score\n  \n  // Score por dia da semana\n  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];\n  const dayName = dayNames[slotDate.getDay()];\n  const dayScore = (scoring.preferred_weekdays || {})[dayName] || 1;\n  score += dayScore * 10;\n  \n  // Score por horário preferido\n  const slotMinutes = slotDate.getHours() * 60 + slotDate.getMinutes();\n  \n  for (const pref of (scoring.preferred_slots || [])) {\n    if (!pref.start || !pref.end) continue;\n    const [prefStartH, prefStartM] = pref.start.split(':').map(Number);\n    const [prefEndH, prefEndM] = pref.end.split(':').map(Number);\n    const prefStartMin = prefStartH * 60 + prefStartM;\n    const prefEndMin = prefEndH * 60 + prefEndM;\n    \n    if (slotMinutes >= prefStartMin && slotMinutes < prefEndMin) {\n      const priorityScore = { high: 30, medium: 20, low: 10 };\n      score += priorityScore[pref.priority] || 10;\n      break;\n    }\n  }\n  \n  // Bonus para slots mais próximos (urgência)\n  const daysFromNow = (slotDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000);\n  score += Math.max(0, 20 - daysFromNow * 2);\n  \n  return score;\n}\n\n// Gerar todos os slots possíveis\nconst availableSlots = [];\nconst startDate = new Date(time_range.min);\nconst endDate = new Date(time_range.max);\n\n// Iterar por cada dia\nlet currentDay = new Date(startDate);\ncurrentDay.setHours(0, 0, 0, 0);\n\nwhile (currentDay <= endDate) {\n  const dayOfWeek = currentDay.getDay();\n  const dateStr = currentDay.toISOString().split('T')[0];\n  \n  // Verificar se dia é permitido\n  if (!allowed_weekdays.includes(dayOfWeek)) {\n    currentDay.setDate(currentDay.getDate() + 1);\n    continue;\n  }\n  \n  // Verificar se data está excluída\n  if (excluded_dates.includes(dateStr)) {\n    currentDay.setDate(currentDay.getDate() + 1);\n    continue;\n  }\n  \n  // Gerar slots para o dia (a cada 30 minutos)\n  const dayStart = new Date(currentDay);\n  dayStart.setHours(business_hours.start_hour, business_hours.start_min, 0, 0);\n  \n  const dayEnd = new Date(currentDay);\n  dayEnd.setHours(business_hours.end_hour, business_hours.end_min, 0, 0);\n  // Subtrair duração da reunião do final\n  dayEnd.setMinutes(dayEnd.getMinutes() - meetingDuration);\n  \n  let slotStart = new Date(dayStart);\n  \n  while (slotStart <= dayEnd && slotStart <= endDate) {\n    // Pular se slot é antes do tempo mínimo\n    if (slotStart <= startDate) {\n      slotStart = new Date(slotStart.getTime() + 30 * 60000);\n      continue;\n    }\n    \n    const slotEnd = new Date(slotStart.getTime() + meetingDuration * 60000);\n    \n    if (isSlotAvailable(slotStart, slotEnd)) {\n      const score = calculateSlotScore(slotStart);\n      availableSlots.push({\n        datetime: slotStart.toISOString(),\n        end: slotEnd.toISOString(),\n        score: score\n      });\n    }\n    \n    // Próximo slot (a cada 30 minutos)\n    slotStart = new Date(slotStart.getTime() + 30 * 60000);\n  }\n  \n  currentDay.setDate(currentDay.getDate() + 1);\n}\n\n// Ordenar por score (maior primeiro) e pegar os melhores\nconst sortedSlots = availableSlots\n  .sort((a, b) => b.score - a.score)\n  .slice(0, settings.slots_to_offer);\n\n// Reordenar cronologicamente para apresentação\nsortedSlots.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));\n\n// Formatar labels para exibição\nconst weekdaysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];\nconst monthsPt = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];\n\nconst formattedSlots = sortedSlots.map((slot, idx) => {\n  const dt = new Date(slot.datetime);\n  // Ajustar para timezone São Paulo (UTC-3)\n  const localDt = new Date(dt.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\n  \n  const dayName = weekdaysPt[localDt.getDay()];\n  const day = localDt.getDate();\n  const month = monthsPt[localDt.getMonth()];\n  const hour = localDt.getHours().toString().padStart(2, '0');\n  const min = localDt.getMinutes().toString().padStart(2, '0');\n  \n  return {\n    index: idx + 1,\n    datetime: slot.datetime,\n    end: slot.end,\n    score: slot.score,\n    label: `${dayName}, ${day}/${month} às ${hour}:${min}`\n  };\n});\n\n// Construir mensagem de oferta\nlet slotsText = '';\nformattedSlots.forEach((slot, idx) => {\n  const emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][idx] || `${idx + 1}.`;\n  slotsText += `${emoji} ${slot.label}\\n`;\n});\n\nconst offerMessage = (settings.offer_template || `Legal! Deixa eu ver a agenda do Francisco...\\n\\nTemos essas opções nos próximos dias:\\n{slots}\\nQual funciona melhor pra você? (responde 1, 2 ou 3)`)\n  .replace('{slots}', slotsText.trim());\n\nreturn [{\n  json: {\n    success: true,\n    slots_found: formattedSlots.length,\n    slots: formattedSlots,\n    offer_message: offerMessage,\n    contact: params.contact,\n    company_id: params.company_id,\n    settings: {\n      timezone: settings.timezone,\n      meeting_duration: meetingDuration,\n      offer_expiration_hours: 24\n    },\n    metadata: {\n      total_slots_evaluated: availableSlots.length,\n      busy_blocks_count: busyBlocks.length,\n      gcal_events: $input.first().json.gcal_events_count,\n      db_meetings: $input.first().json.db_meetings_count,\n      time_range: time_range\n    }\n  }\n}];"
+        "jsCode": "// Gerar slots disponíveis considerando Google Calendar + DB\nconst { busy_blocks, params } = $input.first().json;\n\n// Configurações\nconst {\n  settings,\n  time_range,\n  business_hours,\n  allowed_weekdays,\n  excluded_dates,\n  scoring,\n  filter_applied\n} = params;\n\nconst meetingDuration = settings.meeting_duration; // minutos\nconst bufferBefore = settings.buffer_before;\nconst bufferAfter = settings.buffer_after;\n\n// Converter busy_blocks para objetos Date\nconst busyBlocks = busy_blocks.map(b => ({\n  start: new Date(b.start),\n  end: new Date(b.end)\n}));\n\n// Função para verificar se slot conflita com bloco ocupado\nfunction isSlotAvailable(slotStart, slotEnd) {\n  const bufferStart = new Date(slotStart.getTime() - bufferBefore * 60000);\n  const bufferEnd = new Date(slotEnd.getTime() + bufferAfter * 60000);\n\n  for (const block of busyBlocks) {\n    // Verifica overlap\n    if (bufferStart < block.end && bufferEnd > block.start) {\n      return false;\n    }\n  }\n  return true;\n}\n\n// Função para calcular score do slot\nfunction calculateSlotScore(slotDate) {\n  let score = 100; // Base score\n\n  // Score por dia da semana\n  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];\n  const dayName = dayNames[slotDate.getDay()];\n  const dayScore = (scoring.preferred_weekdays || {})[dayName] || 1;\n  score += dayScore * 10;\n\n  // Score por horário preferido\n  const slotMinutes = slotDate.getHours() * 60 + slotDate.getMinutes();\n\n  for (const pref of (scoring.preferred_slots || [])) {\n    if (!pref.start || !pref.end) continue;\n    const [prefStartH, prefStartM] = pref.start.split(':').map(Number);\n    const [prefEndH, prefEndM] = pref.end.split(':').map(Number);\n    const prefStartMin = prefStartH * 60 + prefStartM;\n    const prefEndMin = prefEndH * 60 + prefEndM;\n\n    if (slotMinutes >= prefStartMin && slotMinutes < prefEndMin) {\n      const priorityScore = { high: 30, medium: 20, low: 10 };\n      score += priorityScore[pref.priority] || 10;\n      break;\n    }\n  }\n\n  // Bonus para slots mais próximos (urgência)\n  const daysFromNow = (slotDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000);\n  score += Math.max(0, 20 - daysFromNow * 2);\n\n  return score;\n}\n\n// Gerar todos os slots possíveis\nconst availableSlots = [];\nconst startDate = new Date(time_range.min);\nconst endDate = new Date(time_range.max);\n\n// Se não há dias permitidos (filtro inválido), retornar vazio\nif (allowed_weekdays.length === 0) {\n  return [{\n    json: {\n      success: false,\n      slots_found: 0,\n      slots: [],\n      offer_message: filter_applied.is_filtered\n        ? 'Infelizmente não temos disponibilidade nesse dia. Quer que eu veja outros horários?'\n        : 'Não há horários disponíveis nos próximos dias',\n      contact: params.contact,\n      company_id: params.company_id,\n      filter_applied: filter_applied,\n      metadata: { reason: 'no_allowed_days' }\n    }\n  }];\n}\n\n// Iterar por cada dia\nlet currentDay = new Date(startDate);\ncurrentDay.setHours(0, 0, 0, 0);\n\nwhile (currentDay <= endDate) {\n  const dayOfWeek = currentDay.getDay();\n  const dateStr = currentDay.toISOString().split('T')[0];\n\n  // Verificar se dia é permitido\n  if (!allowed_weekdays.includes(dayOfWeek)) {\n    currentDay.setDate(currentDay.getDate() + 1);\n    continue;\n  }\n\n  // Verificar se data está excluída\n  if (excluded_dates.includes(dateStr)) {\n    currentDay.setDate(currentDay.getDate() + 1);\n    continue;\n  }\n\n  // Gerar slots para o dia (a cada 30 minutos)\n  const dayStart = new Date(currentDay);\n  dayStart.setHours(business_hours.start_hour, business_hours.start_min, 0, 0);\n\n  const dayEnd = new Date(currentDay);\n  dayEnd.setHours(business_hours.end_hour, business_hours.end_min, 0, 0);\n  // Subtrair duração da reunião do final\n  dayEnd.setMinutes(dayEnd.getMinutes() - meetingDuration);\n\n  let slotStart = new Date(dayStart);\n\n  while (slotStart <= dayEnd && slotStart <= endDate) {\n    // Pular se slot é antes do tempo mínimo\n    if (slotStart <= startDate) {\n      slotStart = new Date(slotStart.getTime() + 30 * 60000);\n      continue;\n    }\n\n    const slotEnd = new Date(slotStart.getTime() + meetingDuration * 60000);\n\n    if (isSlotAvailable(slotStart, slotEnd)) {\n      const score = calculateSlotScore(slotStart);\n      availableSlots.push({\n        datetime: slotStart.toISOString(),\n        end: slotEnd.toISOString(),\n        score: score\n      });\n    }\n\n    // Próximo slot (a cada 30 minutos)\n    slotStart = new Date(slotStart.getTime() + 30 * 60000);\n  }\n\n  currentDay.setDate(currentDay.getDate() + 1);\n}\n\n// Ordenar por score (maior primeiro) e pegar os melhores\nconst sortedSlots = availableSlots\n  .sort((a, b) => b.score - a.score)\n  .slice(0, settings.slots_to_offer);\n\n// Reordenar cronologicamente para apresentação\nsortedSlots.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));\n\n// Formatar labels para exibição\nconst weekdaysPt = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];\nconst monthsPt = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];\n\nconst formattedSlots = sortedSlots.map((slot, idx) => {\n  const dt = new Date(slot.datetime);\n  // Ajustar para timezone São Paulo (UTC-3)\n  const localDt = new Date(dt.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));\n\n  const dayName = weekdaysPt[localDt.getDay()];\n  const day = localDt.getDate();\n  const month = monthsPt[localDt.getMonth()];\n  const hour = localDt.getHours().toString().padStart(2, '0');\n  const min = localDt.getMinutes().toString().padStart(2, '0');\n\n  return {\n    index: idx + 1,\n    datetime: slot.datetime,\n    end: slot.end,\n    score: slot.score,\n    label: `${dayName}, ${day}/${month} às ${hour}:${min}`\n  };\n});\n\n// Construir mensagem de oferta - CONTEXTUAL se foi busca filtrada\nlet slotsText = '';\nformattedSlots.forEach((slot, idx) => {\n  const emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][idx] || `${idx + 1}.`;\n  slotsText += `${emoji} ${slot.label}\\n`;\n});\n\nlet offerMessage = '';\n\nif (filter_applied.is_filtered && formattedSlots.length > 0) {\n  // Mensagem contextual para busca filtrada\n  const periodPt = {\n    'morning': 'de manhã',\n    'manha': 'de manhã',\n    'manhã': 'de manhã',\n    'afternoon': 'à tarde',\n    'tarde': 'à tarde',\n    'evening': 'à noite',\n    'noite': 'à noite'\n  };\n  const weekdayPt = {\n    'monday': 'segunda',\n    'segunda': 'segunda',\n    'tuesday': 'terça',\n    'terca': 'terça',\n    'terça': 'terça',\n    'wednesday': 'quarta',\n    'quarta': 'quarta',\n    'thursday': 'quinta',\n    'quinta': 'quinta',\n    'friday': 'sexta',\n    'sexta': 'sexta'\n  };\n\n  let contextPhrase = 'Achei essas opções';\n  if (filter_applied.weekday && filter_applied.period) {\n    contextPhrase = `${weekdayPt[filter_applied.weekday] || filter_applied.weekday} ${periodPt[filter_applied.period] || filter_applied.period}? Tenho essas opções`;\n  } else if (filter_applied.weekday) {\n    contextPhrase = `${weekdayPt[filter_applied.weekday] || filter_applied.weekday}? Tenho essas opções`;\n  } else if (filter_applied.period) {\n    contextPhrase = `${periodPt[filter_applied.period] || filter_applied.period}? Tenho essas opções`;\n  }\n\n  offerMessage = `${contextPhrase}:\\n\\n${slotsText.trim()}\\n\\nQual funciona pra você?`;\n} else if (formattedSlots.length > 0) {\n  // Mensagem padrão\n  offerMessage = (settings.offer_template || `Legal! Deixa eu ver a agenda do Francisco...\\n\\nTemos essas opções nos próximos dias:\\n{slots}\\nQual funciona melhor pra você? (responde 1, 2 ou 3)`)\n    .replace('{slots}', slotsText.trim());\n} else if (filter_applied.is_filtered) {\n  // Busca filtrada sem resultados\n  offerMessage = 'Não achei horários disponíveis com essa preferência. Quer que eu busque em outros dias/horários?';\n} else {\n  offerMessage = 'Puxa, a agenda está bem cheia nos próximos dias. Pode falar direto com o Pasteur: 5585999855443';\n}\n\nreturn [{\n  json: {\n    success: formattedSlots.length > 0,\n    slots_found: formattedSlots.length,\n    slots: formattedSlots,\n    offer_message: offerMessage,\n    contact: params.contact,\n    company_id: params.company_id,\n    settings: {\n      timezone: settings.timezone,\n      meeting_duration: meetingDuration,\n      offer_expiration_hours: 24\n    },\n    filter_applied: filter_applied,\n    metadata: {\n      total_slots_evaluated: availableSlots.length,\n      busy_blocks_count: busyBlocks.length,\n      gcal_events: $input.first().json.gcal_events_count,\n      db_meetings: $input.first().json.db_meetings_count,\n      time_range: time_range\n    }\n  }\n}];"
       },
       "id": "avail-generate-slots-001",
       "name": "Generate: Available Slots",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [144, 144]
+      "position": [
+        144,
+        144
+      ]
     },
     {
       "parameters": {
@@ -171,7 +195,10 @@
       "name": "Check: Slots Found",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [368, 144]
+      "position": [
+        368,
+        144
+      ]
     },
     {
       "parameters": {
@@ -185,7 +212,10 @@
       "name": "Save: Slot Offer",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [592, 48],
+      "position": [
+        592,
+        48
+      ],
       "credentials": {
         "postgres": {
           "id": "HCvX4Ypw2MiRDsdm",
@@ -205,7 +235,10 @@
       "name": "Update: Conversation State",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
-      "position": [816, 48],
+      "position": [
+        816,
+        48
+      ],
       "credentials": {
         "postgres": {
           "id": "HCvX4Ypw2MiRDsdm",
@@ -221,7 +254,10 @@
       "name": "Prepare: Success Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1040, 48]
+      "position": [
+        1040,
+        48
+      ]
     },
     {
       "parameters": {
@@ -233,7 +269,10 @@
       "name": "Respond: Slots Available",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
-      "position": [1264, 48]
+      "position": [
+        1264,
+        48
+      ]
     },
     {
       "parameters": {
@@ -245,7 +284,10 @@
       "name": "Respond: No Slots",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
-      "position": [592, 240]
+      "position": [
+        592,
+        240
+      ]
     },
     {
       "parameters": {
@@ -257,7 +299,10 @@
       "name": "Respond: Settings Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.2,
-      "position": [-528, 336]
+      "position": [
+        -528,
+        336
+      ]
     }
   ],
   "pinData": {},
@@ -418,7 +463,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "avail-flow-v4.1-gcal",
+  "versionId": "avail-flow-v4.2-filters",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
