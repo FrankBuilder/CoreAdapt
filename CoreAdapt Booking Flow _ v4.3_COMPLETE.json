@@ -1,0 +1,703 @@
+{
+  "name": "CoreAdapt Booking Flow | v4.3 (Fixed Complete)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-booking",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "book-webhook-001",
+      "name": "Webhook: Create Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1400,
+        240
+      ],
+      "webhookId": "create-booking-v4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Buscar oferta pendente com dados do contato e empresa\nSELECT\n  o.*,\n  c.full_name AS contact_name,\n  c.whatsapp AS contact_whatsapp,\n  c.email AS contact_email,\n  c.phone_number AS contact_phone,\n  ls.total_score AS anum_score,\n  ls.qualification_stage,\n  ls.main_pain_category_id,\n  pc.category_label_pt AS pain_category,\n  co.evolution_api_url,\n  co.evolution_instance,\n  co.evolution_api_key,\n  cs.timezone AS calendar_timezone,\n  cs.meeting_duration_minutes,\n  cs.booking_confirmation_template\nFROM corev4_pending_slot_offers o\nINNER JOIN corev4_contacts c ON o.contact_id = c.id\nINNER JOIN corev4_companies co ON o.company_id = co.id\nLEFT JOIN corev4_lead_state ls ON ls.contact_id = c.id\nLEFT JOIN corev4_pain_categories pc ON pc.id = ls.main_pain_category_id\nLEFT JOIN corev4_calendar_settings cs ON cs.company_id = o.company_id\nWHERE o.id = $1\n  AND o.status IN ('pending', 'selected', 'needs_confirmation')",
+        "options": {
+          "queryReplacement": "={{ [$json.body.offer_id] }}"
+        }
+      },
+      "id": "book-fetch-offer-001",
+      "name": "Fetch: Slot Offer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -1176,
+        240
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "offer-exists",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "book-check-offer-001",
+      "name": "Check: Offer Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -952,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const offer = $input.first().json;\nconst input = $('Webhook: Create Booking').first().json.body;\n\n// Determinar qual slot foi selecionado\nconst selectedSlot = input.selected_slot || offer.selected_slot;\n\nif (!selectedSlot || selectedSlot < 1 || selectedSlot > 5) {\n  return [{\n    json: {\n      error: true,\n      error_code: 'invalid_slot',\n      message: 'Slot inválido. Deve ser entre 1 e 5.'\n    }\n  }];\n}\n\n// Obter datetime do slot selecionado\nconst slotKey = `slot_${selectedSlot}_datetime`;\nconst slotLabelKey = `slot_${selectedSlot}_label`;\nconst selectedDatetime = offer[slotKey];\nconst selectedLabel = offer[slotLabelKey];\n\nif (!selectedDatetime) {\n  return [{\n    json: {\n      error: true,\n      error_code: 'slot_not_found',\n      message: `Slot ${selectedSlot} não existe nesta oferta.`\n    }\n  }];\n}\n\n// Verificar se oferta não expirou\nconst expiresAt = new Date(offer.expires_at);\nif (expiresAt < new Date()) {\n  return [{\n    json: {\n      error: true,\n      error_code: 'offer_expired',\n      message: 'Esta oferta de horários expirou. Vamos buscar novos horários.'\n    }\n  }];\n}\n\n// Verificar se slot ainda está no futuro\nconst slotDate = new Date(selectedDatetime);\nif (slotDate < new Date()) {\n  return [{\n    json: {\n      error: true,\n      error_code: 'slot_in_past',\n      message: 'Este horário já passou. Vamos buscar novos horários.'\n    }\n  }];\n}\n\n// Calcular end time\nconst duration = offer.meeting_duration_minutes || 45;\nconst endTime = new Date(slotDate.getTime() + duration * 60000);\n\nreturn [{\n  json: {\n    error: false,\n    offer_id: offer.id,\n    contact_id: offer.contact_id,\n    company_id: offer.company_id,\n    selected_slot: selectedSlot,\n    selected_datetime: selectedDatetime,\n    selected_end: endTime.toISOString(),\n    selected_label: selectedLabel,\n    duration_minutes: duration,\n    timezone: offer.calendar_timezone || 'America/Sao_Paulo',\n    contact: {\n      id: offer.contact_id,\n      name: offer.contact_name,\n      whatsapp: offer.contact_whatsapp,\n      email: offer.contact_email,\n      phone: offer.contact_phone\n    },\n    evolution: {\n      api_url: offer.evolution_api_url,\n      instance: offer.evolution_instance,\n      api_key: offer.evolution_api_key\n    },\n    qualification: {\n      anum_score: offer.anum_score,\n      stage: offer.qualification_stage,\n      pain_category: offer.pain_category\n    },\n    confirmation_template: offer.booking_confirmation_template\n  }\n}];"
+      },
+      "id": "book-validate-slot-001",
+      "name": "Validate: Selected Slot",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -728,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "no-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "book-check-valid-001",
+      "name": "Check: Slot Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -504,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Double-check: verificar se slot ainda está disponível\nSELECT COUNT(*) AS conflicts\nFROM corev4_scheduled_meetings\nWHERE company_id = $1\n  AND status IN ('scheduled', 'confirmed')\n  AND (\n    -- Overlap check: novo meeting começaria durante outro\n    (meeting_date <= $2::timestamptz AND meeting_end_date > $2::timestamptz)\n    OR\n    -- Overlap check: novo meeting terminaria durante outro\n    (meeting_date < $3::timestamptz AND meeting_end_date >= $3::timestamptz)\n    OR\n    -- Overlap check: novo meeting contém outro\n    (meeting_date >= $2::timestamptz AND meeting_end_date <= $3::timestamptz)\n  )",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.company_id,\n  $json.selected_datetime,\n  $json.selected_end\n] }}"
+        }
+      },
+      "id": "book-check-conflicts-001",
+      "name": "Check: Slot Still Available",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -280,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "no-conflicts",
+              "leftValue": "={{ $json.conflicts }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "book-check-no-conflicts-001",
+      "name": "Check: No Conflicts",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -56,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $('Fetch: Calendar Settings').first()?.json?.calendar_id || 'primary' }}",
+          "mode": "id"
+        },
+        "start": "={{ $json.selected_datetime }}",
+        "end": "={{ $json.selected_end }}",
+        "additionalFields": {
+          "summary": "=Mesa de Clareza - {{ $json.contact.name }}",
+          "description": "=📋 **Mesa de Clareza com {{ $json.contact.name }}**\n\n📱 WhatsApp: {{ $json.contact.whatsapp }}\n📧 Email: {{ $json.contact.email || 'Não informado' }}\n\n🎯 ANUM Score: {{ $json.qualification.anum_score || 'N/A' }}/100\n📊 Stage: {{ $json.qualification.stage || 'N/A' }}\n💬 Dor: {{ $json.qualification.pain_category || 'Não categorizada' }}\n\n✅ Agendado via CoreAdapt (Autônomo)",
+          "attendees": [],
+          "conferenceDataVersion": 1,
+          "guestsCanModify": false,
+          "location": "Google Meet (link no convite)",
+          "sendUpdates": "all"
+        },
+        "options": {
+          "conferenceData": {
+            "createRequest": {
+              "requestId": "={{ 'coreadapt-' + Date.now().toString(36) + '-' + Math.random().toString(36).substr(2, 9) }}",
+              "conferenceSolutionKey": {
+                "type": "hangoutsMeet"
+              }
+            }
+          },
+          "timeZone": "={{ $json.timezone || 'America/Sao_Paulo' }}"
+        }
+      },
+      "id": "book-create-gcal-event-001",
+      "name": "Create: Google Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        168,
+        -48
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "Z3KjZIHTIY3UpKvl",
+          "name": "Google Calendar | CoreConnect"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Inserir reunião agendada\nINSERT INTO corev4_scheduled_meetings (\n  contact_id,\n  company_id,\n  meeting_date,\n  meeting_end_date,\n  meeting_duration_minutes,\n  meeting_type,\n  meeting_timezone,\n  status,\n  cal_booking_uid,\n  cal_event_title,\n  cal_meeting_url,\n  cal_attendee_email,\n  cal_attendee_name,\n  anum_score_at_booking,\n  qualification_stage,\n  pain_category,\n  created_by\n) VALUES (\n  $1, -- contact_id\n  $2, -- company_id\n  $3::timestamptz, -- meeting_date\n  $4::timestamptz, -- meeting_end_date\n  $5, -- duration\n  'mesa_clareza',\n  $6, -- timezone\n  'scheduled',\n  $7, -- meeting_id como booking_uid\n  'Mesa de Clareza - ' || $8, -- title com nome\n  $9, -- meeting_url\n  $10, -- email\n  $8, -- attendee_name\n  $11, -- anum_score\n  $12, -- qualification_stage\n  $13, -- pain_category\n  'autonomous_agent'\n)\nRETURNING id AS meeting_record_id, meeting_date, meeting_end_date",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.contact_id,\n  $json.company_id,\n  $json.selected_datetime,\n  $json.selected_end,\n  $json.duration_minutes,\n  $json.timezone,\n  $json.gcal_event_id || $json.meeting_id,\n  $json.contact.name,\n  $json.meeting_url,\n  $json.contact.email,\n  $json.qualification.anum_score || 0,\n  $json.qualification.stage,\n  $json.qualification.pain_category\n] }}"
+        }
+      },
+      "id": "book-save-meeting-001",
+      "name": "Save: Meeting Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        392,
+        -48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Atualizar oferta como confirmada\nUPDATE corev4_pending_slot_offers\nSET\n  status = 'confirmed',\n  selected_slot = $2,\n  selected_at = NOW(),\n  booking_id = $3,\n  booking_created_at = NOW(),\n  updated_at = NOW()\nWHERE id = $1;\n\n-- Cancelar follow-ups pendentes\nUPDATE corev4_followup_executions\nSET\n  should_send = false,\n  decision_reason = 'meeting_scheduled_autonomous',\n  updated_at = NOW()\nWHERE contact_id = $4\n  AND executed = false\n  AND should_send = true;\n\n-- Resetar estado da conversa\nSELECT reset_conversation_state($4, $5) AS state_reset;",
+        "options": {
+          "queryReplacement": "={{ [\n  $('Validate: Selected Slot').first().json.offer_id,\n  $('Validate: Selected Slot').first().json.selected_slot,\n  $json.meeting_record_id,\n  $('Validate: Selected Slot').first().json.contact_id,\n  $('Validate: Selected Slot').first().json.company_id\n] }}"
+        }
+      },
+      "id": "book-update-offer-001",
+      "name": "Update: Offer Status",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        616,
+        -48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const validation = $('Validate: Selected Slot').first().json;\nconst meetingRecord = $('Save: Meeting Record').first().json;\nconst eventData = $('Extract: Event Data').first().json;\n\n// Formatar data/hora para mensagem\nconst meetingDate = new Date(validation.selected_datetime);\n\nconst formatter = new Intl.DateTimeFormat('pt-BR', {\n  timeZone: validation.timezone || 'America/Sao_Paulo',\n  weekday: 'long',\n  day: '2-digit',\n  month: 'long',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\nconst formattedDate = formatter.format(meetingDate);\n\n// Separar data e hora\nconst parts = formattedDate.split(' às ');\nconst dateStr = parts[0] || formattedDate;\nconst timeStr = parts[1] || '';\n\n// Usar template customizado ou padrão\nlet confirmationMessage = validation.confirmation_template || `✅ Perfeito! Sua Mesa de Clareza está confirmada:\n\n📅 {date}\n⏰ {time}\n🔗 Link: {meeting_url}\n\nTe mando lembretes 24h e 1h antes.\n\nAté lá! 🚀`;\n\nconfirmationMessage = confirmationMessage\n  .replace('{date}', dateStr)\n  .replace('{time}', timeStr)\n  .replace('{meeting_url}', eventData.meeting_url)\n  .replace('{contact_name}', validation.contact.name);\n\nreturn [{\n  json: {\n    confirmation_message: confirmationMessage,\n    whatsapp: validation.contact.whatsapp,\n    evolution: validation.evolution,\n    meeting: {\n      id: meetingRecord.meeting_record_id,\n      datetime: validation.selected_datetime,\n      end: validation.selected_end,\n      url: eventData.meeting_url,\n      formatted_date: dateStr,\n      formatted_time: timeStr\n    },\n    contact: validation.contact\n  }\n}];"
+      },
+      "id": "book-prepare-confirm-001",
+      "name": "Prepare: Confirmation Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        840,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution.api_url }}/message/sendText/{{ $json.evolution.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"number\": $json.whatsapp.replace('@s.whatsapp.net', ''),\n  \"text\": $json.confirmation_message\n} }}",
+        "options": {}
+      },
+      "id": "book-send-confirm-001",
+      "name": "Send: Confirmation to Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1064,
+        -48
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar alerta para Francisco\nconst confirmData = $('Prepare: Confirmation Message').first().json;\nconst validation = $('Validate: Selected Slot').first().json;\n\nconst alertMessage = `🔔 Nova Mesa de Clareza Agendada (Autônomo)\n\n👤 Lead: ${validation.contact.name}\n📱 WhatsApp: ${validation.contact.whatsapp}\n\n📅 ${confirmData.meeting.formatted_date}\n⏰ ${confirmData.meeting.formatted_time}\n🔗 ${confirmData.meeting.url}\n\n🎯 ANUM: ${validation.qualification.anum_score || 'N/A'}/100\n📊 Stage: ${validation.qualification.stage || 'N/A'}\n💬 Dor: ${validation.qualification.pain_category || 'Não categorizada'}\n\n✅ Agendado pelo agente (sem Cal.com)`;\n\nreturn [{\n  json: {\n    alert_message: alertMessage,\n    evolution: validation.evolution\n  }\n}];"
+      },
+      "id": "book-prepare-alert-001",
+      "name": "Prepare: Pasteur Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1288,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.evolution.api_url }}/message/sendText/{{ $json.evolution.instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $json.evolution.api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"number\": \"5585999855443\",\n  \"text\": $json.alert_message\n} }}",
+        "options": {}
+      },
+      "id": "book-send-alert-001",
+      "name": "Send: Alert to Pasteur",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1512,
+        -48
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: true,\n  booking_created: true,\n  meeting_id: $('Save: Meeting Record').first().json.meeting_record_id,\n  meeting_datetime: $('Validate: Selected Slot').first().json.selected_datetime,\n  meeting_url: $('Extract: Event Data').first().json.meeting_url,\n  gcal_event_id: $('Extract: Event Data').first().json.gcal_event_id,\n  confirmation_sent: true,\n  contact: $('Validate: Selected Slot').first().json.contact\n} }}",
+        "options": {}
+      },
+      "id": "book-respond-success-001",
+      "name": "Respond: Booking Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1736,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: false,\n  error: 'slot_conflict',\n  message: 'Puxa, esse horário acabou de ser reservado! Vamos ver outras opções?',\n  should_retry: true,\n  contact_id: $('Validate: Selected Slot').first().json.contact_id,\n  company_id: $('Validate: Selected Slot').first().json.company_id\n} }}",
+        "options": {}
+      },
+      "id": "book-respond-conflict-001",
+      "name": "Respond: Slot Conflict",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        168,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: false,\n  error: $json.error_code,\n  message: $json.message,\n  should_retry: $json.error_code === 'offer_expired' || $json.error_code === 'slot_in_past'\n} }}",
+        "options": {}
+      },
+      "id": "book-respond-invalid-001",
+      "name": "Respond: Invalid Slot",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -280,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: false,\n  error: 'offer_not_found',\n  message: 'Oferta de horários não encontrada ou já processada.',\n  should_retry: true\n} }}",
+        "options": {}
+      },
+      "id": "book-respond-not-found-001",
+      "name": "Respond: Offer Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -728,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT calendar_id, timezone FROM corev4_calendar_settings WHERE company_id = $1 AND is_active = true",
+        "options": {
+          "queryReplacement": "={{ [$json.company_id] }}"
+        }
+      },
+      "id": "book-fetch-cal-settings-001",
+      "name": "Fetch: Calendar Settings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -56,
+        -144
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const validationData = $('Validate: Selected Slot').first().json;\nconst gcalEvent = $input.first().json;\n\n// Extrair meeting URL do Google Calendar event\nlet meetingUrl = '';\nlet meetingId = '';\n\n// Tentar extrair do conferenceData (Google Meet)\nif (gcalEvent.conferenceData && gcalEvent.conferenceData.entryPoints) {\n  const videoEntry = gcalEvent.conferenceData.entryPoints.find(e => e.entryPointType === 'video');\n  if (videoEntry) {\n    meetingUrl = videoEntry.uri;\n  }\n}\n\n// Fallback: usar hangoutLink se disponível\nif (!meetingUrl && gcalEvent.hangoutLink) {\n  meetingUrl = gcalEvent.hangoutLink;\n}\n\n// Extrair ID do evento\nmeetingId = gcalEvent.id || 'gcal-' + Date.now().toString(36);\n\n// Se ainda não tiver URL, criar placeholder (não deveria acontecer)\nif (!meetingUrl) {\n  meetingUrl = `https://meet.google.com/lookup/${meetingId}`;\n  console.log('AVISO: Não foi possível extrair Google Meet URL do evento');\n}\n\nreturn [{\n  json: {\n    ...validationData,\n    meeting_id: meetingId,\n    meeting_url: meetingUrl,\n    gcal_event_id: gcalEvent.id,\n    gcal_html_link: gcalEvent.htmlLink,\n    created_via: 'autonomous_booking_gcal'\n  }\n}];"
+      },
+      "id": "book-extract-event-001",
+      "name": "Extract: Event Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        -48
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "booking-subworkflow-trigger",
+      "name": "Subworkflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        0
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Create Booking": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Slot Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Slot Offer": {
+      "main": [
+        [
+          {
+            "node": "Check: Offer Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Offer Exists": {
+      "main": [
+        [
+          {
+            "node": "Validate: Selected Slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Offer Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate: Selected Slot": {
+      "main": [
+        [
+          {
+            "node": "Check: Slot Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Slot Valid": {
+      "main": [
+        [
+          {
+            "node": "Check: Slot Still Available",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Invalid Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Slot Still Available": {
+      "main": [
+        [
+          {
+            "node": "Check: No Conflicts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: No Conflicts": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Calendar Settings",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Slot Conflict",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: Meeting Record": {
+      "main": [
+        [
+          {
+            "node": "Update: Offer Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Offer Status": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Confirmation Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Confirmation Message": {
+      "main": [
+        [
+          {
+            "node": "Send: Confirmation to Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Confirmation to Lead": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Pasteur Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Pasteur Alert": {
+      "main": [
+        [
+          {
+            "node": "Send: Alert to Pasteur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Alert to Pasteur": {
+      "main": [
+        [
+          {
+            "node": "Respond: Booking Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Calendar Settings": {
+      "main": [
+        [
+          {
+            "node": "Create: Google Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create: Google Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Extract: Event Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract: Event Data": {
+      "main": [
+        [
+          {
+            "node": "Save: Meeting Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subworkflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Slot Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "booking-flow-v4.3-fixed-complete",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "CoreAdaptBookingV4",
+  "tags": [
+    {
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}
