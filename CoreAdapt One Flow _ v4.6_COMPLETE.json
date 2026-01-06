@@ -766,8 +766,18 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $('Prepare: Chat Context').item.json.phone_number, presence: 'recording' }) }}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Prepare: Chat Context').item.json.phone_number }}"
+            },
+            {
+              "name": "presence",
+              "value": "recording"
+            }
+          ]
+        },
         "options": {
           "timeout": 5000
         }
@@ -1418,8 +1428,18 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ number: $('Prepare: Chat Context').item.json.phone_number, presence: 'composing' }) }}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Prepare: Chat Context').item.json.phone_number }}"
+            },
+            {
+              "name": "presence",
+              "value": "composing"
+            }
+          ]
+        },
         "options": {
           "timeout": 5000
         }
