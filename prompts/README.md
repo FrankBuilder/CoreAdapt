@@ -75,6 +75,21 @@ Francisco Pasteur **destrava negócios**. Não vende software, ferramentas ou IA
 
 | Data | Versão | Mudança |
 |------|--------|---------|
-| Jan 2026 | SYNC v3.0 | Corrigido scoring (média 0-100, não soma 0-400) |
-| Jan 2026 | FRANK v8.0 | Alinhamento total com Manifesto |
-| Jan 2026 | SENTINEL v3.0 | Alinhamento total com Manifesto |
+| Jan 2026 | FRANK v8.0 | Versão completa com tabelas, exemplos, regras detalhadas |
+| Jan 2026 | SENTINEL v3.0 | Versão completa com templates, casos especiais, ciclo de reengajamento |
+| Jan 2026 | SYNC v3.0 | Versão completa com scoring correto (média 0-100), pain categories |
+
+## Tamanho dos Arquivos
+
+| Arquivo | Tamanho | Linhas |
+|---------|---------|--------|
+| FRANK | ~18KB | ~600 linhas |
+| SENTINEL | ~16KB | ~550 linhas |
+| SYNC | ~7KB | ~230 linhas |
+
+Todos os prompts são versões **completas** com:
+- Tabelas detalhadas de comportamento
+- Exemplos de boas e más respostas
+- Regras explícitas e invioláveis
+- Casos especiais e edge cases
+- Formatação para WhatsApp
