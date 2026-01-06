@@ -2,57 +2,72 @@
 
 ## Versão: Janeiro 2026 — Alinhados com Manifesto
 
-Estes prompts foram reescritos para alinhamento total com:
+Estes prompts foram escritos para alinhamento total com:
 - **Manifesto Estratégico de Posicionamento — Francisco Pasteur**
 - **Diretrizes Comportamentais dos Agentes CoreConnect.AI**
+- **Sync Flow v4** (lógica real de scoring ANUM)
 
 ---
 
 ## Arquivos
 
-| Arquivo | Descrição | Uso |
-|---------|-----------|-----|
-| `FRANK_v8.0_MANIFESTO_ALIGNED.md` | Documentação completa do FRANK | Referência |
-| `FRANK_v8.0_SYSTEM_MESSAGE.txt` | Prompt para copiar no n8n | Node AI Agent |
-| `SENTINEL_v3.0_MANIFESTO_ALIGNED.md` | Documentação completa do SENTINEL | Referência |
-| `SENTINEL_v3.0_SYSTEM_MESSAGE.txt` | Prompt para copiar no n8n | Node AI Agent |
-| `SYNC_v3.0_MANIFESTO_ALIGNED.md` | Documentação completa do SYNC | Referência |
-| `SYNC_v3.0_SYSTEM_MESSAGE.txt` | Prompt para copiar no n8n | Node AI Agent |
+| Arquivo | Agente | Uso |
+|---------|--------|-----|
+| `FRANK_v8.0_SYSTEM_MESSAGE.txt` | FRANK | Copiar no node AI Agent do One Flow |
+| `SENTINEL_v3.0_SYSTEM_MESSAGE.txt` | SENTINEL | Copiar no node AI Agent do Sentinel Flow |
+| `SYNC_v3.0_SYSTEM_MESSAGE.txt` | SYNC | Copiar no node AI Agent do Sync Flow |
 
 ---
 
 ## Como Usar
 
-### Para atualizar o FRANK no n8n:
-1. Abra o **CoreAdapt One Flow**
-2. Localize o node **CoreAdapt One AI Agent**
-3. Em **Options > System Message**, substitua pelo conteúdo de `FRANK_v8.0_SYSTEM_MESSAGE.txt`
-
-### Para atualizar o SENTINEL no n8n:
-1. Abra o **CoreAdapt Sentinel Flow**
-2. Localize o node do AI Agent
-3. Substitua o System Message pelo conteúdo de `SENTINEL_v3.0_SYSTEM_MESSAGE.txt`
-
-### Para atualizar o SYNC no n8n:
-1. Abra o **CoreAdapt Sync Flow**
-2. Localize o node do AI Agent
-3. Substitua o System Message pelo conteúdo de `SYNC_v3.0_SYSTEM_MESSAGE.txt`
+1. Abra o flow correspondente no n8n
+2. Localize o node **AI Agent**
+3. Em **Options > System Message**, substitua pelo conteúdo do arquivo `.txt`
+4. Salve o flow
 
 ---
 
-## Princípios Fundamentais
+## Resumo dos Agentes
 
-### Verdade Central
+### FRANK (Consultor de Triagem)
+- **Papel:** Conversa com leads, qualifica naturalmente
+- **Tom:** Humano, calmo, direto, sem jargões técnicos
+- **Objetivo:** Lead quer falar com Pasteur OU entende que não é momento
+
+### SENTINEL (Reengajamento)
+- **Papel:** Vai atrás de leads que esfriaram
+- **Tom:** Econômico, cirúrgico, contextual
+- **Objetivo:** Reabrir conversa sem parecer insistente
+
+### SYNC (Analítico Silencioso)
+- **Papel:** Analisa conversas, extrai scores ANUM
+- **Output:** JSON com scores, evidências, categoria de dor
+- **Não conversa** — apenas dados estruturados
+
+---
+
+## ANUM Scoring (SYNC)
+
+```
+total_score = (authority + need + urgency + money) / 4
+```
+
+| Stage | Condição |
+|-------|----------|
+| `pre` | total < 40 |
+| `partial` | total 40-59 |
+| `full` | total ≥60 E nenhuma dimensão = 0 |
+| `full_but_incomplete` | total ≥60 MAS alguma dimensão = 0 |
+| `rejected` | Desqualificação explícita |
+
+---
+
+## Princípio Central
+
 > "Negócios não quebram por falta de esforço. Quebram por excesso de dependência do dono."
 
-### O que vendemos
 Francisco Pasteur **destrava negócios**. Não vende software, ferramentas ou IA.
-
-### Tom de voz
-Direto, sóbrio, sem hype, sem glamour, sem buzzwords.
-
-### Regra Final
-Se o agente parecer: vendedor, ferramenta, genérico, ou apressado → está **errado**.
 
 ---
 
@@ -60,6 +75,6 @@ Se o agente parecer: vendedor, ferramenta, genérico, ou apressado → está **e
 
 | Data | Versão | Mudança |
 |------|--------|---------|
+| Jan 2026 | SYNC v3.0 | Corrigido scoring (média 0-100, não soma 0-400) |
 | Jan 2026 | FRANK v8.0 | Alinhamento total com Manifesto |
 | Jan 2026 | SENTINEL v3.0 | Alinhamento total com Manifesto |
-| Jan 2026 | SYNC v3.0 | Alinhamento total com Manifesto |
