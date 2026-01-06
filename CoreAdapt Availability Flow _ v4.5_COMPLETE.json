@@ -59,7 +59,7 @@
               "leftValue": "={{ $json.id }}",
               "rightValue": "",
               "operator": {
-                "type": "number",
+                "type": "any",
                 "operation": "exists"
               }
             }
