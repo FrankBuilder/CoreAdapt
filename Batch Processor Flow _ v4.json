@@ -113,7 +113,11 @@
     },
     {
       "parameters": {
-        "workflowId": "={{ $workflow.id }}",
+        "workflowId": {
+          "__rl": true,
+          "value": "pvMsb1uQbB0E3LAF",
+          "mode": "id"
+        },
         "options": {}
       },
       "id": "49c94d9c-a322-4fa2-bcd1-cd2ec3166432",
@@ -124,7 +128,7 @@
         368,
         -80
       ],
-      "notes": "Executa CoreAdapt One Flow com mensagem combinada"
+      "notes": "Executa CoreAdapt One Flow v4.6 com mensagem combinada"
     },
     {
       "parameters": {},

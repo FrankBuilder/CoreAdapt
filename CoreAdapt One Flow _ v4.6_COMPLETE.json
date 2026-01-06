@@ -751,6 +751,39 @@
     {
       "parameters": {
         "method": "POST",
+        "url": "={{ $('Convert: Audio to Base64').item.json.evolution_api_url }}/chat/sendPresence/{{ $('Convert: Audio to Base64').item.json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Convert: Audio to Base64').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $('Prepare: Chat Context').item.json.phone_number, presence: 'recording' }) }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1872,
+        272
+      ],
+      "id": "recording-simulation-node",
+      "name": "Send: Recording Status"
+    },
+    {
+      "parameters": {
+        "method": "POST",
         "url": "={{ $('Determine: Response Mode').item.json.evolution_api_url }}/message/sendText/{{ $('Determine: Response Mode').item.json.evolution_instance }}",
         "sendHeaders": true,
         "headerParameters": {
@@ -1366,6 +1399,39 @@
       "id": "fd9de0df-a61c-4f7e-a986-6245db060e76",
       "name": "Wait: Between Chunks",
       "webhookId": "3575b8a4-074a-4cb9-9b37-63249b577010"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Determine: Response Mode').item.json.evolution_api_url }}/chat/sendPresence/{{ $('Determine: Response Mode').item.json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Determine: Response Mode').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ number: $('Prepare: Chat Context').item.json.phone_number, presence: 'composing' }) }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2320,
+        576
+      ],
+      "id": "typing-simulation-node",
+      "name": "Send: Typing Status"
     },
     {
       "parameters": {
@@ -2165,6 +2231,17 @@
       "main": [
         [
           {
+            "node": "Send: Recording Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Recording Status": {
+      "main": [
+        [
+          {
             "node": "Send: WhatsApp Audio",
             "type": "main",
             "index": 0
@@ -2352,6 +2429,17 @@
       ]
     },
     "Wait: Between Chunks": {
+      "main": [
+        [
+          {
+            "node": "Send: Typing Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: Typing Status": {
       "main": [
         [
           {
