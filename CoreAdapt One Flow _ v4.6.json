@@ -1,0 +1,2697 @@
+{
+  "name": "CoreAdapt One Flow | v4.6 (FRANK v8.0.0)",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  ls.contact_id,\n  ls.company_id,\n  ls.authority_score,\n  ls.need_score,\n  ls.urgency_score,\n  ls.money_score,\n  ls.total_score,\n  ls.qualification_stage,\n  ls.is_qualified,\n  ce.audio_response,\n  ce.text_response\nFROM corev4_lead_state ls\nLEFT JOIN corev4_contact_extras ce ON ls.contact_id = ce.contact_id\nWHERE ls.contact_id = {{ $('Prepare: Chat Context').item.json.contact_id }}\n  AND ls.company_id = {{ $('Prepare: Chat Context').item.json.company_id }}\nLIMIT 1;",
+        "options": {}
+      },
+      "id": "865e180a-cda8-4eb9-983a-abc125de21e9",
+      "name": "Fetch: Lead State and Preferences",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2064,
+        176
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2208,
+        320
+      ],
+      "id": "62a43ea3-6341-4271-87dc-813f880c37d6",
+      "name": "Merge: AI Outputs"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "model": "tts-1-hd",
+        "input": "={{ $json.ai_message }}",
+        "voice": "onyx",
+        "options": {
+          "response_format": "opus",
+          "speed": 1,
+          "binaryPropertyOutput": "audio"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        1536,
+        272
+      ],
+      "id": "1cc3436b-afe5-49e7-a742-b0998fbd1c88",
+      "name": "Generate: Audio Response",
+      "credentials": {
+        "openAiApi": {
+          "id": "qG3pb1apvREZV7Pl",
+          "name": "OpenAI | CORE ONE™ - FRANK | AUDIO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b5101243-38a3-4ea9-9809-ab288138ffd1",
+              "leftValue": "={{ $('Prepare: Chat Context').item.json.sender_type === 'user' }}",
+              "rightValue": "user",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        864,
+        320
+      ],
+      "id": "a1728770-c4e8-46c7-a0b3-64820c5105f8",
+      "name": "Check: Is Lead Message"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7b99451c-ea74-4df7-a373-d50eba07e142",
+              "leftValue": "={{ $json.media_type === 'image' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1392,
+        176
+      ],
+      "id": "86b6feb2-59d5-462c-a42c-afb0ec6d306a",
+      "name": "Check: Has Media"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Prepare: Chat Context').item.json.evolution_api_url }}/chat/getBase64FromMediaMessage/{{ encodeURIComponent($('Prepare: Chat Context').item.json.evolution_instance) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Prepare: Chat Context').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { key: { id: $('Prepare: Chat Context').item.json.message_id } }, convertToMp4: false }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1168,
+        64
+      ],
+      "id": "fetch-image-base64-node",
+      "name": "Fetch: Image Base64"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2960,
+        176
+      ],
+      "id": "93689c78-7ae1-4b19-bdb0-c0028b9a0080",
+      "name": "Receive: Workflow Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtrar apenas items vÃƒÆ’Ã‚Â¡lidos\nconst validItems = items.filter(item => {\n  return item.json.whatsapp_id != null && \n         item.json.whatsapp_id !== '' &&\n         item.json.contact_id != null;\n});\n\nreturn validItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2736,
+        176
+      ],
+      "id": "f6131ada-0d9a-4c23-a138-448ee001a7b2",
+      "name": "Filter: Valid Input"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1709c11-e052-4a6e-b098-636c639d162f",
+              "name": "contact_id",
+              "value": "={{ $('Filter: Valid Input').item.json.contact_id }}",
+              "type": "number"
+            },
+            {
+              "id": "f9921c80-507b-4a5a-9e0c-e18e03ddbaf6",
+              "name": "company_id",
+              "value": "={{ $('Filter: Valid Input').item.json.company_id }}",
+              "type": "number"
+            },
+            {
+              "id": "8a565464-bee9-49db-939a-d17a9b5c97cb",
+              "name": "opt_out",
+              "value": "={{ $('Filter: Valid Input').item.json.opt_out }}",
+              "type": "boolean"
+            },
+            {
+              "id": "c57a7c4f-3fa3-46c1-9962-590de71e90be",
+              "name": "contact_exists",
+              "value": "={{ $('Filter: Valid Input').item.json.contact_exists }}",
+              "type": "boolean"
+            },
+            {
+              "id": "40a2801b-0f07-4ff9-943e-1f701b5b7cb4",
+              "name": "whatsapp_id",
+              "value": "={{ $('Filter: Valid Input').item.json.whatsapp_id }}",
+              "type": "string"
+            },
+            {
+              "id": "fefffc47-9598-4ebc-85f7-b6fd581e0302",
+              "name": "contact_name",
+              "value": "={{ $('Filter: Valid Input').item.json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "fd631645-cee2-4c50-8f27-9bb03367ff6a",
+              "name": "message_content",
+              "value": "={{ $('Filter: Valid Input').item.json.message_content }}",
+              "type": "string"
+            },
+            {
+              "id": "f19286d6-3504-41b5-bc05-990ca22f70af",
+              "name": "message_type",
+              "value": "={{ $('Filter: Valid Input').item.json.message_type }}",
+              "type": "string"
+            },
+            {
+              "id": "cd2aa8ae-db90-4c8f-bf7e-010aaed3643e",
+              "name": "phone_number",
+              "value": "={{ $('Filter: Valid Input').item.json.phone_number }}",
+              "type": "string"
+            },
+            {
+              "id": "f50aac23-2c2e-4c68-aa45-a9a7417addc7",
+              "name": "evolution_api_url",
+              "value": "={{ $('Filter: Valid Input').item.json.evolution_api_url }}",
+              "type": "string"
+            },
+            {
+              "id": "55a8edd8-7c32-4d11-9870-d8f13f89b758",
+              "name": "evolution_instance",
+              "value": "={{ $('Filter: Valid Input').item.json.evolution_instance }}",
+              "type": "string"
+            },
+            {
+              "id": "f1fce5ca-2f78-4f94-8af5-5b42fea7cdd1",
+              "name": "evolution_api_key",
+              "value": "={{ $('Filter: Valid Input').item.json.evolution_api_key }}",
+              "type": "string"
+            },
+            {
+              "id": "28efdb1c-d978-4340-a143-a1860f4c56a6",
+              "name": "message_id",
+              "value": "={{ $('Filter: Valid Input').item.json.message_id }}",
+              "type": "string"
+            },
+            {
+              "id": "7551378a-f7ab-4838-b6f2-fa98c9102f4a",
+              "name": "quoted_message",
+              "value": "={{ $('Filter: Valid Input').item.json.quoted_message }}",
+              "type": "string"
+            },
+            {
+              "id": "d3fe220d-b4d6-4775-84cf-5002482b3a22",
+              "name": "transcribed",
+              "value": "={{ $('Filter: Valid Input').item.json.transcribed }}",
+              "type": "string"
+            },
+            {
+              "id": "81b10e09-73ef-49cc-911e-ad3dbece47e1",
+              "name": "sender_type",
+              "value": "={{ $('Filter: Valid Input').item.json.sender_type }}",
+              "type": "string"
+            },
+            {
+              "id": "56311743-0e7b-4735-b127-94e55038786c",
+              "name": "has_media",
+              "value": "={{ $('Filter: Valid Input').item.json.has_media }}",
+              "type": "boolean"
+            },
+            {
+              "id": "899e5e9f-a49c-4aaa-97cb-120d27b2284f",
+              "name": "media_url",
+              "value": "={{ $('Filter: Valid Input').item.json.media_url }}",
+              "type": "string"
+            },
+            {
+              "id": "63cdec48-1206-4195-9388-40a9e2fd7469",
+              "name": "media_mime_type",
+              "value": "={{ $('Filter: Valid Input').item.json.media_mime_type }}",
+              "type": "string"
+            },
+            {
+              "id": "ca5e25a6-67ce-432a-9bb3-0dac1b56742d",
+              "name": "media_type",
+              "value": "={{ $('Filter: Valid Input').item.json.media_type }}",
+              "type": "string"
+            },
+            {
+              "id": "ca004165-5deb-46b1-a398-d1a8b0b08a66",
+              "name": "caption",
+              "value": "={{ $('Filter: Valid Input').item.json.caption }}",
+              "type": "string"
+            },
+            {
+              "id": "157e165b-e09b-4f8b-8b90-f7f110ec2952",
+              "name": "session_id",
+              "value": "={{ $('Fetch: Session UUID').first().json.session_uuid }}",
+              "type": "string"
+            },
+            {
+              "id": "2ac6741f-898e-497f-b788-a75469dc3ad0",
+              "name": "body.data.message.base64",
+              "value": "={{ $('Filter: Valid Input').item.json.body.data.message.base64 }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "65418cdd-2908-4a75-ae0f-5a79c73e643b",
+      "name": "Prepare: Chat Context",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2288,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d79e5da4-6a41-47fb-bbf6-a9927659323e",
+              "name": "contact_id",
+              "value": "={{ $json.contact_id }}",
+              "type": "number"
+            },
+            {
+              "id": "5409c256-1e84-4328-b7bc-bb832c184af9",
+              "name": "company_id",
+              "value": "={{ $json.company_id }}",
+              "type": "number"
+            },
+            {
+              "id": "3ed2d9cd-e9f6-410e-a0b4-f7f6b261e490",
+              "name": "whatsapp_id",
+              "value": "={{ $('Prepare: Chat Context').item.json.whatsapp_id }}",
+              "type": "string"
+            },
+            {
+              "id": "44f7a905-c941-4b2c-8656-edc4adfda544",
+              "name": "message_type",
+              "value": "={{ $('Prepare: Chat Context').item.json.message_type }}",
+              "type": "string"
+            },
+            {
+              "id": "56ef33f6-69d7-4f75-895c-669441142e37",
+              "name": "message_content",
+              "value": "={{ $('Prepare: Chat Context').item.json.message_content }}",
+              "type": "string"
+            },
+            {
+              "id": "41ff25ea-50f9-47ea-a2cb-100df9116b12",
+              "name": "media_type",
+              "value": "={{ $('Prepare: Chat Context').item.json.media_type }}",
+              "type": "string"
+            },
+            {
+              "id": "52f05a46-455a-449c-ba46-388a9f3053e5",
+              "name": "has_media",
+              "value": "={{ $('Prepare: Chat Context').item.json.has_media }}",
+              "type": "boolean"
+            },
+            {
+              "id": "bf005310-0538-436b-8c37-c2fed3ba6225",
+              "name": "media_url",
+              "value": "={{ $('Prepare: Chat Context').item.json.media_url }}",
+              "type": "string"
+            },
+            {
+              "id": "bb66b37f-4259-45a8-bc54-ecb04a156658",
+              "name": "contact_name",
+              "value": "={{ $('Prepare: Chat Context').item.json.contact_name }}",
+              "type": "string"
+            },
+            {
+              "id": "enrich-1",
+              "name": "authority_score",
+              "value": "={{ $json.authority_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-2",
+              "name": "need_score",
+              "value": "={{ $json.need_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-3",
+              "name": "urgency_score",
+              "value": "={{ $json.urgency_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-4",
+              "name": "money_score",
+              "value": "={{ $json.money_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-5",
+              "name": "total_score",
+              "value": "={{ $json.total_score ?? null }}",
+              "type": "number"
+            },
+            {
+              "id": "enrich-6",
+              "name": "qualification_stage",
+              "value": "={{ $json.qualification_stage || 'discovery' }}",
+              "type": "string"
+            },
+            {
+              "id": "enrich-7",
+              "name": "is_qualified",
+              "value": "={{ $json.is_qualified || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "enrich-8",
+              "name": "audio_response",
+              "value": "={{ $json.audio_response || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "enrich-9",
+              "name": "text_response",
+              "value": "={{ $json.text_response || false }}",
+              "type": "boolean"
+            },
+            {
+              "id": "3270e06f-1c62-49fc-8a87-879ffb4c096d",
+              "name": "body.data.message.base64",
+              "value": "={{ $('Prepare: Chat Context').first().json.body.data.message.base64 }}",
+              "type": "string"
+            },
+            {
+              "id": "enrich-anum-analyzed",
+              "name": "anum_analyzed",
+              "value": "={{ $json.total_score !== null && $json.total_score !== undefined }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dd090668-3995-4391-ac8e-83ba7641d91c",
+      "name": "Enrich: ANUM and Preferences",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1840,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst result = [];\nconst contextData = $('Prepare: Chat Context').first().json;\n\nfor (const item of items) {\n  // Base64 vem da resposta do Fetch: Image Base64\n  let base64Raw = item.json.base64;\n  \n  // Se tem base64 e é imagem, preparar binary data\n  if (base64Raw && contextData.media_type === 'image') {\n    // Remover prefixo data:image/xxx;base64, se existir\n    let base64Clean = base64Raw;\n    if (base64Raw.includes(',')) {\n      base64Clean = base64Raw.split(',')[1];\n    }\n    \n    // Converter base64 string para Buffer\n    const binaryBuffer = Buffer.from(base64Clean, 'base64');\n    \n    result.push({\n      json: contextData,\n      binary: {\n        image_data: {\n          data: binaryBuffer.toString('base64'),\n          mimeType: contextData.media_mime_type || 'image/jpeg',\n          fileExtension: 'jpg',\n          fileName: 'image.jpg'\n        }\n      }\n    });\n  } else {\n    // Não tem base64, passa dados normalmente\n    result.push({\n      json: contextData\n    });\n  }\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -944,
+        64
+      ],
+      "id": "76b9e83a-bd32-4ebb-bdd4-6315742e571d",
+      "name": "Prepare: Image Data"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.session_id }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.company_id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_content }}"
+            },
+            {
+              "fieldId": "message_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_type }}"
+            },
+            {
+              "fieldId": "has_media",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.has_media }}"
+            },
+            {
+              "fieldId": "media_url",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_url }}"
+            },
+            {
+              "fieldId": "media_mime_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_mime_type }}"
+            },
+            {
+              "fieldId": "message_timestamp",
+              "fieldValue": "=NOW ()"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        16
+      ],
+      "id": "fb86a10b-c771-471a-97fb-eaf0c9d893e8",
+      "name": "Save: User Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://uosauvyafotuhktpjjkm.supabase.co/storage/v1/object/chat-images/{{ $('Prepare: Chat Context').item.json.company_id }}/{{ $('Prepare: Chat Context').item.json.contact_id }}/{{ $('Save: User Message').item.json.id }}.jpg",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "BEARER eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvc2F1dnlhZm90dWhrdHBqamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MDgxODcsImV4cCI6MjA0MDk4NDE4N30.3UzrMj0gw1aY8fcJw9649LjIKryLTNgmDNd9EuIpOx8"
+            },
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvc2F1dnlhZm90dWhrdHBqamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MDgxODcsImV4cCI6MjA0MDk4NDE4N30.3UzrMj0gw1aY8fcJw9649LjIKryLTNgmDNd9EuIpOx8"
+            },
+            {
+              "name": "Content-Type",
+              "value": "={{ $('Prepare: Chat Context').item.json.media_mime_type || 'image/jpeg' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "Raw/Custom",
+              "value": "={{ $('Prepare: Image Data').item.binary.image_data.data }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -256,
+        16
+      ],
+      "id": "f81391da-72b3-437f-ab68-cb1910d18157",
+      "name": "Upload: Image to Storage"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_message_media",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "message_id",
+              "fieldValue": "={{ $('Save: User Message').item.json.id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.company_id }}"
+            },
+            {
+              "fieldId": "storage_provider",
+              "fieldValue": "supabase"
+            },
+            {
+              "fieldId": "storage_path",
+              "fieldValue": "=chat-images/{{ $('Prepare: Chat Context').item.json.company_id }}/{{ $('Prepare: Chat Context').item.json.contact_id }}/{{ $('Save: User Message').item.json.id }}.jpg"
+            },
+            {
+              "fieldId": "storage_url",
+              "fieldValue": "=https://uosauvyafotuhktpjjkm.supabase.co/storage/v1/object/public/chat-images/{{ $('Prepare: Chat Context').item.json.company_id }}/{{ $('Prepare: Chat Context').item.json.contact_id }}/{{ $('Save: User Message').item.json.id }}.jpg"
+            },
+            {
+              "fieldId": "original_url",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_url }}"
+            },
+            {
+              "fieldId": "media_type",
+              "fieldValue": "image"
+            },
+            {
+              "fieldId": "mime_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.media_mime_type }}"
+            },
+            {
+              "fieldId": "file_size",
+              "fieldValue": "={{ $binary.image_data ? Buffer.byteLength($binary.image_data.data, 'base64') : null }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        16
+      ],
+      "id": "a1ad1c1d-14b4-4467-9594-b1f32a515cf8",
+      "name": "Save: Media Info",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determinar modo de resposta baseado em preferÃƒÆ’Ã‚Âªncias e tipo de mensagem\nconst audioPref = $('Enrich: ANUM and Preferences').item.json.audio_response;\nconst textPref = $('Enrich: ANUM and Preferences').item.json.text_response;\nconst aiMessage = $('CoreAdapt One AI Agent').item.json.output;\n\n// Buscar dados de contexto\nconst prepareContext = $('Prepare: Chat Context').item.json;\nconst messageType = prepareContext.message_type;  // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ \"audio\" ou \"text\"\nconst mediaType = prepareContext.media_type;      // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ \"audio\", \"image\", \"none\"\nconst transcribed = prepareContext.transcribed;   // ÃƒÂ¢Ã…Â¡Ã‚Â ÃƒÂ¯Ã‚Â¸Ã‚Â STRING \"true\", nÃƒÆ’Ã‚Â£o boolean!\n\n// Detectar se era ÃƒÆ’Ã‚Â¡udio - CORRIGIDO\nconst wasAudio = (\n  messageType === 'audio' ||           // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Tipo correto!\n  mediaType === 'audio' ||             // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Alternativa\n  transcribed === 'true' ||            // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Comparar com STRING!\n  transcribed === true                 // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Fallback para boolean\n);\n\nlet responseMode = 'text'; // default\n\n// LÃƒÆ’Ã‚Â³gica de decisÃƒÆ’Ã‚Â£o\nif (audioPref === true && textPref === false) {\n  // Comando #audio - SEMPRE ÃƒÆ’Ã‚Â¡udio\n  responseMode = 'audio';\n} else if (audioPref === false && textPref === true) {\n  // Comando #texto - SEMPRE texto\n  responseMode = 'text';\n} else {\n  // Modo padrÃƒÆ’Ã‚Â£o (#padrao ou sem preferÃƒÆ’Ã‚Âªncia)\n  // Espelha o formato da mensagem do usuÃƒÆ’Ã‚Â¡rio\n  responseMode = wasAudio ? 'audio' : 'text';\n}\n\nreturn [{\n  json: {\n    response_mode: responseMode,\n    ai_message: aiMessage,\n    contact_id: prepareContext.contact_id,\n    company_id: prepareContext.company_id,\n    phone_number: prepareContext.phone_number,\n    whatsapp_id: prepareContext.whatsapp_id,\n    evolution_api_url: prepareContext.evolution_api_url,\n    evolution_instance: prepareContext.evolution_instance,\n    evolution_api_key: prepareContext.evolution_api_key,\n    session_id: prepareContext.session_id,\n    // Debug info\n    debug_messageType: messageType,\n    debug_mediaType: mediaType,\n    debug_transcribed: transcribed,\n    debug_wasAudio: wasAudio,\n    debug_audioPref: audioPref,\n    debug_textPref: textPref\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        480
+      ],
+      "id": "6b31cb8c-94ff-46f8-a643-5d244653b9de",
+      "name": "Determine: Response Mode"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "audio-check",
+              "leftValue": "={{ $json.response_mode }}",
+              "rightValue": "audio",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1312,
+        480
+      ],
+      "id": "cdf1ea59-31b2-4f60-9a76-d248367bbbd5",
+      "name": "Route: Audio Response"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Convert: Audio to Base64').item.json.evolution_api_url }}/message/sendWhatsAppAudio/{{ encodeURIComponent($('Convert: Audio to Base64').item.json.evolution_instance) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Convert: Audio to Base64').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $json.phone_number }}"
+            },
+            {
+              "name": "audio",
+              "value": "={{ $json.audio_base64 }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1984,
+        272
+      ],
+      "id": "1759c82f-9d67-4011-a330-f16c7c921c6f",
+      "name": "Send: WhatsApp Audio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Determine: Response Mode').item.json.evolution_api_url }}/message/sendText/{{ $('Determine: Response Mode').item.json.evolution_instance }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "apikey",
+              "value": "={{ $('Determine: Response Mode').item.json.evolution_api_key }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "number",
+              "value": "={{ $('Prepare: Chat Context').item.json.phone_number }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "name": "delay",
+              "value": "={{ $json.delay }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "80c8b3a0-6370-417e-abcf-28bb8444f12e",
+      "name": "Send: WhatsApp Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        2432,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "output-1",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "output-2",
+              "name": "contact_id",
+              "value": "={{ $('Determine: Response Mode').item.json.contact_id }}",
+              "type": "number"
+            },
+            {
+              "id": "output-3",
+              "name": "response",
+              "value": "={{ $('Determine: Response Mode').item.json.ai_message }}",
+              "type": "string"
+            },
+            {
+              "id": "output-3b",
+              "name": "response_mode",
+              "value": "={{ $('Determine: Response Mode').item.json.response_mode }}",
+              "type": "string"
+            },
+            {
+              "id": "output-4",
+              "name": "session_id",
+              "value": "={{ $('Determine: Response Mode').item.json.session_id }}",
+              "type": "string"
+            },
+            {
+              "id": "output-5",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "30d9c005-1b89-405c-86ca-4c9396a7a21b",
+      "name": "Format: Chat Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2432,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.session_id }}"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('CoreAdapt One AI Agent').item.json.output }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.company_id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "assistant"
+            },
+            {
+              "fieldId": "message_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_type }}"
+            },
+            {
+              "fieldId": "tokens_used",
+              "fieldValue": "={{ $json.tokens_used }}"
+            },
+            {
+              "fieldId": "cost_usd",
+              "fieldValue": "={{ $json.cost_usd }}"
+            },
+            {
+              "fieldId": "model_used",
+              "fieldValue": "={{ $json.model_used }}"
+            },
+            {
+              "fieldId": "message_timestamp",
+              "fieldValue": "={{ $now }}"
+            }
+          ]
+        }
+      },
+      "id": "dadaf17c-df49-4476-9ab2-3825be0a75c0",
+      "name": "Save: AI Response",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        640,
+        320
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Acessar binary data do input\nconst inputData = $input.first();\nconst binaryPropertyName = Object.keys(inputData.binary)[0]; // Pega o nome da propriedade binary (geralmente \"data\")\nconst binaryBuffer = inputData.binary[binaryPropertyName].data;\n\n// Converter para base64\nconst base64Audio = binaryBuffer.toString('base64');\n\n// Pegar dados do contexto\nconst responseMode = $('Determine: Response Mode').item.json;\n\nreturn [{\n  json: {\n    phone_number: responseMode.phone_number,\n    audio_base64: base64Audio,\n    evolution_api_url: responseMode.evolution_api_url,\n    evolution_instance: responseMode.evolution_instance,\n    evolution_api_key: responseMode.evolution_api_key\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        272
+      ],
+      "id": "1d12e468-6dbd-4829-979d-530ffa7ad675",
+      "name": "Convert: Audio to Base64"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini-2025-04-14",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini-2025-04-14"
+        },
+        "options": {
+          "maxTokens": 700,
+          "temperature": 0.7,
+          "topP": 0.9
+        }
+      },
+      "id": "9626752e-a65f-4b23-986e-77c0c7a99463",
+      "name": "Model: OpenAI Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 2.1,
+      "position": [
+        -592,
+        544
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "txoE7pVX433qEz2A",
+          "name": "OpenAI | CORE ONE™ - FRANK | TEXTO"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.7,
+          "topK": 40,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        544
+      ],
+      "id": "e3522ab9-1cf9-4fb5-99e0-66fa527578d6",
+      "name": "Model: Gemini Chat",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LzScbb9FM7NYxbHO",
+          "name": "Google Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Prepare: Chat Context').item.json.session_id }}",
+        "tableName": "corev4_n8n_chat_histories",
+        "contextWindowLength": 35
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        -464,
+        544
+      ],
+      "id": "8ed01168-f415-42f8-bb59-993d2090436f",
+      "name": "Store: Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  get_or_create_session_uuid(\n    {{ $json.contact_id }},\n    {{ $json.company_id }}\n  ) as session_uuid",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2512,
+        176
+      ],
+      "id": "fb1066d1-8194-491b-aa95-615fa3753390",
+      "name": "Fetch: Session UUID",
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# CONVERSATION STATE\n\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.behavioral_override == 'FRUSTRATION_RECOVERY' ? 'OVERRIDE: Lead frustrado. Reconheça, responda direto, sem perguntas.' : '' }}\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.behavioral_override == 'ENGAGEMENT_RECOVERY' ? 'OVERRIDE: Lead desengajado. Ofereça cenário ou opção, não pergunta.' : '' }}\n\n{{ $('Check: Can Offer Meeting').first().json.conversation_state.questions_asked_recent >= 3 ? 'ALERTA: Muitas perguntas seguidas. Entregue valor antes da próxima.' : '' }}\n\nLead frustrado: {{ $('Check: Can Offer Meeting').first().json.conversation_state.lead_frustrated ? 'SIM' : 'Não' }}\nLead desengajado: {{ $('Check: Can Offer Meeting').first().json.conversation_state.lead_disengaged ? 'SIM' : 'Não' }}\n\n---\n\n=# CONTEXTO DO LEAD\n\nNome: {{ $('Prepare: Chat Context').first().json.contact_name || 'Lead' }}\nMensagem atual: \"{{ $('Prepare: Chat Context').first().json.message_content }}\"\nSetor detectado: {{ $('Prepare: Chat Context').first().json.detected_sector || 'Não identificado' }}\n\n{{ $('Prepare: Chat Context').first().json.is_first_contact ? 'PRIMEIRO CONTATO - Use o padrão de abertura sóbrio' : '' }}\n{{ $('Prepare: Chat Context').first().json.lead_asked_direct_question ? 'LEAD PERGUNTOU ALGO - Responda PRIMEIRO' : '' }}\n\nMensagens na conversa: {{ $('Prepare: Chat Context').first().json.message_count || 1 }}\n\n---\n\n=# STATUS QUALIFICAÇÃO\n\nANUM Score: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total }}/100\n{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting ? 'PODE OFERECER CONVERSA COM PASTEUR' : 'CONTINUE QUALIFICANDO' }}\n\nDetalhes:\n- Authority: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.authority }}/100\n- Need: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.need }}/100\n- Urgency: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.urgency }}/100\n- Money: {{ $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.money }}/100\n\nStage: {{ $('Check: Can Offer Meeting').first().json.qualification_stage }}\nPróxima pergunta sugerida: {{ $('Check: Can Offer Meeting').first().json.next_question_suggestion || 'Explore o contexto' }}\n\n---\n\n=# AGENDAMENTO\n\n{{ $('Check: Can Offer Meeting').first().json.can_offer_meeting && $('Check: Can Offer Meeting').first().json.meeting_qualification.scores.total >= 55 ? 'SISTEMA DE AGENDAMENTO ATIVO - Ao oferecer, diga apenas \"Deixa eu ver a agenda do Pasteur...\" e PARE.' : '' }}\n\n⚠️ NUNCA invente horários. O sistema insere automaticamente.\n\n---\n\n=# HISTÓRICO RECENTE\n\n{{ $('Prepare: Chat Context').first().json.conversation_history }}\n\n---\n\n=# INSTRUÇÕES\n\n1. Leia a mensagem do lead\n2. Se perguntou algo → responda direto\n3. Se não → faça UMA pergunta curta para entender melhor\n4. Tom: sóbrio, direto, sem hype\n5. Se score >= 55 e faz sentido → ofereça conversa com Pasteur\n\nGere a resposta agora.",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "# FRANK v8.0.0 — SYSTEM MESSAGE (MANIFESTO ALIGNED)\n\n**Version:** 8.0.0 — Qualification Agent (Manifesto-Aligned)\n**Updated:** January 06, 2026\n**Architecture:** ANUM-aligned + Sober Tone + No Hype\n**Philosophy:** \"Descobrir se faz sentido conversar com o Pasteur\"\n\n---\n\n## CORE IDENTITY\n\nVocê é **FRANK**, assistente do Pasteur na CoreConnect.\n\n**Sua função:**\nEntender se faz sentido o lead conversar com o Pasteur. Não é vender. Não é encantar. É descobrir se existe um problema real que o Pasteur resolve.\n\n**O que você NÃO é:**\n- Vendedor empolgado\n- Chatbot de atendimento genérico\n- Consultor que promete mundos e fundos\n\n**Como você fala:**\n- Direto, sem rodeios\n- Sem adjetivos superlativos\n- Sem emojis excessivos (máximo 1 por mensagem, se natural)\n- Como um colega de trabalho experiente falaria\n- Perguntas curtas e objetivas\n\n**Frases PROIBIDAS:**\n- \"Ótimo timing!\"\n- \"Perfeito!\"\n- \"Excelente pergunta!\"\n- \"Que legal!\"\n- \"Incrível!\"\n- \"Maravilha!\"\n- \"Com certeza!\"\n- \"Absolutamente!\"\n- Qualquer frase que pareça script de telemarketing\n\n**Frases PERMITIDAS:**\n- \"Entendi.\"\n- \"Faz sentido.\"\n- \"Deixa eu entender melhor...\"\n- \"Isso acontece bastante.\"\n- \"Interessante.\"\n- \"Ok.\"\n\n---\n\n## ⚠️ REGRA CRÍTICA: AGENDAMENTO AUTÔNOMO\n\n**NUNCA gere horários ou datas específicas.**\n\nQuando for oferecer conversa com o Pasteur:\n```\n✅ CORRETO:\n\"Faz sentido você falar com o Pasteur.\nDeixa eu ver a agenda dele...\"\n\n❌ ERRADO:\n\"Temos essas opções:\n1. Segunda às 10h\n2. Terça às 14h\"\n```\n\nO sistema busca e insere os horários reais automaticamente.\n\n---\n\n## QUEM É O PASTEUR\n\nFrancisco Pasteur **não é vendedor de automação**.\n\n**O que ele faz:**\n- Constrói estruturas que funcionam sozinhas\n- Tira do caminho o que trava o negócio\n- Implementa sistemas que rodam sem precisar de você\n\n**O que ele NÃO faz:**\n- Vender \"solução mágica\"\n- Prometer transformação da noite pro dia\n- Empurrar produto genérico\n\n**Posicionamento real:**\n> \"Você lidera. A gente destrava.\"\n> \"Seu trabalho é pensar, decidir, criar. O nosso é tirar do caminho tudo que trava isso.\"\n\n**Perfil de quem ele ajuda:**\n- Dono de empresa que virou refém do próprio negócio\n- Profissional liberal que é o gargalo de tudo\n- Quem tem lead entrando mas não consegue dar conta\n- Quem manda proposta e esquece de acompanhar\n\n**Quem ele NÃO ajuda:**\n- Quem quer \"chatbot baratinho\"\n- Quem busca ferramenta genérica\n- Quem não tem problema real, só curiosidade\n\n---\n\n## PORTFÓLIO (use só quando relevante)\n\n### CoreAdapt™\nPara empresas com volume de leads que não conseguem atender direito.\n\n- **Receptivo:** Atendimento + Qualificação automática\n- **Proativo:** Prospecção + Follow-up que não esquece\n\nPreços:\n- Setup: A partir de R$ 4.997\n- Manutenção: A partir de R$ 997/mês\n- Implementação: 7 dias úteis\n- Garantia: 30 dias\n\n### Soluções Custom\nPara necessidades específicas que não encaixam em produto pronto.\n\n- Clones de IA\n- Frameworks de produtividade\n- Integrações de sistemas\n\nPreços: Sob consulta\n\n---\n\n## MAPA DE DORES\n\n**CoreAdapt Receptivo** (quando o problema é RESPONDER):\n- \"Não consigo responder todo mundo\"\n- \"Perco cliente porque demoro\"\n- \"Lead chega de noite e ninguém atende\"\n- \"Equipe gasta tempo com curioso\"\n\n**CoreAdapt Proativo** (quando o problema é ACOMPANHAR):\n- \"Mando proposta e esqueço\"\n- \"Follow-up não existe aqui\"\n- \"Não sei quem realmente tem interesse\"\n- \"Base de leads morre no CRM\"\n\n**Custom** (quando o problema é OUTRO):\n- \"Sou o gargalo de tudo\"\n- \"Preciso me multiplicar\"\n- \"Meu processo é diferente\"\n\n---\n\n## QUALIFICAÇÃO ANUM\n\nO sistema calcula automaticamente:\n- **A**uthority: É quem decide?\n- **N**eed: Tem problema real?\n- **U**rgency: Precisa resolver agora?\n- **M**oney: Tem budget?\n\n**Score >= 55:** Pode oferecer conversa com Pasteur\n**Score < 55:** Continue entendendo o contexto\n\n---\n\n## FLUXO DA CONVERSA\n\n### Primeiro contato\n```\n\"Oi [Nome]. Sou Frank, trabalho com o Pasteur.\nVi que você chegou por [origem]. O que te trouxe aqui?\"\n```\n\nNada de:\n- \"Bem-vindo!\"\n- \"Que prazer!\"\n- Explicação do que a empresa faz (a menos que pergunte)\n\n### Durante a conversa\n- Perguntas curtas e diretas\n- Uma por vez\n- Espera resposta antes de continuar\n- Não faz suposições\n\n### Quando identificar problema real\n```\n\"Isso que você descreveu é exatamente o que o Pasteur resolve.\nFaz sentido vocês conversarem.\nDeixa eu ver a agenda dele...\"\n```\n\n### Quando NÃO faz sentido\n```\n\"Pelo que você descreveu, não parece que a gente seja a melhor opção.\n[Explicação breve do porquê]\nSe mudar o cenário, a porta tá aberta.\"\n```\n\n---\n\n## REGRAS DE FORMATAÇÃO (WHATSAPP)\n\n- Mensagens curtas (máximo 3 parágrafos)\n- Sem listas numeradas longas\n- Sem blocos de texto\n- *Negrito* só quando realmente importante\n- Quebra de linha entre ideias diferentes\n\n---\n\n## PRÉ-CHECKLIST (antes de cada resposta)\n\n1. O lead perguntou algo? → Responde PRIMEIRO, depois pergunta\n2. Estou usando linguagem de vendedor? → Reescreve\n3. Minha mensagem parece script? → Simplifica\n4. Estou prometendo demais? → Modera\n5. A mensagem tem mais de 3 parágrafos? → Corta\n\n---\n\n## EXEMPLOS DE TOM\n\n**Errado (v7.2.0):**\n> \"Ótimo timing, [Nome]! 🚀 Que legal você ter chegado até aqui! A CoreConnect é especializada em transformar a operação comercial de empresas como a sua. Conte mais sobre seu cenário!\"\n\n**Certo (v8.0.0):**\n> \"Oi [Nome]. Sou Frank, trabalho com o Pasteur. O que te trouxe aqui?\"\n\n---\n\n**Errado:**\n> \"Perfeito! Isso é exatamente o que a gente resolve! O CoreAdapt vai revolucionar sua operação!\"\n\n**Certo:**\n> \"Entendi. Isso acontece bastante. O Pasteur monta estruturas pra resolver exatamente isso. Faz sentido vocês conversarem?\"\n\n---\n\n**Errado:**\n> \"Excelente pergunta! Deixa eu te explicar em detalhes como funciona nossa metodologia exclusiva...\"\n\n**Certo:**\n> \"Funciona assim: [explicação direta em 2 frases]. Quer saber mais alguma coisa específica?\"\n\n",
+          "passthroughBinaryImages": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        -672,
+        320
+      ],
+      "id": "c70b63cb-8b32-45db-aed1-d94705e4224d",
+      "name": "CoreAdapt One AI Agent"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8F6DWDbmaPCZrI18",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/8F6DWDbmaPCZrI18",
+          "cachedResultName": "CoreAdapt Sync Flow | v4"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1088,
+        288
+      ],
+      "id": "bc706435-a0a9-4917-881f-9c05746a993a",
+      "name": "Execute: CoreAdapt Sync Flow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// CONFIGURAÇÃO - ATUALIZE COM SUAS CREDENCIAIS DO SUPABASE\n// ============================================================================\n// Pegar do Supabase Dashboard → Settings → API\nconst SUPABASE_URL = 'https://uosauvyafotuhktpjjkm.supabase.co';  // ← SEU PROJECT URL\nconst SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvc2F1dnlhZm90dWhrdHBqamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MDgxODcsImV4cCI6MjA0MDk4NDE4N30.3UzrMj0gw1aY8fcJw9649LjIKryLTNgmDNd9EuIpOx8';  // ← SUA ANON KEY\n\n// ============================================================================\n// FETCH PRICING FROM SUPABASE\n// ============================================================================\nasync function fetchPricing() {\n  try {\n    const url = `${SUPABASE_URL}/rest/v1/v_llm_pricing_active?select=*`;\n\n    const response = await fetch(url, {\n      method: 'GET',\n      headers: {\n        'apikey': SUPABASE_ANON_KEY,\n        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,\n        'Content-Type': 'application/json'\n      }\n    });\n\n    if (!response.ok) {\n      console.warn(`⚠️ Failed to fetch pricing: ${response.status}`);\n      return [];\n    }\n\n    const data = await response.json();\n    console.log(`📊 Loaded ${data.length} pricing entries from Supabase`);\n    return data;\n  } catch (error) {\n    console.error(`❌ Error fetching pricing: ${error.message}`);\n    return [];\n  }\n}\n\n// Buscar preços\nconst pricingData = await fetchPricing();\n\n// Criar mapa de pricing\nconst pricingMap = new Map();\nfor (const row of pricingData) {\n  pricingMap.set(row.model_name, {\n    input: row.input_cost_per_1m,\n    output: row.output_cost_per_1m,\n    provider: row.provider,\n    display_name: row.display_name\n  });\n}\n\n// ============================================================================\n// CALCULATE USER TOKENS & COST\n// ============================================================================\n\nconst items = $input.all();\nconst results = [];\n\nconst DEFAULT_PRICING = {\n  input: 0.50,\n  output: 1.50\n};\n\nfor (const item of items) {\n  const usage = item.json.usage || {};\n\n// Extrair tokens - SUPORTE COMPLETO PARA TODOS OS FORMATOS\n  let inputTokens = 0;\n  let outputTokens = 0;\n  let totalTokens = 0;\n\n  // 1. AI Agent format: response.tokenUsage\n  if (item.json.response && item.json.response.tokenUsage) {\n    const tokenUsage = item.json.response.tokenUsage;\n    inputTokens = tokenUsage.promptTokens || 0;\n    outputTokens = tokenUsage.completionTokens || 0;\n    totalTokens = tokenUsage.totalTokens || 0;\n    console.log('📊 Detected AI Agent response.tokenUsage format');\n  }\n  // 2. Direct tokenUsage (n8n Gemini)\n  else if (item.json.tokenUsage) {\n    const tokenUsage = item.json.tokenUsage;\n    inputTokens = tokenUsage.promptTokens || 0;\n    outputTokens = tokenUsage.completionTokens || 0;\n    totalTokens = tokenUsage.totalTokens || 0;\n    console.log('📊 Detected n8n Gemini tokenUsage format');\n  }\n  // 3. OpenAI usage format\n  else if (usage.promptTokens || usage.prompt_tokens) {\n    inputTokens = usage.promptTokens || usage.prompt_tokens || 0;\n    outputTokens = usage.completionTokens || usage.completion_tokens || 0;\n    totalTokens = usage.totalTokens || usage.total_tokens || 0;\n    console.log('📊 Detected OpenAI usage format');\n  }\n  // 4. Gemini API usageMetadata\n  else if (item.json.usageMetadata) {\n    const meta = item.json.usageMetadata;\n    inputTokens = meta.promptTokenCount || 0;\n    outputTokens = meta.candidatesTokenCount || 0;\n    totalTokens = meta.totalTokenCount || 0;\n    console.log('📊 Detected Gemini API usageMetadata format');\n  }\n  // 5. Model: OpenAI Chat node format (estimatedTokens)\n  else if (item.json.estimatedTokens) {\n    totalTokens = item.json.estimatedTokens || 0;\n    // Estimativa: 75% input, 25% output (média conversacional)\n    inputTokens = Math.floor(totalTokens * 0.75);\n    outputTokens = Math.floor(totalTokens * 0.25);\n    console.log('📊 Detected Model node estimatedTokens format (using 75/25 split)');\n  }\n  // 6. Fallback: direct properties\n  else if (item.json.promptTokens || item.json.promptTokenCount) {\n    inputTokens = item.json.promptTokens || item.json.promptTokenCount || 0;\n    outputTokens = item.json.completionTokens || item.json.candidatesTokenCount || 0;\n    totalTokens = item.json.totalTokens || item.json.totalTokenCount || 0;\n    console.log('📊 Detected direct token properties');\n  }\n\n  // Se ainda zero, logar warning\n  if (totalTokens === 0) {\n    console.warn('⚠️ No token data found in any known format');\n    console.warn('Available keys:', Object.keys(item.json).join(', '));\n  }\n\n  const rawModel = item.json.model || item.json.modelName || 'unknown';\n\n  let pricing = null;\n  let modelUsed = rawModel;\n\n  if (pricingMap.has(rawModel)) {\n    pricing = pricingMap.get(rawModel);\n  } else {\n    for (const [modelName, modelPricing] of pricingMap.entries()) {\n      if (rawModel.toLowerCase().includes(modelName.toLowerCase())) {\n        pricing = modelPricing;\n        modelUsed = modelName;\n        break;\n      }\n    }\n  }\n\n  if (!pricing) {\n    pricing = DEFAULT_PRICING;\n  }\n\n  const inputCost = (inputTokens / 1_000_000) * pricing.input;\n  const outputCost = (outputTokens / 1_000_000) * pricing.output;\n  const totalCost = inputCost + outputCost;\n\n  results.push({\n    json: {\n      ...item.json,\n      user_tokens_used: totalTokens,\n      user_tokens_input: inputTokens,\n      user_tokens_output: outputTokens,\n      user_cost_usd: parseFloat(totalCost.toFixed(8)),\n      user_cost_input: parseFloat(inputCost.toFixed(8)),\n      user_cost_output: parseFloat(outputCost.toFixed(8)),\n      model_used: modelUsed,\n      pricing_source: 'supabase_dynamic'\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1168,
+        416
+      ],
+      "id": "beb706bc-052e-4a43-a8e4-40ec87983a5e",
+      "name": "Calculate: User Tokens & Cost"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_chat_history",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "session_id",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.session_id }}"
+            },
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $('Enrich: ANUM and Preferences').item.json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $('Enrich: ANUM and Preferences').item.json.company_id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_content }}"
+            },
+            {
+              "fieldId": "message_type",
+              "fieldValue": "={{ $('Prepare: Chat Context').item.json.message_type }}"
+            },
+            {
+              "fieldId": "has_media",
+              "fieldValue": false
+            },
+            {
+              "fieldId": "tokens_used",
+              "fieldValue": "={{ $json.tokens_used }}"
+            },
+            {
+              "fieldId": "cost_usd",
+              "fieldValue": "={{ $json.cost_usd }}"
+            },
+            {
+              "fieldId": "model_used",
+              "fieldValue": "={{ $json.model_used }}"
+            },
+            {
+              "fieldId": "message_timestamp",
+              "fieldValue": "=NOW ()"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        416
+      ],
+      "id": "9503b733-475a-4104-9473-5bd29b4c1e56",
+      "name": "Save: User Text Message",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================================\n// CONFIGURAÇÃO - ATUALIZE COM SUAS CREDENCIAIS DO SUPABASE\n// ============================================================================\n// Pegar do Supabase Dashboard → Settings → API\nconst SUPABASE_URL = 'https://uosauvyafotuhktpjjkm.supabase.co';  // ← SEU PROJECT URL\nconst SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVvc2F1dnlhZm90dWhrdHBqamttIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjU0MDgxODcsImV4cCI6MjA0MDk4NDE4N30.3UzrMj0gw1aY8fcJw9649LjIKryLTNgmDNd9EuIpOx8';  // ← SUA ANON KEY\n\n// ============================================================================\n// FETCH PRICING FROM SUPABASE\n// ============================================================================\nasync function fetchPricing() {\n  try {\n    const url = `${SUPABASE_URL}/rest/v1/v_llm_pricing_active?select=*`;\n\n    const response = await fetch(url, {\n      method: 'GET',\n      headers: {\n        'apikey': SUPABASE_ANON_KEY,\n        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,\n        'Content-Type': 'application/json'\n      }\n    });\n\n    if (!response.ok) {\n      console.warn(`⚠️ Failed to fetch pricing: ${response.status}`);\n      return [];\n    }\n\n    const data = await response.json();\n    console.log(`📊 Loaded ${data.length} pricing entries from Supabase`);\n    return data;\n  } catch (error) {\n    console.error(`❌ Error fetching pricing: ${error.message}`);\n    return [];\n  }\n}\n\n// Buscar preços\nconst pricingData = await fetchPricing();\n\n// Criar mapa de pricing\nconst pricingMap = new Map();\nfor (const row of pricingData) {\n  pricingMap.set(row.model_name, {\n    input: row.input_cost_per_1m,\n    output: row.output_cost_per_1m,\n    provider: row.provider,\n    display_name: row.display_name\n  });\n}\n\n// ============================================================================\n// CALCULATE ASSISTANT COST\n// ============================================================================\n\nconst items = $input.all();\nconst results = [];\n\nconst DEFAULT_PRICING = {\n  input: 0.50,\n  output: 1.50,\n  provider: 'unknown',\n  display_name: 'Unknown Model'\n};\n\nfor (const item of items) {\n  const usage = item.json.usage || {};\n\n// Extrair tokens - SUPORTE COMPLETO PARA TODOS OS FORMATOS\n  let inputTokens = 0;\n  let outputTokens = 0;\n  let totalTokens = 0;\n\n  // 1. AI Agent format: response.tokenUsage\n  if (item.json.response && item.json.response.tokenUsage) {\n    const tokenUsage = item.json.response.tokenUsage;\n    inputTokens = tokenUsage.promptTokens || 0;\n    outputTokens = tokenUsage.completionTokens || 0;\n    totalTokens = tokenUsage.totalTokens || 0;\n    console.log('📊 Detected AI Agent response.tokenUsage format');\n  }\n  // 2. Direct tokenUsage (n8n Gemini)\n  else if (item.json.tokenUsage) {\n    const tokenUsage = item.json.tokenUsage;\n    inputTokens = tokenUsage.promptTokens || 0;\n    outputTokens = tokenUsage.completionTokens || 0;\n    totalTokens = tokenUsage.totalTokens || 0;\n    console.log('📊 Detected n8n Gemini tokenUsage format');\n  }\n  // 3. OpenAI usage format\n  else if (usage.promptTokens || usage.prompt_tokens) {\n    inputTokens = usage.promptTokens || usage.prompt_tokens || 0;\n    outputTokens = usage.completionTokens || usage.completion_tokens || 0;\n    totalTokens = usage.totalTokens || usage.total_tokens || 0;\n    console.log('📊 Detected OpenAI usage format');\n  }\n  // 4. Gemini API usageMetadata\n  else if (item.json.usageMetadata) {\n    const meta = item.json.usageMetadata;\n    inputTokens = meta.promptTokenCount || 0;\n    outputTokens = meta.candidatesTokenCount || 0;\n    totalTokens = meta.totalTokenCount || 0;\n    console.log('📊 Detected Gemini API usageMetadata format');\n  }\n  // 5. Model: OpenAI Chat node format (estimatedTokens)\n  else if (item.json.estimatedTokens) {\n    totalTokens = item.json.estimatedTokens || 0;\n    // Estimativa: 75% input, 25% output (média conversacional)\n    inputTokens = Math.floor(totalTokens * 0.75);\n    outputTokens = Math.floor(totalTokens * 0.25);\n    console.log('📊 Detected Model node estimatedTokens format (using 75/25 split)');\n  }\n  // 6. Fallback: direct properties\n  else if (item.json.promptTokens || item.json.promptTokenCount) {\n    inputTokens = item.json.promptTokens || item.json.promptTokenCount || 0;\n    outputTokens = item.json.completionTokens || item.json.candidatesTokenCount || 0;\n    totalTokens = item.json.totalTokens || item.json.totalTokenCount || 0;\n    console.log('📊 Detected direct token properties');\n  }\n\n  // Se ainda zero, logar warning\n  if (totalTokens === 0) {\n    console.warn('⚠️ No token data found in any known format');\n    console.warn('Available keys:', Object.keys(item.json).join(', '));\n  }\n\n  const rawModel = item.json.model || item.json.modelName || 'unknown';\n\n  // Buscar pricing\n  let pricing = null;\n  let modelUsed = rawModel;\n\n  if (pricingMap.has(rawModel)) {\n    pricing = pricingMap.get(rawModel);\n  } else {\n    // Match parcial\n    for (const [modelName, modelPricing] of pricingMap.entries()) {\n      if (rawModel.toLowerCase().includes(modelName.toLowerCase())) {\n        pricing = modelPricing;\n        modelUsed = modelName;\n        console.log(`🔍 Partial match: \"${rawModel}\" → \"${modelName}\"`);\n        break;\n      }\n    }\n  }\n\n  if (!pricing) {\n    pricing = DEFAULT_PRICING;\n    console.warn(`⚠️ Model \"${rawModel}\" not in pricing table`);\n  }\n\n  const inputCost = (inputTokens / 1_000_000) * pricing.input;\n  const outputCost = (outputTokens / 1_000_000) * pricing.output;\n  const totalCost = inputCost + outputCost;\n\n  console.log(`💰 ${pricing.display_name || modelUsed}:`);\n  console.log(`   Input: ${inputTokens} @ $${pricing.input}/1M = $${inputCost.toFixed(8)}`);\n  console.log(`   Output: ${outputTokens} @ $${pricing.output}/1M = $${outputCost.toFixed(8)}`);\n  console.log(`   Total: $${totalCost.toFixed(8)}`);\n\n  results.push({\n    json: {\n      ...item.json,\n      tokens_used: totalTokens,\n      tokens_input: inputTokens,\n      tokens_output: outputTokens,\n      cost_usd: parseFloat(totalCost.toFixed(8)),\n      cost_input: parseFloat(inputCost.toFixed(8)),\n      cost_output: parseFloat(outputCost.toFixed(8)),\n      model_used: modelUsed,\n      model_display_name: pricing.display_name || modelUsed,\n      pricing_provider: pricing.provider,\n      pricing_rate_input: pricing.input,\n      pricing_rate_output: pricing.output,\n      pricing_source: 'supabase_dynamic'\n    }\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        320
+      ],
+      "id": "58bf5d80-c76b-471d-bc2a-9a3b63bd5366",
+      "name": "Calculate: Assistant Cost"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split long AI messages into readable WhatsApp chunks\nconst aiMessage = $('Determine: Response Mode').item.json.ai_message;\nconst contextData = $('Determine: Response Mode').item.json;\n\n// ============================================================================\n// CONFIGURAÇÕES (vêm do node \"Config: Split Parameters\")\n// ============================================================================\nconst maxChars = $('Config: Split Parameters').item.json.max_chars;\nconst delayBase = $('Config: Split Parameters').item.json.delay_base;\nconst delayRandom = $('Config: Split Parameters').item.json.delay_random;\n\nfunction splitIntoChunks(text, maxLength) {\n  // Split by double newlines (paragraphs) first\n  const paragraphs = text.split(/\\n\\n+/);\n  const chunks = [];\n  let current = '';\n\n  for (const para of paragraphs) {\n    // Check if adding paragraph exceeds limit\n    if ((current + '\\n\\n' + para).length > maxLength && current) {\n      chunks.push(current.trim());\n      current = para;\n    } else {\n      current += (current ? '\\n\\n' : '') + para;\n    }\n\n    // Force split if single paragraph too long\n    if (current.length > maxLength) {\n      const sentences = current.split(/(?<=[.!?])\\s+/);\n      let sentenceChunk = '';\n\n      for (const sentence of sentences) {\n        // ✅ NOVO: Fallback para quebra por palavras se sentença muito longa\n        if (sentence.length > maxLength) {\n          const words = sentence.split(/\\s+/);\n          let wordChunk = '';\n\n          for (const word of words) {\n            if ((wordChunk + ' ' + word).length > maxLength && wordChunk) {\n              chunks.push(wordChunk.trim());\n              wordChunk = word;\n            } else {\n              wordChunk += (wordChunk ? ' ' : '') + word;\n            }\n          }\n\n          if (wordChunk) sentenceChunk = wordChunk;\n          continue;\n        }\n\n        if ((sentenceChunk + sentence).length > maxLength && sentenceChunk) {\n          chunks.push(sentenceChunk.trim());\n          sentenceChunk = sentence;\n        } else {\n          sentenceChunk += (sentenceChunk ? ' ' : '') + sentence;\n        }\n      }\n      current = sentenceChunk;\n    }\n  }\n\n  if (current) chunks.push(current.trim());\n  return chunks;\n}\n\n// Check if message needs splitting\nif (aiMessage.length <= maxChars) {\n  // Single message - no split needed\n  return [{\n    json: {\n      ...contextData,\n      text: aiMessage,\n      chunkIndex: 1,\n      totalChunks: 1,\n      delay: 0\n    }\n  }];\n}\n\n// Split message\nconst chunks = splitIntoChunks(aiMessage, maxChars);\n\nreturn chunks.map((text, index) => {\n  // ✅ NOVO: Adicionar \"...\" no final de chunks intermediários\n  let formattedText = text;\n  if (index < chunks.length - 1) {\n    formattedText += '...';\n  }\n\n  return {\n    json: {\n      ...contextData,\n      text: formattedText,\n      chunkIndex: index + 1,\n      totalChunks: chunks.length,\n      // ✅ NOVO: Delay progressivo ao invés de aleatório\n      delay: index === 0\n        ? 0                              // Primeiro chunk: sem delay\n        : delayBase + (index * 300)      // Chunks seguintes: 1.5s, 1.8s, 2.1s...\n    }\n  };\n});"
+      },
+      "id": "77014879-25fa-4bf2-89ac-e98a7821fa1f",
+      "name": "Split: Message into Chunks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "46e4f235-2199-4841-99bc-58a9be5a94e9",
+      "name": "Loop: Message Chunks",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1984,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "config-1",
+              "name": "max_chars",
+              "value": 600,
+              "type": "number"
+            },
+            {
+              "id": "config-2",
+              "name": "delay_base",
+              "value": 1500,
+              "type": "number"
+            },
+            {
+              "id": "config-3",
+              "name": "delay_random",
+              "value": 500,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "62598140-2fea-4dad-881d-b71e38b60b2b",
+      "name": "Config: Split Parameters",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1536,
+        576
+      ],
+      "notes": "ConfiguraÃ§Ãµes do Split de Mensagens:\nâ€¢ max_chars: Tamanho mÃ¡ximo do chunk (ex: 600)\nâ€¢ delay_base: Delay fixo em ms (ex: 1500 = 1.5s)\nâ€¢ delay_random: VariaÃ§Ã£o aleatÃ³ria em ms (ex: 1000 = 0-1s)\n\nDelay total = delay_base + random(0, delay_random)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================================\n// Check: Can Offer Meeting v4.4.0 - Fast-Track Support\n// Purpose: ANUM qualification + State Tracking + Meeting eligibility + Fast-Track detection\n// Changes: Added Fast-Track threshold (A≥70, N≥70, U≥60, M≥60) for direct execution offer\n// ================================================================\n\nconst item = $input.first().json;\n\n// Get data from Prepare: Chat Context (it's before Enrich in the flow)\nconst chatContext = $('Prepare: Chat Context').first().json;\n\n// ================================================================\n// PART 1: ANUM QUALIFICATION - DUAL THRESHOLD\n// ================================================================\n\nconst anum = {\n  total: item.total_score ?? 0,\n  authority: item.authority_score ?? 0,\n  need: item.need_score ?? 0,\n  urgency: item.urgency_score ?? 0,\n  money: item.money_score ?? 0\n};\n\nconst qualificationStage = item.qualification_stage || 'discovery';\nconst isQualified = item.is_qualified || false;\nconst anumAnalyzed = item.anum_analyzed || false;\n\n// THRESHOLD 1: Mesa de Clareza (55 + Strong Dimensions)\nconst meetsScoreThreshold = anum.total >= 55;\nconst strongDimensions = (\n  anum.authority >= 50 &&  // FORTE: pode decidir (manager+)\n  anum.need >= 50 &&       // FORTE: dor real clara\n  (anum.urgency >= 40 || anum.money >= 40)  // Flexível: UM dos dois ok\n);\n\nconst canOfferMeeting = meetsScoreThreshold && strongDimensions && anumAnalyzed;\n\nlet disqualificationReason = null;\nif (!anumAnalyzed) {\n  disqualificationReason = 'not_yet_analyzed';\n} else if (!meetsScoreThreshold) {\n  disqualificationReason = 'score_below_55';\n} else if (!strongDimensions) {\n  const weakDimensions = [];\n  if (anum.authority < 50) weakDimensions.push('authority');\n  if (anum.need < 50) weakDimensions.push('need');\n  if (anum.urgency < 40 && anum.money < 40) weakDimensions.push('urgency+money');\n  disqualificationReason = `weak_dimensions: ${weakDimensions.join(', ')}`;\n}\n\n// THRESHOLD 2: Fast-Track Execution (70/70/60/60)\nconst fastTrackThreshold = (\n  anum.authority >= 70 &&  // CEO/Founder level\n  anum.need >= 70 &&       // Dor quantificada forte\n  anum.urgency >= 60 &&    // Timeline definido\n  anum.money >= 60         // Budget claro\n);\n\nconst canFastTrack = fastTrackThreshold && anumAnalyzed;\n\nlet fastTrackReason = null;\nif (!anumAnalyzed) {\n  fastTrackReason = 'not_yet_analyzed';\n} else if (!fastTrackThreshold) {\n  const missingCriteria = [];\n  if (anum.authority < 70) missingCriteria.push('authority<70');\n  if (anum.need < 70) missingCriteria.push('need<70');\n  if (anum.urgency < 60) missingCriteria.push('urgency<60');\n  if (anum.money < 60) missingCriteria.push('money<60');\n  fastTrackReason = `below_fast_track_threshold: ${missingCriteria.join(', ')}`;\n}\n\n// ================================================================\n// PART 2: STATE TRACKING (unchanged)\n// ================================================================\n\nconst CONFIG = {\n  FRUSTRATION_KEYWORDS: ['saco', 'porra', 'caralho', 'merda', 'foda-se', 'serio', 'sério', 'nossa', 'caramba', 'que isso', 'para', 'chega', 'cansado'],\n  DISENGAGEMENT_PATTERNS: ['não sei', 'nao sei', 'talvez', 'depois', 'vejo isso', 'nem sei', 'sei lá'],\n  SHORT_ANSWER_THRESHOLD: 5,\n  QUESTION_THRESHOLD: 3\n};\n\nconst sessionId = item.session_id || null;\nconst contactId = item.contact_id || null;\nconst companyId = item.company_id || null;\n\nlet conversationState = {\n  questions_asked_recent: 0,\n  value_delivered_recent: 0,\n  value_ask_ratio: 0,\n  lead_disengaged: false,\n  lead_frustrated: false,\n  short_answers_count: 0,\n  should_pivot_to_solution: false,\n  behavioral_override: null,\n  _meta: { analyzed: false, reason: 'no_session_data' }\n};\n\nif (sessionId && contactId && companyId) {\n  try {\n    // Query recent messages from Postgres\n    const query = `\n      SELECT role, message, message_timestamp\n      FROM corev4_chat_history\n      WHERE session_id = $1\n        AND company_id = $2\n      ORDER BY message_timestamp DESC\n      LIMIT 10\n    `;\n    \n    const recentMessages = await $executeQuery('postgres', query, [sessionId, companyId]);\n    \n    if (recentMessages && recentMessages.length > 0) {\n      // Sort oldest first\n      const sortedMessages = recentMessages\n        .filter(m => m.message_timestamp)\n        .sort((a, b) => new Date(a.message_timestamp) - new Date(b.message_timestamp));\n      \n      const messagesToAnalyze = sortedMessages.slice(-6); // Last 6 messages\n      \n      let questionsAsked = 0;\n      let valueDelivered = 0;\n      let shortAnswersCount = 0;\n      let frustrationDetected = false;\n      let disengagementDetected = false;\n      \n      const userMessages = messagesToAnalyze.filter(m => m.role === 'user');\n      const assistantMessages = messagesToAnalyze.filter(m => m.role === 'assistant');\n      \n      // Count questions (from assistant)\n      assistantMessages.forEach(msg => {\n        const content = (msg.message || '').toLowerCase();\n        questionsAsked += (content.match(/\\?/g) || []).length;\n      });\n      \n      // Count value delivery (from assistant)\n      const VALUE_INDICATORS = [\n        /\\d+%/,\n        /\\d+x/,\n        /r\\$\\s*\\d+/i,\n        /reduz|aumenta|economia|ganho/i,\n        /\\d+\\s*(minutos|horas|dias|semanas)/i,\n        /exemplo:/i,\n        /na prática:/i\n      ];\n      \n      assistantMessages.forEach(msg => {\n        if (VALUE_INDICATORS.some(pattern => pattern.test(msg.message || ''))) {\n          valueDelivered++;\n        }\n      });\n      \n      // Detect short answers (from user)\n      userMessages.forEach(msg => {\n        const wordCount = (msg.message || '').trim().split(/\\s+/).length;\n        if (wordCount <= CONFIG.SHORT_ANSWER_THRESHOLD) {\n          shortAnswersCount++;\n        }\n      });\n      \n      // Detect frustration (from user)\n      userMessages.forEach(msg => {\n        const content = (msg.message || '').toLowerCase();\n        if (CONFIG.FRUSTRATION_KEYWORDS.some(k => content.includes(k))) {\n          frustrationDetected = true;\n        }\n      });\n      \n      // Detect disengagement (from user)\n      userMessages.forEach(msg => {\n        const content = (msg.message || '').toLowerCase();\n        if (CONFIG.DISENGAGEMENT_PATTERNS.some(p => content.includes(p))) {\n          disengagementDetected = true;\n        }\n      });\n      \n      if (shortAnswersCount >= 2) disengagementDetected = true;\n      \n      // Calculate metrics\n      const valueAskRatio = questionsAsked > 0 ? (valueDelivered / questionsAsked).toFixed(2) : 0;\n      \n      // Determine behavioral override\n      let shouldPivot = false;\n      let behavioralOverride = null;\n      \n      if (frustrationDetected) {\n        shouldPivot = true;\n        behavioralOverride = 'FRUSTRATION_RECOVERY';\n      } else if (questionsAsked >= CONFIG.QUESTION_THRESHOLD && valueDelivered === 0) {\n        shouldPivot = true;\n        behavioralOverride = 'FORCE_VALUE_DELIVERY';\n      } else if (disengagementDetected && !frustrationDetected) {\n        shouldPivot = true;\n        behavioralOverride = 'ENGAGEMENT_RECOVERY';\n      }\n      \n      conversationState = {\n        questions_asked_recent: questionsAsked,\n        value_delivered_recent: valueDelivered,\n        value_ask_ratio: parseFloat(valueAskRatio),\n        lead_disengaged: disengagementDetected,\n        lead_frustrated: frustrationDetected,\n        short_answers_count: shortAnswersCount,\n        should_pivot_to_solution: shouldPivot,\n        behavioral_override: behavioralOverride,\n        _meta: {\n          analyzed: true,\n          messages_analyzed: messagesToAnalyze.length,\n          user_messages: userMessages.length,\n          assistant_messages: assistantMessages.length\n        }\n      };\n    }\n  } catch (error) {\n    conversationState._meta = {\n      analyzed: false,\n      reason: 'query_error',\n      error: error.message\n    };\n  }\n}\n\n// ================================================================\n// OUTPUT (combined with Fast-Track support)\n// ================================================================\n\nreturn [{\n  json: {\n    // Pass through data from Prepare: Chat Context (upstream)\n    ...chatContext,\n    \n    // Pass through data from Enrich (immediate input)\n    ...item,\n    \n    // Add qualification flags\n    can_offer_meeting: canOfferMeeting,\n    meeting_threshold_met: canOfferMeeting,\n    can_fast_track: canFastTrack,  // NEW: Fast-Track eligibility\n    \n    // Add detailed breakdown\n    meeting_qualification: {\n      can_offer: canOfferMeeting,\n      reason: disqualificationReason,\n      checks: {\n        anum_analyzed: anumAnalyzed,\n        score_threshold_met: meetsScoreThreshold,\n        strong_dimensions: strongDimensions\n      },\n      scores: anum,\n      qualification_stage: qualificationStage\n    },\n    \n    // Add Fast-Track breakdown (NEW)\n    fast_track_qualification: {\n      can_fast_track: canFastTrack,\n      reason: fastTrackReason,\n      thresholds_met: {\n        authority_70: anum.authority >= 70,\n        need_70: anum.need >= 70,\n        urgency_60: anum.urgency >= 60,\n        money_60: anum.money >= 60\n      },\n      scores: anum\n    },\n    \n    // Add conversation state\n    conversation_state: conversationState,\n    \n    // Sistema de agendamento autônomo (Cal.com removido)\n    autonomous_scheduling: true\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1616,
+        176
+      ],
+      "id": "a7df90ad-bc82-486b-81ae-153f75b81c60",
+      "name": "Check: Can Offer Meeting"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ================================================================\n// Detect: Meeting Offer Sent v4.5.0 - Autonomous Scheduling\n// Purpose: Check if AI response indicates scheduling intent\n// Changes: Removed Cal.com detection, now detects scheduling phrases\n// ================================================================\n\nconst aiResponse = $input.first().json.output;\nconst contextData = $('Check: Can Offer Meeting').first().json;\n\n// Novos padrões para sistema autônomo\nconst schedulingPatterns = [\n  /deixa eu ver a agenda/i,\n  /vou verificar a agenda/i,\n  /agenda do pasteur/i,\n  /agenda do francisco/i,\n  /mesa de clareza/i,\n  /agendar.*reunião/i,\n  /marcar.*conversa/i,\n  /próximo passo.*agendar/i\n];\n\nconst meetingOffered = schedulingPatterns.some(pattern => pattern.test(aiResponse));\n\n// Verificar se FRANK tentou inventar horários (não deveria mais acontecer)\nconst inventedSlotsPattern = /(segunda|terça|terca|quarta|quinta|sexta)[^\\n]*\\d{1,2}[:/h]\\d{2}/i;\nconst frankInventedSlots = inventedSlotsPattern.test(aiResponse);\n\nreturn [{\n  json: {\n    // Pass through AI response\n    ...$input.first().json,\n\n    // Add detection flags\n    meeting_offered: meetingOffered,\n    scheduling_intent_detected: meetingOffered,\n    frank_invented_slots: frankInventedSlots,  // Flag para debug\n\n    // Context for tracking\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id,\n    anum_at_offer: {\n      total: contextData.total_score,\n      authority: contextData.authority_score,\n      need: contextData.need_score,\n      urgency: contextData.urgency_score,\n      money: contextData.money_score\n    },\n    qualification_stage: contextData.qualification_stage,\n\n    // Full message for logging\n    offer_message: aiResponse,\n    offered_at: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        320
+      ],
+      "id": "13eed5d0-99ac-4518-8883-8eef473f0ccf",
+      "name": "Detect: Meeting Offer Sent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "meeting-offered-check",
+              "leftValue": "={{ $json.meeting_offered }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        320
+      ],
+      "id": "3ec98c65-4998-4d6d-aeb3-28294bb19fc1",
+      "name": "Route: If Meeting Offered"
+    },
+    {
+      "parameters": {
+        "tableId": "corev4_meeting_offers",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "contact_id",
+              "fieldValue": "={{ $json.contact_id }}"
+            },
+            {
+              "fieldId": "company_id",
+              "fieldValue": "={{ $json.company_id }}"
+            },
+            {
+              "fieldId": "offered_by",
+              "fieldValue": "frank_ai"
+            },
+            {
+              "fieldId": "offered_in_flow",
+              "fieldValue": "core_one_v4"
+            },
+            {
+              "fieldId": "anum_score_at_offer",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.total) }}"
+            },
+            {
+              "fieldId": "authority_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.authority) }}"
+            },
+            {
+              "fieldId": "need_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.need) }}"
+            },
+            {
+              "fieldId": "urgency_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.urgency) }}"
+            },
+            {
+              "fieldId": "money_score",
+              "fieldValue": "={{ Math.round($json.anum_at_offer.money) }}"
+            },
+            {
+              "fieldId": "qualification_stage",
+              "fieldValue": "={{ $json.qualification_stage }}"
+            },
+            {
+              "fieldId": "link_sent",
+              "fieldValue": "https://cal.com/francisco-pasteur-coreadapt/mesa-de-clareza-45min"
+            },
+            {
+              "fieldId": "offer_message",
+              "fieldValue": "={{ $json.offer_message }}"
+            },
+            {
+              "fieldId": "offered_at",
+              "fieldValue": "={{ $json.offered_at }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        416,
+        320
+      ],
+      "id": "005927ba-8e03-4bd9-b175-77d28925fd65",
+      "name": "Save: Meeting Offer",
+      "credentials": {
+        "supabaseApi": {
+          "id": "LCC4ysI1Fxd9iDGz",
+          "name": "Supabase Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.delay / 1000 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2208,
+        512
+      ],
+      "id": "fd9de0df-a61c-4f7e-a986-6245db060e76",
+      "name": "Wait: Between Chunks",
+      "webhookId": "3575b8a4-074a-4cb9-9b37-63249b577010"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  c.conversation_state,\n  c.pending_offer_id,\n  c.state_changed_at,\n  c.state_data,\n  o.id AS offer_id,\n  o.status AS offer_status,\n  o.slot_1_datetime, o.slot_1_label,\n  o.slot_2_datetime, o.slot_2_label,\n  o.slot_3_datetime, o.slot_3_label,\n  o.parsing_attempts,\n  CASE\n    WHEN o.id IS NOT NULL AND o.expires_at > NOW() AND o.status IN ('pending', 'needs_confirmation')\n    THEN true ELSE false\n  END AS has_valid_offer\nFROM corev4_chats c\nLEFT JOIN corev4_pending_slot_offers o ON o.id = c.pending_offer_id\nWHERE c.contact_id = $1 AND c.company_id = $2\nORDER BY c.created_at DESC\nLIMIT 1",
+        "options": {
+          "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id] }}"
+        }
+      },
+      "id": "f7b6d59f-4dba-4b1c-9d96-fa5ce5f8a912",
+      "name": "Fetch: Conversation State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -2180,
+        176
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dcfe3c97-a75d-43dc-a82d-afc935d4c709",
+              "leftValue": "={{ $json.conversation_state === 'awaiting_slot_selection' && $json.has_valid_offer === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "68fc1215-91e5-46e4-9850-a5a3b3b99a77",
+      "name": "Check: Is Awaiting Selection",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1956,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "953a6626-d215-41b9-b952-f07ca9bf3375",
+              "leftValue": "={{ $json.conversation_state === 'confirming_slot' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b4111819-0490-41ae-ba17-4b9ddd4a5946",
+      "name": "Check: Is Confirming Slot",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1732,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const stateData = $('Fetch: Conversation State').first().json;\nconst contextData = $('Prepare: Chat Context').first().json;\nconst message = (contextData.message_content || '').toLowerCase().trim();\n\nconst slots = [\n  { index: 1, datetime: stateData.slot_1_datetime, label: stateData.slot_1_label },\n  { index: 2, datetime: stateData.slot_2_datetime, label: stateData.slot_2_label },\n  { index: 3, datetime: stateData.slot_3_datetime, label: stateData.slot_3_label }\n].filter(s => s.datetime);\n\nlet selectedSlot = null;\nlet confidence = 0;\nlet method = null;\n\n// ============================================================================\n// NOVO: Detectar pedido de preferência (ex: \"tem quinta à tarde?\")\n// ============================================================================\n\nconst preferencePatterns = {\n  // Dias da semana\n  weekdays: {\n    'segunda': 'monday',\n    'terça': 'tuesday',\n    'terca': 'tuesday',\n    'quarta': 'wednesday',\n    'quinta': 'thursday',\n    'sexta': 'friday',\n    'sabado': 'saturday',\n    'sábado': 'saturday',\n    'domingo': 'sunday'\n  },\n  // Períodos\n  periods: {\n    'manhã': 'morning',\n    'manha': 'morning',\n    'de manhã': 'morning',\n    'pela manhã': 'morning',\n    'cedo': 'morning',\n    'tarde': 'afternoon',\n    'à tarde': 'afternoon',\n    'de tarde': 'afternoon',\n    'pela tarde': 'afternoon',\n    'noite': 'evening',\n    'à noite': 'evening',\n    'de noite': 'evening'\n  },\n  // Indicadores de pergunta\n  questionIndicators: ['tem', 'tem como', 'pode ser', 'consigo', 'dá pra', 'da pra', 'rola', 'tem horário', 'tem horario', 'alguma', 'outra opção', 'outra opcao', 'outro dia', 'outro horário', 'outro horario', 'semana que vem', 'proxima semana', 'próxima semana']\n};\n\nlet preferenceRequest = {\n  is_preference_request: false,\n  weekday: null,\n  period: null,\n  raw_request: null\n};\n\n// Detectar se é uma pergunta/pedido de preferência\nconst isQuestionIndicator = preferencePatterns.questionIndicators.some(q => message.includes(q));\n\n// Detectar dia da semana mencionado\nlet detectedWeekday = null;\nfor (const [ptDay, enDay] of Object.entries(preferencePatterns.weekdays)) {\n  if (message.includes(ptDay)) {\n    detectedWeekday = enDay;\n    break;\n  }\n}\n\n// Detectar período mencionado\nlet detectedPeriod = null;\nfor (const [ptPeriod, enPeriod] of Object.entries(preferencePatterns.periods)) {\n  if (message.includes(ptPeriod)) {\n    detectedPeriod = enPeriod;\n    break;\n  }\n}\n\n// É preferência se: tem indicador de pergunta OU se menciona dia/período sem selecionar slot dos oferecidos\nif ((isQuestionIndicator && (detectedWeekday || detectedPeriod)) ||\n    (detectedWeekday && !slots.some(s => new Date(s.datetime).getDay() ===\n      ({'sunday':0,'monday':1,'tuesday':2,'wednesday':3,'thursday':4,'friday':5,'saturday':6})[detectedWeekday]))) {\n  preferenceRequest = {\n    is_preference_request: true,\n    weekday: detectedWeekday,\n    period: detectedPeriod,\n    raw_request: message\n  };\n}\n\n// ============================================================================\n// Seleção direta de slot (lógica original)\n// ============================================================================\n\n// Numero direto\nconst directNum = message.match(/^\\s*([1-3])\\s*$/);\nif (directNum && !preferenceRequest.is_preference_request) {\n  const num = parseInt(directNum[1]);\n  if (num <= slots.length) { selectedSlot = num; confidence = 1.0; method = 'direct_number'; }\n}\n\n// Ordinal\nif (!selectedSlot && !preferenceRequest.is_preference_request) {\n  const ordinals = {'primeir': 1, 'segund': 2, 'terceir': 3, 'um': 1, 'dois': 2, 'tres': 3};\n  for (const [key, value] of Object.entries(ordinals)) {\n    if (message.includes(key) && value <= slots.length) { selectedSlot = value; confidence = 0.9; method = 'ordinal'; break; }\n  }\n}\n\n// Dia da semana - SÓ se o dia corresponde a um slot oferecido\nif (!selectedSlot && detectedWeekday && !preferenceRequest.is_preference_request) {\n  const dayNum = {'sunday':0,'monday':1,'tuesday':2,'wednesday':3,'thursday':4,'friday':5,'saturday':6}[detectedWeekday];\n  for (const slot of slots) {\n    if (new Date(slot.datetime).getDay() === dayNum) {\n      selectedSlot = slot.index;\n      confidence = 0.85;\n      method = 'weekday';\n      break;\n    }\n  }\n}\n\n// Generico\nif (!selectedSlot && !preferenceRequest.is_preference_request) {\n  const generic = ['pode ser', 'qualquer', 'tanto faz', 'o primeiro', 'mais cedo'];\n  if (generic.some(g => message.includes(g)) && !detectedWeekday && !detectedPeriod) {\n    selectedSlot = 1;\n    confidence = 0.75;\n    method = 'generic';\n  }\n}\n\n// Confirmacao\nlet isConfirmation = false;\nif (stateData.conversation_state === 'confirming_slot' && !preferenceRequest.is_preference_request) {\n  const confirms = ['sim', 'isso', 'pode', 'confirma', 'certo', 'ok', 'beleza'];\n  if (confirms.some(c => message.includes(c))) {\n    selectedSlot = stateData.state_data?.pending_slot || 1;\n    confidence = 1.0; method = 'confirmation'; isConfirmation = true;\n  }\n}\n\n// Recusa explícita\nconst refusals = ['nao quero', 'não quero', 'nenhum desses', 'nenhuma dessas', 'cancelar', 'deixa pra lá', 'deixa pra la'];\nconst isRefusal = refusals.some(r => message.includes(r)) && !selectedSlot;\n\nreturn [{\n  json: {\n    parsed: selectedSlot !== null,\n    selected_slot: selectedSlot,\n    confidence: confidence,\n    method: method,\n    is_refusal: isRefusal,\n    is_confirmation: isConfirmation,\n    needs_clarification: !selectedSlot && !isRefusal && !preferenceRequest.is_preference_request,\n    // NOVO: Dados de preferência\n    is_preference_request: preferenceRequest.is_preference_request,\n    preference_weekday: preferenceRequest.weekday,\n    preference_period: preferenceRequest.period,\n    preference_raw: preferenceRequest.raw_request,\n    // Dados originais\n    offer_id: stateData.offer_id,\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id,\n    slots: slots,\n    selected_datetime: selectedSlot ? slots[selectedSlot - 1]?.datetime : null,\n    selected_label: selectedSlot ? slots[selectedSlot - 1]?.label : null,\n    parsing_attempts: (stateData.parsing_attempts || 0) + 1\n  }\n}];"
+      },
+      "id": "660ec4b4-e2bd-4d56-86d9-c42b31db1ab7",
+      "name": "Parse: Slot Selection",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1508,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8355c377-1ba8-4984-9353-61e27390f7a3",
+              "leftValue": "={{ $json.parsed === true && $json.confidence >= 0.8 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "e6b9f99c-1604-409c-8058-3e0c72a1305d",
+      "name": "Check: High Confidence",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1284,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "99738563-fb85-484f-8196-2305ffadcb03",
+              "leftValue": "={{ $json.parsed === true && $json.confidence < 0.8 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ca43e44a-2ea8-4ff5-8ca4-800faed9cbda",
+      "name": "Check: Needs Confirm",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1060,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8f226a99-88df-4405-8f9a-b55359457469",
+              "leftValue": "={{ $json.is_refusal === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "716ceb47-da74-4a28-a716-e7fd2270c76d",
+      "name": "Check: Is Refusal",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -836,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "CoreAdapt Booking Flow | v4.1"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "offer_id": "={{ $json.offer_id }}",
+            "selected_slot": "={{ $json.selected_slot }}",
+            "confidence": "={{ $json.confidence }}"
+          }
+        }
+      },
+      "id": "a8d32425-dda3-4d2a-9dce-0fdea0843e80",
+      "name": "Call: Booking Flow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1060,
+        -16
+      ],
+      "retryOnFail": true,
+      "maxTries": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nif (result.success && result.booking_created) {\n  return [{ json: { ai_message: '', booking_success: true, skip_response: true } }];\n} else {\n  const msg = result.should_retry\n    ? 'Ops, esse horario acabou de ser reservado! Quer que eu busque outros?'\n    : 'Tive um problema. Voce pode falar direto com o Pasteur: 5585999855443';\n  return [{ json: { ai_message: msg, booking_success: false, skip_response: false } }];\n}"
+      },
+      "id": "a840ec91-7643-480c-a7c4-ada9ac5d7313",
+      "name": "Handle: Booking Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -836,
+        -16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT reset_conversation_state($1::bigint, $2::integer)",
+        "options": {
+          "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id] }}"
+        }
+      },
+      "id": "f8a7cf1b-64ca-4406-b692-64d06c55834f",
+      "name": "Reset: State After Booking",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -612,
+        -16
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Parse: Slot Selection').first().json;\nconst msg = 'Entendi! Voce escolheu:\\n\\n' + data.selected_label + '\\n\\nPosso confirmar esse horario?';\nreturn [{ json: { ai_message: msg, selected_slot: data.selected_slot, selected_label: data.selected_label } }];"
+      },
+      "id": "0316b6ac-15cc-4da2-9ce7-b6a2a578f614",
+      "name": "Prepare: Confirmation Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -836,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT update_conversation_state($1::bigint, $2::integer, 'confirming_slot', $3::bigint, $4::jsonb)",
+        "options": {
+          "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $('Parse: Slot Selection').first().json.offer_id, JSON.stringify({pending_slot: $json.selected_slot})] }}"
+        }
+      },
+      "id": "3fae7cdf-26fb-48e1-a7e3-fcc6adacf45e",
+      "name": "Update: State to Confirming",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -612,
+        128
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Parse: Slot Selection').first().json;\nconst slotsText = data.slots.map((s, i) => (i + 1) + '. ' + s.label).join('\\n');\nconst msg = data.parsing_attempts >= 3\n  ? 'Nao entendi. Pode falar com o Pasteur: 5585999855443\\nOu diz o numero (1, 2 ou 3).'\n  : 'Desculpa, qual horario voce prefere?\\n\\n' + slotsText + '\\n\\nResponde 1, 2 ou 3.';\nreturn [{ json: { ai_message: msg } }];"
+      },
+      "id": "2b075fb9-68c2-46d1-a93c-5b9b487794c2",
+      "name": "Prepare: Clarification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -612,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { ai_message: 'Entendi! Quer outros horarios ou prefere falar com o Pasteur? WhatsApp: 5585999855443' } }];"
+      },
+      "id": "e6dab85c-63d2-41c3-8f8e-e9aeb98356ee",
+      "name": "Handle: Refusal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -612,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE corev4_pending_slot_offers SET status = 'cancelled' WHERE id = $3; SELECT reset_conversation_state($1::bigint, $2::integer)",
+        "options": {
+          "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $('Parse: Slot Selection').first().json.offer_id] }}"
+        }
+      },
+      "id": "7c002949-c257-4df2-9b93-6bce12be5b76",
+      "name": "Cancel: Offer and Reset",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -388,
+        224
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutput = $('CoreAdapt One AI Agent').item.json.output || '';\nconst contextData = $('Prepare: Chat Context').item.json;\nconst canOffer = $('Check: Can Offer Meeting').item.json;\nconst lower = aiOutput.toLowerCase();\n\n// Padrões de intenção de agendamento - AMPLIADOS\nconst patterns = [\n  'agendar', 'agenda', 'horario', 'horário', 'reuniao', 'reunião',\n  'mesa de clareza', 'conversa com', 'call', 'disponivel', 'disponível',\n  'marcar', 'marcamos', 'bater papo', 'próximo passo', 'proximo passo',\n  'mostrar como', 'demonstrar', 'apresentar',\n  // Padrões que indicam que FRANK quer oferecer horários\n  'deixa eu ver', 'vou verificar', 'vou checar', 'temos essas opções',\n  'opções nos próximos', 'opcoes nos proximos',\n  // Dias da semana (FRANK pode estar inventando)\n  'segunda', 'terça', 'terca', 'quarta', 'quinta', 'sexta',\n  // Meses (FRANK pode estar inventando datas)\n  '/jan', '/fev', '/mar', '/abr', '/mai', '/jun',\n  '/jul', '/ago', '/set', '/out', '/nov', '/dez'\n];\nconst hasIntent = patterns.some(p => lower.includes(p));\n\n// CRÍTICO: Detectar se FRANK INVENTOU horários na resposta\n// Se ele mencionou dia da semana + horário, provavelmente inventou\nconst inventedSlotsPattern = /(segunda|terça|terca|quarta|quinta|sexta|sábado|sabado|domingo)[^\\n]*\\d{1,2}[:/h]\\d{2}/i;\nconst frankInventedSlots = inventedSlotsPattern.test(aiOutput);\n\n// REMOVER links externos E horários inventados\nlet cleanOutput = aiOutput\n  .replace(/https?:\\/\\/[^\\s]*cal\\.com[^\\s]*/gi, '')\n  .replace(/https?:\\/\\/[^\\s]*calendly[^\\s]*/gi, '')\n  .replace(/agenda\\s*(aqui|pelo\\s*link)[^\\n]*/gi, '')\n  .replace(/\\n{3,}/g, '\\n\\n')\n  .trim();\n\n// Se FRANK inventou slots, remover a parte com horários inventados\nif (frankInventedSlots) {\n  // Remover linhas que parecem horários inventados\n  cleanOutput = cleanOutput\n    .replace(/\\d+\\.?\\s*(segunda|terça|terca|quarta|quinta|sexta)[^\\n]*\\d{1,2}[:/h]\\d{2}[^\\n]*/gi, '')\n    .replace(/[1️⃣2️⃣3️⃣][^\\n]*\\d{1,2}[:/h]\\d{2}[^\\n]*/gi, '')\n    .replace(/(temos essas opções|deixa eu ver)[^\\n]*:/gi, '')\n    .replace(/qual funciona[^\\n]*/gi, '')\n    .replace(/responde 1, 2 ou 3[^\\n]*/gi, '')\n    .replace(/\\n{2,}/g, '\\n\\n')\n    .trim();\n}\n\n// Decisão: chamar Availability Flow?\n// MUDANÇA: Chamar SEMPRE que FRANK tentar agendar, independente de can_offer_meeting\n// O Availability Flow vai decidir se retorna slots ou mensagem de fallback\nconst shouldFetchSlots = hasIntent && (canOffer.can_offer_meeting || frankInventedSlots);\n\nreturn [{\n  json: {\n    original_output: aiOutput,\n    clean_output: cleanOutput,\n    ai_message: cleanOutput,\n    has_scheduling_intent: hasIntent,\n    frank_invented_slots: frankInventedSlots,\n    should_fetch_slots: shouldFetchSlots,\n    can_offer_meeting: canOffer.can_offer_meeting,\n    anum_score: canOffer.total_score || canOffer.meeting_qualification?.scores?.total || 0,\n    contact_id: contextData.contact_id,\n    company_id: contextData.company_id,\n    _debug: {\n      patterns_matched: patterns.filter(p => lower.includes(p)),\n      invented_slots_detected: frankInventedSlots\n    }\n  }\n}];"
+      },
+      "id": "9136f5dc-e415-48dc-abda-cc743155df08",
+      "name": "Detect: Scheduling Intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2f2dc1d0-a661-452b-9799-5dbe4579f9a5",
+              "leftValue": "={{ $json.should_fetch_slots === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a0526cac-363b-42da-87cb-5cceb40815d7",
+      "name": "Route: Should Fetch Slots",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        544,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "CoreAdapt Availability Flow | v4.3"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contact_id": "={{ $json.contact_id }}",
+            "company_id": "={{ $json.company_id }}"
+          }
+        }
+      },
+      "id": "f9334b95-bb11-4cbd-b7a3-e2c306ccfc6f",
+      "name": "Call: Availability Flow",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        768,
+        224
+      ],
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const avail = $input.first().json;\nconst detect = $('Detect: Scheduling Intent').first().json;\n\nif (avail.success && avail.slots_found > 0) {\n  // Slots encontrados - usar mensagem do Availability Flow\n  return [{\n    json: {\n      ai_message: avail.offer_message,\n      slots_offered: true,\n      offer_id: avail.offer_id,\n      conversation_state: 'awaiting_slot_selection'\n    }\n  }];\n} else if (detect.frank_invented_slots) {\n  // FRANK inventou slots mas não temos disponibilidade real\n  // Usar a versão limpa (sem os slots inventados) + mensagem de fallback\n  const fallbackMsg = detect.clean_output +\n    (detect.clean_output ? '\\n\\n' : '') +\n    'A agenda tá bem cheia nos próximos dias. Quer falar direto com o Pasteur? WhatsApp: 5585999855443';\n  return [{\n    json: {\n      ai_message: fallbackMsg,\n      slots_offered: false,\n      conversation_state: 'normal'\n    }\n  }];\n} else {\n  // Sem intenção de agendamento ou sem slots\n  const fallback = detect.clean_output + '\\n\\nA agenda tá cheia. Fala com o Pasteur: 5585999855443';\n  return [{\n    json: {\n      ai_message: fallback,\n      slots_offered: false,\n      conversation_state: 'normal'\n    }\n  }];\n}"
+      },
+      "id": "09787519-4a3d-4b01-8fd0-460add9d59d3",
+      "name": "Inject: Dynamic Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        992,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT update_conversation_state($1::bigint, $2::integer, $3::text, $4::bigint, $5::jsonb)",
+        "options": {
+          "queryReplacement": "={{ [$('Prepare: Chat Context').item.json.contact_id, $('Prepare: Chat Context').item.json.company_id, $json.conversation_state, $json.offer_id || null, JSON.stringify({offered_at: new Date().toISOString()})] }}"
+        }
+      },
+      "id": "166347f8-39b7-428a-8fb6-16c558efcf5b",
+      "name": "Update: State After Offer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1216,
+        224
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "output": "empty"
+      },
+      "id": "f05ab30c-e7ed-4932-93e7-423da69eb7fb",
+      "name": "Merge: Slot Path",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -164,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5ef27efb-706a-4052-9df1-96826ecdcc81",
+              "leftValue": "={{ $json.is_preference_request === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "309e1afe-0aa8-4ed3-b81c-6576213bbc85",
+      "name": "Check: Is Preference Request",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1400,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "CoreAdapt Availability Flow | v4.3"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contact_id": "={{ $json.contact_id }}",
+            "company_id": "={{ $json.company_id }}",
+            "is_filtered_search": "={{ true }}",
+            "filter_weekday": "={{ $json.preference_weekday || null }}",
+            "filter_period": "={{ $json.preference_period || null }}"
+          }
+        }
+      },
+      "id": "554387ba-e13f-4374-9fcf-405cb4f97789",
+      "name": "Call: Availability Filtered",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -1176,
+        -100
+      ],
+      "retryOnFail": true,
+      "maxTries": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $input.first().json;\nconst parseData = $('Parse: Slot Selection').first().json;\n\nif (result.success && result.slots_found > 0) {\n  // Novos slots encontrados - enviar oferta\n  return [{\n    json: {\n      ai_message: result.offer_message,\n      new_slots: true,\n      offer_id: result.offer_id,\n      slots_found: result.slots_found\n    }\n  }];\n} else {\n  // Sem slots - perguntar se quer outras opções\n  return [{\n    json: {\n      ai_message: result.offer_message || 'Não achei horários com essa preferência. Quer que eu busque outros horários?',\n      new_slots: false,\n      no_results_for_preference: true\n    }\n  }];\n}"
+      },
+      "id": "723214ca-d7ed-44b8-bb42-e0ea55cb14bc",
+      "name": "Handle: Filtered Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -952,
+        -100
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fetch: Lead State and Preferences": {
+      "main": [
+        [
+          {
+            "node": "Enrich: ANUM and Preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge: AI Outputs": {
+      "main": [
+        [
+          {
+            "node": "Format: Chat Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate: Audio Response": {
+      "main": [
+        [
+          {
+            "node": "Convert: Audio to Base64",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Lead Message": {
+      "main": [
+        [
+          {
+            "node": "Determine: Response Mode",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Execute: CoreAdapt Sync Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Has Media": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Image Base64",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate: User Tokens & Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Image Base64": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Image Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receive: Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter: Valid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter: Valid Input": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Session UUID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Chat Context": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Conversation State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enrich: ANUM and Preferences": {
+      "main": [
+        [
+          {
+            "node": "Check: Can Offer Meeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Image Data": {
+      "main": [
+        [
+          {
+            "node": "Save: User Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: User Message": {
+      "main": [
+        [
+          {
+            "node": "Upload: Image to Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload: Image to Storage": {
+      "main": [
+        [
+          {
+            "node": "Save: Media Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine: Response Mode": {
+      "main": [
+        [
+          {
+            "node": "Route: Audio Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Audio Response": {
+      "main": [
+        [
+          {
+            "node": "Generate: Audio Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Config: Split Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: WhatsApp Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge: AI Outputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send: WhatsApp Text": {
+      "main": [
+        [
+          {
+            "node": "Loop: Message Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: AI Response": {
+      "main": [
+        [
+          {
+            "node": "Check: Is Lead Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert: Audio to Base64": {
+      "main": [
+        [
+          {
+            "node": "Send: WhatsApp Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Session UUID": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Chat Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate: User Tokens & Cost": {
+      "main": [
+        [
+          {
+            "node": "Save: User Text Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: User Text Message": {
+      "main": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CoreAdapt One AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Detect: Scheduling Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate: Assistant Cost": {
+      "main": [
+        [
+          {
+            "node": "Detect: Meeting Offer Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Model: OpenAI Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Model: Gemini Chat": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store: Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "CoreAdapt One AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split: Message into Chunks": {
+      "main": [
+        [
+          {
+            "node": "Loop: Message Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: Message Chunks": {
+      "main": [
+        [
+          {
+            "node": "Merge: AI Outputs",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Wait: Between Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config: Split Parameters": {
+      "main": [
+        [
+          {
+            "node": "Split: Message into Chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Can Offer Meeting": {
+      "main": [
+        [
+          {
+            "node": "Check: Has Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect: Meeting Offer Sent": {
+      "main": [
+        [
+          {
+            "node": "Route: If Meeting Offered",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: If Meeting Offered": {
+      "main": [
+        [
+          {
+            "node": "Save: Meeting Offer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save: AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: Meeting Offer": {
+      "main": [
+        [
+          {
+            "node": "Save: AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait: Between Chunks": {
+      "main": [
+        [
+          {
+            "node": "Send: WhatsApp Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Conversation State": {
+      "main": [
+        [
+          {
+            "node": "Check: Is Awaiting Selection",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Awaiting Selection": {
+      "main": [
+        [
+          {
+            "node": "Parse: Slot Selection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check: Is Confirming Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Confirming Slot": {
+      "main": [
+        [
+          {
+            "node": "Parse: Slot Selection",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch: Lead State and Preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse: Slot Selection": {
+      "main": [
+        [
+          {
+            "node": "Check: Is Preference Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: High Confidence": {
+      "main": [
+        [
+          {
+            "node": "Call: Booking Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check: Needs Confirm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Needs Confirm": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Confirmation Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check: Is Refusal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Refusal": {
+      "main": [
+        [
+          {
+            "node": "Handle: Refusal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare: Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call: Booking Flow": {
+      "main": [
+        [
+          {
+            "node": "Handle: Booking Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle: Booking Result": {
+      "main": [
+        [
+          {
+            "node": "Reset: State After Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reset: State After Booking": {
+      "main": [
+        [
+          {
+            "node": "Merge: Slot Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Confirmation Request": {
+      "main": [
+        [
+          {
+            "node": "Update: State to Confirming",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: State to Confirming": {
+      "main": [
+        [
+          {
+            "node": "Merge: Slot Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Clarification": {
+      "main": [
+        [
+          {
+            "node": "Merge: Slot Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle: Refusal": {
+      "main": [
+        [
+          {
+            "node": "Cancel: Offer and Reset",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancel: Offer and Reset": {
+      "main": [
+        [
+          {
+            "node": "Merge: Slot Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge: Slot Path": {
+      "main": [
+        [
+          {
+            "node": "Save: AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect: Scheduling Intent": {
+      "main": [
+        [
+          {
+            "node": "Route: Should Fetch Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route: Should Fetch Slots": {
+      "main": [
+        [
+          {
+            "node": "Call: Availability Flow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate: Assistant Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call: Availability Flow": {
+      "main": [
+        [
+          {
+            "node": "Inject: Dynamic Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inject: Dynamic Slots": {
+      "main": [
+        [
+          {
+            "node": "Update: State After Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: State After Offer": {
+      "main": [
+        [
+          {
+            "node": "Calculate: Assistant Cost",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Is Preference Request": {
+      "main": [
+        [
+          {
+            "node": "Call: Availability Filtered",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check: High Confidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call: Availability Filtered": {
+      "main": [
+        [
+          {
+            "node": "Handle: Filtered Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle: Filtered Result": {
+      "main": [
+        [
+          {
+            "node": "Merge: Slot Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "one-flow-v4.6-frank-v8.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "pvMsb1uQbB0E3LAF",
+  "tags": [
+    {
+      "updatedAt": "2025-10-16T11:45:27.519Z",
+      "createdAt": "2025-10-16T11:45:27.519Z",
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}

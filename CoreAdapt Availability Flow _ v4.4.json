@@ -1,0 +1,500 @@
+{
+  "name": "CoreAdapt Availability Flow | v4.4",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "availability-check",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "avail-webhook-001",
+      "name": "Webhook: Check Availability",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        240
+      ],
+      "webhookId": "availability-check-v4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  cs.*,\n  c.full_name AS contact_name,\n  c.whatsapp AS contact_whatsapp,\n  ls.total_score AS anum_score\nFROM corev4_calendar_settings cs\nCROSS JOIN corev4_contacts c\nLEFT JOIN corev4_lead_state ls ON ls.contact_id = c.id\nWHERE cs.company_id = $1\n  AND c.id = $2\n  AND cs.is_active = true",
+        "options": {
+          "queryReplacement": "={{\n  // Aceitar input de Subworkflow Trigger ou Webhook\n  const triggerData = $('Subworkflow Trigger').first()?.json || {};\n  const webhookData = $('Webhook: Check Availability').first()?.json?.body || {};\n  const data = triggerData.contact_id ? triggerData : webhookData;\n  [data.company_id, data.contact_id]\n}}"
+        }
+      },
+      "id": "avail-fetch-settings-001",
+      "name": "Fetch: Calendar Settings",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -976,
+        240
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "settings-exists",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "avail-check-settings-001",
+      "name": "Check: Settings Exist",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -752,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar parâmetros para busca de disponibilidade\nconst settings = $input.first().json;\n// Aceitar input de Subworkflow Trigger ou Webhook\nconst triggerData = $('Subworkflow Trigger').first()?.json || {};\nconst webhookData = $('Webhook: Check Availability').first()?.json?.body || {};\nconst inputData = triggerData.contact_id ? triggerData : webhookData;\n\n// NOVO: Filtros de preferência do lead\nconst filterWeekday = inputData.filter_weekday || null; // 'monday', 'tuesday', etc.\nconst filterPeriod = inputData.filter_period || null; // 'morning', 'afternoon', 'evening'\nconst isFilteredSearch = inputData.is_filtered_search === true;\n\n// Calcular range de datas\nconst now = new Date();\nconst minNoticeMs = (settings.min_notice_hours || 2) * 60 * 60 * 1000;\nconst timeMin = new Date(now.getTime() + minNoticeMs);\n\n// Se busca filtrada, expandir o range para garantir encontrar slots\nconst maxDays = isFilteredSearch ? Math.min((settings.max_days_ahead || 14) + 7, 21) : (settings.max_days_ahead || 14);\nconst timeMax = new Date(now.getTime() + (maxDays * 24 * 60 * 60 * 1000));\n\n// Dias da semana permitidos (converter para índices)\nconst weekdayMap = {\n  'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,\n  'thursday': 4, 'friday': 5, 'saturday': 6,\n  // Portuguese aliases\n  'domingo': 0, 'segunda': 1, 'terca': 2, 'terça': 2, 'quarta': 3,\n  'quinta': 4, 'sexta': 5, 'sabado': 6, 'sábado': 6\n};\nlet allowedDays = (settings.allowed_weekdays || ['monday','tuesday','wednesday','thursday','friday'])\n  .map(d => weekdayMap[d.toLowerCase()]);\n\n// Se tem filtro de dia, sobrepor\nif (filterWeekday) {\n  const filteredDay = weekdayMap[filterWeekday.toLowerCase()];\n  if (filteredDay !== undefined) {\n    // Só permite esse dia (se estiver nos dias permitidos originalmente)\n    if (allowedDays.includes(filteredDay)) {\n      allowedDays = [filteredDay];\n    } else {\n      // Dia não permitido nas configurações\n      allowedDays = [];\n    }\n  }\n}\n\n// Horário comercial\nconst [startHour, startMin] = (settings.business_hours_start || '09:00:00').split(':').map(Number);\nconst [endHour, endMin] = (settings.business_hours_end || '18:00:00').split(':').map(Number);\n\n// Aplicar filtro de período\nlet businessStart = { hour: startHour, min: startMin };\nlet businessEnd = { hour: endHour, min: endMin };\n\nif (filterPeriod) {\n  switch (filterPeriod.toLowerCase()) {\n    case 'morning':\n    case 'manha':\n    case 'manhã':\n      businessStart = { hour: Math.max(startHour, 8), min: startMin };\n      businessEnd = { hour: Math.min(12, endHour), min: 0 };\n      break;\n    case 'afternoon':\n    case 'tarde':\n      businessStart = { hour: Math.max(12, startHour), min: 0 };\n      businessEnd = { hour: Math.min(18, endHour), min: 0 };\n      break;\n    case 'evening':\n    case 'noite':\n      businessStart = { hour: Math.max(18, startHour), min: 0 };\n      businessEnd = { hour: endHour, min: endMin };\n      break;\n  }\n}\n\n// Preferências de horário para scoring\nlet preferredSlots = settings.preferred_time_slots;\nif (typeof preferredSlots === 'string') {\n  try { preferredSlots = JSON.parse(preferredSlots); } catch(e) { preferredSlots = []; }\n}\n\n// Preferências de dia da semana\nlet preferredWeekdays = settings.preferred_weekdays;\nif (typeof preferredWeekdays === 'string') {\n  try { preferredWeekdays = JSON.parse(preferredWeekdays); } catch(e) { preferredWeekdays = {}; }\n}\n\n// Datas excluídas\nconst excludedDates = (settings.excluded_dates || []).map(d => {\n  const date = new Date(d);\n  return date.toISOString().split('T')[0];\n});\n\nreturn [{\n  json: {\n    settings: {\n      calendar_provider: settings.calendar_provider,\n      calendar_id: settings.calendar_id || 'primary',\n      timezone: settings.timezone || 'America/Sao_Paulo',\n      meeting_duration: settings.meeting_duration_minutes || 45,\n      buffer_before: settings.buffer_before_minutes || 15,\n      buffer_after: settings.buffer_after_minutes || 15,\n      slots_to_offer: settings.slots_to_offer || 3,\n      max_meetings_per_day: settings.max_meetings_per_day || 4,\n      offer_template: settings.slot_offer_template\n    },\n    time_range: {\n      min: timeMin.toISOString(),\n      max: timeMax.toISOString()\n    },\n    business_hours: {\n      start_hour: businessStart.hour,\n      start_min: businessStart.min,\n      end_hour: businessEnd.hour,\n      end_min: businessEnd.min\n    },\n    allowed_weekdays: allowedDays,\n    excluded_dates: excludedDates,\n    scoring: {\n      preferred_slots: preferredSlots || [],\n      preferred_weekdays: preferredWeekdays || {}\n    },\n    contact: {\n      id: inputData.contact_id,\n      name: settings.contact_name,\n      whatsapp: settings.contact_whatsapp,\n      anum_score: settings.anum_score\n    },\n    company_id: inputData.company_id,\n    // NOVO: Metadados de filtro\n    filter_applied: {\n      is_filtered: isFilteredSearch,\n      weekday: filterWeekday,\n      period: filterPeriod\n    }\n  }\n}];"
+      },
+      "id": "avail-prepare-params-001",
+      "name": "Prepare: Query Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -528,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "operation": "availability",
+        "timeMin": "={{ $json.time_range.min }}",
+        "timeMax": "={{ $json.time_range.max }}",
+        "options": {
+          "calendars": "={{ $json.settings.calendar_id }}",
+          "timezone": "={{ $json.settings.timezone }}"
+        }
+      },
+      "id": "avail-gcal-freebusy-001",
+      "name": "Google Calendar: Check FreeBusy",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        -304,
+        48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "CONFIGURE_ME",
+          "name": "Google Calendar Pasteur"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Buscar reuniões já agendadas no período (do banco local)\nSELECT\n  meeting_date AS start_time,\n  meeting_end_date AS end_time,\n  meeting_duration_minutes\nFROM corev4_scheduled_meetings\nWHERE company_id = $1\n  AND status IN ('scheduled', 'confirmed')\n  AND meeting_date >= $2::timestamptz\n  AND meeting_date <= $3::timestamptz\nORDER BY meeting_date ASC",
+        "options": {
+          "queryReplacement": "={{ [\n  $('Prepare: Query Parameters').first().json.company_id,\n  $('Prepare: Query Parameters').first().json.time_range.min,\n  $('Prepare: Query Parameters').first().json.time_range.max\n] }}"
+        }
+      },
+      "id": "avail-fetch-existing-001",
+      "name": "Fetch: Existing Meetings (DB)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -304,
+        240
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combinar dados do Google Calendar e do banco local\nconst params = $('Prepare: Query Parameters').first().json;\n\n// Busy blocks do Google Calendar\nlet gcalBusy = [];\ntry {\n  const gcalResult = $('Google Calendar: Check FreeBusy').first().json;\n  \n  // Formato da resposta do Google Calendar freebusy\n  if (gcalResult.calendars) {\n    const calendarId = params.settings.calendar_id;\n    const calData = gcalResult.calendars[calendarId] || gcalResult.calendars['primary'];\n    if (calData && calData.busy) {\n      gcalBusy = calData.busy.map(b => ({\n        start: new Date(b.start),\n        end: new Date(b.end),\n        source: 'google_calendar'\n      }));\n    }\n  } else if (Array.isArray(gcalResult)) {\n    // Caso retorne array direto de eventos\n    gcalBusy = gcalResult.map(evt => ({\n      start: new Date(evt.start?.dateTime || evt.start),\n      end: new Date(evt.end?.dateTime || evt.end),\n      source: 'google_calendar'\n    }));\n  } else if (gcalResult.busy) {\n    // Formato alternativo\n    gcalBusy = gcalResult.busy.map(b => ({\n      start: new Date(b.start),\n      end: new Date(b.end),\n      source: 'google_calendar'\n    }));\n  }\n} catch (e) {\n  console.log('Erro ao processar Google Calendar:', e.message);\n}\n\n// Busy blocks do banco de dados\nconst dbMeetings = $('Fetch: Existing Meetings (DB)').all().map(i => i.json);\nconst dbBusy = dbMeetings\n  .filter(m => m.start_time)\n  .map(m => ({\n    start: new Date(m.start_time),\n    end: new Date(m.end_time || new Date(new Date(m.start_time).getTime() + 45 * 60000)),\n    source: 'database'\n  }));\n\n// Combinar todas as ocupações\nconst allBusyBlocks = [...gcalBusy, ...dbBusy];\n\nreturn [{\n  json: {\n    busy_blocks: allBusyBlocks,\n    gcal_events_count: gcalBusy.length,\n    db_meetings_count: dbBusy.length,\n    params: params\n  }\n}];"
+      },
+      "id": "avail-merge-busy-001",
+      "name": "Merge: Busy Blocks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Gerar slots disponíveis considerando Google Calendar + DB\nconst { busy_blocks, params } = $input.first().json;\n\n// Configurações\nconst {\n  settings,\n  time_range,\n  business_hours,\n  allowed_weekdays,\n  excluded_dates,\n  scoring,\n  filter_applied\n} = params;\n\nconst meetingDuration = settings.meeting_duration; // minutos\nconst bufferBefore = settings.buffer_before;\nconst bufferAfter = settings.buffer_after;\nconst timezone = settings.timezone || 'America/Sao_Paulo';\n\n// Converter busy_blocks para objetos Date\nconst busyBlocks = busy_blocks.map(b => ({\n  start: new Date(b.start),\n  end: new Date(b.end)\n}));\n\n// Função para verificar se slot conflita com bloco ocupado\nfunction isSlotAvailable(slotStart, slotEnd) {\n  const bufferStart = new Date(slotStart.getTime() - bufferBefore * 60000);\n  const bufferEnd = new Date(slotEnd.getTime() + bufferAfter * 60000);\n\n  for (const block of busyBlocks) {\n    if (bufferStart < block.end && bufferEnd > block.start) {\n      return false;\n    }\n  }\n  return true;\n}\n\n// ============================================================================\n// CORREÇÃO: Função para formatar data corretamente no timezone de São Paulo\n// ============================================================================\nfunction formatSlotInTimezone(isoDatetime, tz) {\n  const dt = new Date(isoDatetime);\n\n  // Usar Intl.DateTimeFormat para obter os componentes corretos no timezone\n  const formatter = new Intl.DateTimeFormat('pt-BR', {\n    timeZone: tz,\n    weekday: 'long',\n    day: '2-digit',\n    month: 'short',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false\n  });\n\n  const parts = formatter.formatToParts(dt);\n  const getPart = (type) => parts.find(p => p.type === type)?.value || '';\n\n  // Capitalizar primeira letra do dia da semana\n  let weekday = getPart('weekday');\n  weekday = weekday.charAt(0).toUpperCase() + weekday.slice(1);\n  // Remover \"-feira\" se presente\n  weekday = weekday.replace('-feira', '');\n\n  const day = getPart('day');\n  const month = getPart('month').replace('.', '');\n  const hour = getPart('hour');\n  const minute = getPart('minute');\n\n  return {\n    label: `${weekday}, ${day}/${month} às ${hour}:${minute}`,\n    // Também retornar o dia como string para agrupar slots por dia\n    dateKey: `${dt.toLocaleDateString('en-CA', { timeZone: tz })}` // YYYY-MM-DD\n  };\n}\n\n// Função para calcular score do slot (mantida para desempate dentro do mesmo dia)\nfunction calculateSlotScore(slotDate) {\n  let score = 100;\n\n  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];\n  const dayName = dayNames[slotDate.getDay()];\n  const dayScore = (scoring.preferred_weekdays || {})[dayName] || 1;\n  score += dayScore * 10;\n\n  const slotMinutes = slotDate.getHours() * 60 + slotDate.getMinutes();\n\n  for (const pref of (scoring.preferred_slots || [])) {\n    if (!pref.start || !pref.end) continue;\n    const [prefStartH, prefStartM] = pref.start.split(':').map(Number);\n    const [prefEndH, prefEndM] = pref.end.split(':').map(Number);\n    const prefStartMin = prefStartH * 60 + prefStartM;\n    const prefEndMin = prefEndH * 60 + prefEndM;\n\n    if (slotMinutes >= prefStartMin && slotMinutes < prefEndMin) {\n      const priorityScore = { high: 30, medium: 20, low: 10 };\n      score += priorityScore[pref.priority] || 10;\n      break;\n    }\n  }\n\n  return score;\n}\n\n// Gerar todos os slots possíveis\nconst availableSlots = [];\nconst startDate = new Date(time_range.min);\nconst endDate = new Date(time_range.max);\n\nif (allowed_weekdays.length === 0) {\n  return [{\n    json: {\n      success: false,\n      slots_found: 0,\n      slots: [],\n      offer_message: filter_applied.is_filtered\n        ? 'Infelizmente não temos disponibilidade nesse dia. Quer que eu veja outros horários?'\n        : 'Não há horários disponíveis nos próximos dias',\n      contact: params.contact,\n      company_id: params.company_id,\n      filter_applied: filter_applied,\n      metadata: { reason: 'no_allowed_days' }\n    }\n  }];\n}\n\n// Iterar por cada dia\nlet currentDay = new Date(startDate);\ncurrentDay.setHours(0, 0, 0, 0);\n\nwhile (currentDay <= endDate) {\n  const dayOfWeek = currentDay.getDay();\n  const dateStr = currentDay.toISOString().split('T')[0];\n\n  if (!allowed_weekdays.includes(dayOfWeek)) {\n    currentDay.setDate(currentDay.getDate() + 1);\n    continue;\n  }\n\n  if (excluded_dates.includes(dateStr)) {\n    currentDay.setDate(currentDay.getDate() + 1);\n    continue;\n  }\n\n  const dayStart = new Date(currentDay);\n  dayStart.setHours(business_hours.start_hour, business_hours.start_min, 0, 0);\n\n  const dayEnd = new Date(currentDay);\n  dayEnd.setHours(business_hours.end_hour, business_hours.end_min, 0, 0);\n  dayEnd.setMinutes(dayEnd.getMinutes() - meetingDuration);\n\n  let slotStart = new Date(dayStart);\n\n  while (slotStart <= dayEnd && slotStart <= endDate) {\n    if (slotStart <= startDate) {\n      slotStart = new Date(slotStart.getTime() + 30 * 60000);\n      continue;\n    }\n\n    const slotEnd = new Date(slotStart.getTime() + meetingDuration * 60000);\n\n    if (isSlotAvailable(slotStart, slotEnd)) {\n      const formatted = formatSlotInTimezone(slotStart.toISOString(), timezone);\n      const score = calculateSlotScore(slotStart);\n\n      availableSlots.push({\n        datetime: slotStart.toISOString(),\n        end: slotEnd.toISOString(),\n        score: score,\n        dateKey: formatted.dateKey,\n        label: formatted.label\n      });\n    }\n\n    slotStart = new Date(slotStart.getTime() + 30 * 60000);\n  }\n\n  currentDay.setDate(currentDay.getDate() + 1);\n}\n\n// ============================================================================\n// NOVA REGRA: 1 slot do primeiro dia disponível + 2 do segundo dia\n// Se não houver 2 no segundo dia, pegar do terceiro, etc.\n// ============================================================================\n\n// Agrupar slots por dia\nconst slotsByDay = {};\nfor (const slot of availableSlots) {\n  if (!slotsByDay[slot.dateKey]) {\n    slotsByDay[slot.dateKey] = [];\n  }\n  slotsByDay[slot.dateKey].push(slot);\n}\n\n// Ordenar cada dia por score (melhor primeiro)\nfor (const dateKey in slotsByDay) {\n  slotsByDay[dateKey].sort((a, b) => b.score - a.score);\n}\n\n// Obter lista de dias ordenados cronologicamente\nconst sortedDays = Object.keys(slotsByDay).sort();\n\n// Selecionar slots conforme a regra: 1 do primeiro dia + 2 do segundo\nconst selectedSlots = [];\nconst slotsNeeded = settings.slots_to_offer || 3;\n\nlet slotsFromFirstDay = 1; // Sempre 1 do primeiro dia\nlet slotsRemaining = slotsNeeded - slotsFromFirstDay; // Restante do segundo dia\n\n// Pegar 1 slot do primeiro dia\nif (sortedDays.length > 0) {\n  const firstDaySlots = slotsByDay[sortedDays[0]];\n  if (firstDaySlots.length > 0) {\n    selectedSlots.push(firstDaySlots[0]);\n  }\n}\n\n// Pegar slots restantes dos próximos dias (2 do segundo, ou distribuir se necessário)\nlet dayIndex = 1;\nwhile (selectedSlots.length < slotsNeeded && dayIndex < sortedDays.length) {\n  const daySlots = slotsByDay[sortedDays[dayIndex]];\n  const slotsToTake = Math.min(daySlots.length, slotsNeeded - selectedSlots.length);\n\n  for (let i = 0; i < slotsToTake; i++) {\n    selectedSlots.push(daySlots[i]);\n  }\n\n  dayIndex++;\n}\n\n// Se ainda não temos slots suficientes, pegar mais do primeiro dia\nif (selectedSlots.length < slotsNeeded && sortedDays.length > 0) {\n  const firstDaySlots = slotsByDay[sortedDays[0]];\n  for (let i = 1; i < firstDaySlots.length && selectedSlots.length < slotsNeeded; i++) {\n    selectedSlots.push(firstDaySlots[i]);\n  }\n}\n\n// Reordenar cronologicamente para apresentação\nselectedSlots.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));\n\n// Formatar slots para resposta\nconst formattedSlots = selectedSlots.map((slot, idx) => ({\n  index: idx + 1,\n  datetime: slot.datetime,\n  end: slot.end,\n  score: slot.score,\n  label: slot.label,\n  dateKey: slot.dateKey\n}));\n\n// Construir mensagem de oferta\nlet slotsText = '';\nformattedSlots.forEach((slot, idx) => {\n  const emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][idx] || `${idx + 1}.`;\n  slotsText += `${emoji} ${slot.label}\\n`;\n});\n\nlet offerMessage = '';\n\nif (filter_applied.is_filtered && formattedSlots.length > 0) {\n  const periodPt = {\n    'morning': 'de manhã', 'manha': 'de manhã', 'manhã': 'de manhã',\n    'afternoon': 'à tarde', 'tarde': 'à tarde',\n    'evening': 'à noite', 'noite': 'à noite'\n  };\n  const weekdayPt = {\n    'monday': 'Segunda', 'segunda': 'Segunda',\n    'tuesday': 'Terça', 'terca': 'Terça', 'terça': 'Terça',\n    'wednesday': 'Quarta', 'quarta': 'Quarta',\n    'thursday': 'Quinta', 'quinta': 'Quinta',\n    'friday': 'Sexta', 'sexta': 'Sexta'\n  };\n\n  let contextPhrase = 'Achei essas opções';\n  if (filter_applied.weekday && filter_applied.period) {\n    contextPhrase = `${weekdayPt[filter_applied.weekday] || filter_applied.weekday} ${periodPt[filter_applied.period] || filter_applied.period}? Tenho essas opções`;\n  } else if (filter_applied.weekday) {\n    contextPhrase = `${weekdayPt[filter_applied.weekday] || filter_applied.weekday}? Tenho essas opções`;\n  } else if (filter_applied.period) {\n    contextPhrase = `${periodPt[filter_applied.period] || filter_applied.period}? Tenho essas opções`;\n  }\n\n  offerMessage = `${contextPhrase}:\\n\\n${slotsText.trim()}\\n\\nQual funciona pra você?`;\n} else if (formattedSlots.length > 0) {\n  offerMessage = (settings.offer_template || `Legal! Deixa eu ver a agenda do Francisco...\\n\\nTemos essas opções nos próximos dias:\\n{slots}\\nQual funciona melhor pra você? (responde 1, 2 ou 3)`)\n    .replace('{slots}', slotsText.trim());\n} else if (filter_applied.is_filtered) {\n  offerMessage = 'Não achei horários disponíveis com essa preferência. Quer que eu busque em outros dias/horários?';\n} else {\n  offerMessage = 'Puxa, a agenda está bem cheia nos próximos dias. Pode falar direto com o Pasteur: 5585999855443';\n}\n\nreturn [{\n  json: {\n    success: formattedSlots.length > 0,\n    slots_found: formattedSlots.length,\n    slots: formattedSlots,\n    offer_message: offerMessage,\n    contact: params.contact,\n    company_id: params.company_id,\n    settings: {\n      timezone: settings.timezone,\n      meeting_duration: meetingDuration,\n      offer_expiration_hours: 24\n    },\n    filter_applied: filter_applied,\n    metadata: {\n      total_slots_evaluated: availableSlots.length,\n      busy_blocks_count: busyBlocks.length,\n      gcal_events: $input.first().json.gcal_events_count,\n      db_meetings: $input.first().json.db_meetings_count,\n      time_range: time_range,\n      days_with_slots: sortedDays.length,\n      distribution: formattedSlots.map(s => s.dateKey)\n    }\n  }\n}];"
+      },
+      "id": "avail-generate-slots-001",
+      "name": "Generate: Available Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-slots",
+              "leftValue": "={{ $json.slots_found }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "avail-check-slots-001",
+      "name": "Check: Slots Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Cancelar ofertas anteriores\nSELECT cancel_previous_slot_offers($1, 'new_offer_created') AS cancelled_count;\n\n-- Inserir nova oferta\nINSERT INTO corev4_pending_slot_offers (\n  contact_id,\n  company_id,\n  slot_1_datetime,\n  slot_1_label,\n  slot_2_datetime,\n  slot_2_label,\n  slot_3_datetime,\n  slot_3_label,\n  slot_4_datetime,\n  slot_4_label,\n  slot_5_datetime,\n  slot_5_label,\n  offer_timezone,\n  offer_message_sent,\n  anum_score_at_offer,\n  expires_at,\n  status\n) VALUES (\n  $1,\n  $2,\n  $3::timestamptz,\n  $4,\n  $5::timestamptz,\n  $6,\n  $7::timestamptz,\n  $8,\n  $9::timestamptz,\n  $10,\n  $11::timestamptz,\n  $12,\n  $13,\n  $14,\n  $15,\n  NOW() + INTERVAL '24 hours',\n  'pending'\n)\nRETURNING id AS offer_id, expires_at",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.contact.id,\n  $json.company_id,\n  $json.slots[0]?.datetime || null,\n  $json.slots[0]?.label || null,\n  $json.slots[1]?.datetime || null,\n  $json.slots[1]?.label || null,\n  $json.slots[2]?.datetime || null,\n  $json.slots[2]?.label || null,\n  $json.slots[3]?.datetime || null,\n  $json.slots[3]?.label || null,\n  $json.slots[4]?.datetime || null,\n  $json.slots[4]?.label || null,\n  $json.settings.timezone,\n  $json.offer_message,\n  $json.contact.anum_score || 0\n] }}"
+        }
+      },
+      "id": "avail-save-offer-001",
+      "name": "Save: Slot Offer",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        592,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Atualizar estado da conversa\nSELECT update_conversation_state(\n  $1, -- contact_id\n  $2, -- company_id\n  'awaiting_slot_selection',\n  $3, -- pending_offer_id\n  $4::jsonb -- state_data\n) AS state_updated",
+        "options": {
+          "queryReplacement": "={{ [\n  $('Generate: Available Slots').first().json.contact.id,\n  $('Generate: Available Slots').first().json.company_id,\n  $json.offer_id,\n  JSON.stringify({\n    slots_offered: $('Generate: Available Slots').first().json.slots.length,\n    offered_at: new Date().toISOString()\n  })\n] }}"
+        }
+      },
+      "id": "avail-update-state-001",
+      "name": "Update: Conversation State",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        816,
+        48
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "HCvX4Ypw2MiRDsdm",
+          "name": "Postgres Core"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const slots = $('Generate: Available Slots').first().json;\nconst offerRecord = $('Save: Slot Offer').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    offer_id: offerRecord.offer_id,\n    expires_at: offerRecord.expires_at,\n    slots_found: slots.slots_found,\n    slots: slots.slots,\n    offer_message: slots.offer_message,\n    contact: slots.contact,\n    company_id: slots.company_id,\n    conversation_state: 'awaiting_slot_selection',\n    metadata: slots.metadata\n  }\n}];"
+      },
+      "id": "avail-prepare-response-001",
+      "name": "Prepare: Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "avail-respond-success-001",
+      "name": "Respond: Slots Available",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        1264,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: false,\n  error: 'no_slots_available',\n  message: 'Não há horários disponíveis nos próximos dias',\n  fallback_message: 'Puxa, a agenda está bem cheia nos próximos dias. Pode falar direto com o Pasteur: 5585999855443',\n  contact: $('Generate: Available Slots').first().json.contact\n} }}",
+        "options": {}
+      },
+      "id": "avail-respond-no-slots-001",
+      "name": "Respond: No Slots",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        592,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  success: false,\n  error: 'settings_not_found',\n  message: 'Configurações de calendário não encontradas para company_id ' + $('Webhook: Check Availability').first().json.body.company_id,\n  fallback_message: 'Pode falar direto com o Pasteur: 5585999855443'\n} }}",
+        "options": {}
+      },
+      "id": "avail-respond-error-001",
+      "name": "Respond: Settings Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -528,
+        336
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "avail-subworkflow-trigger",
+      "name": "Subworkflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1400,
+        240
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook: Check Availability": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Calendar Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Calendar Settings": {
+      "main": [
+        [
+          {
+            "node": "Check: Settings Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Settings Exist": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Query Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Settings Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Query Parameters": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar: Check FreeBusy",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch: Existing Meetings (DB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar: Check FreeBusy": {
+      "main": [
+        [
+          {
+            "node": "Merge: Busy Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch: Existing Meetings (DB)": {
+      "main": [
+        [
+          {
+            "node": "Merge: Busy Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge: Busy Blocks": {
+      "main": [
+        [
+          {
+            "node": "Generate: Available Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate: Available Slots": {
+      "main": [
+        [
+          {
+            "node": "Check: Slots Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check: Slots Found": {
+      "main": [
+        [
+          {
+            "node": "Save: Slot Offer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: No Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save: Slot Offer": {
+      "main": [
+        [
+          {
+            "node": "Update: Conversation State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update: Conversation State": {
+      "main": [
+        [
+          {
+            "node": "Prepare: Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare: Success Response": {
+      "main": [
+        [
+          {
+            "node": "Respond: Slots Available",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subworkflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch: Calendar Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "availability-flow-v4.4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5c6394fedb685d155bbe72063becfd91d616d8e123397941c9863e7b805328ae"
+  },
+  "id": "CoreAdaptAvailabilityV4",
+  "tags": [
+    {
+      "id": "eTCC1MPmHZOu7LAH",
+      "name": "corev4"
+    }
+  ]
+}
