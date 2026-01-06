@@ -770,7 +770,7 @@
           "parameters": [
             {
               "name": "number",
-              "value": "={{ $('Prepare: Chat Context').item.json.phone_number }}"
+              "value": "={{ $('Prepare: Chat Context').item.json.whatsapp_id }}"
             },
             {
               "name": "presence",
@@ -1432,7 +1432,7 @@
           "parameters": [
             {
               "name": "number",
-              "value": "={{ $('Prepare: Chat Context').item.json.phone_number }}"
+              "value": "={{ $('Prepare: Chat Context').item.json.whatsapp_id }}"
             },
             {
               "name": "presence",
